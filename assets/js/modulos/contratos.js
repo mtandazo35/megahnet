@@ -850,27 +850,69 @@ function updateComentario(idContrato) {
 
 
 function limpiarCampos() {
+  // Para inputs/select se usa .value, NO .textContent (eso era el bug que dejaba
+  // los datos del contrato anterior cargados en el form 'Nuevo').
+  function clr(el, val) {
+    if (!el) return;
+    if ('value' in el) el.value = (val === undefined) ? '' : val;
+    else el.textContent = '';
+  }
 
-  id.textContent = '';
-  localStorage.removeItem(nombreKey)
+  // Hidden id + carrito en localStorage
+  clr(id);
+  if (typeof nombreKey !== 'undefined') localStorage.removeItem(nombreKey);
 
-  //listaCarrito.value = res.productos;
-  idCliente.textContent = '';
-  ipUsuario.textContent = '';
-  buscarCliente.textContent = '';
-  telefonoCliente.textContent = '';
-  direccionCliente.textContent = '';
-  repetidora.textContent = '';
-  ap.textContent = '';
-  coordenada.textContent = '';
-  direccion.textContent = '';
-  comentario.textContent = '';
-  //medio.textContent = '';
-  //comparticion.textContent = '';
-  // tipoBanco.textContent = '';
-  //  cuentaBancaria.textContent = '';
-  tblNuevoContrato.innerHTML = ''
+  // Cliente
+  clr(idCliente);
+  clr(buscarCliente);
+  clr(telefonoCliente);
+  clr(direccionCliente);
+
+  // Tecnicos del contrato
+  clr(idIp);
+  clr(ipUsuario);
+  clr(repetidora);
+  clr(ap);
+  clr(coordenada);
+  clr(direccion);
+  clr(comentario);
+  clr(ciudad);
+  clr(anchoBanda);
+
+  // Selects: dejar en "Seleccionar"
+  if (medio        && medio.options       && medio.options.length)        medio.selectedIndex = 0;
+  if (comparticion && comparticion.options && comparticion.options.length) comparticion.selectedIndex = 0;
+  if (idMikrotik   && idMikrotik.options   && idMikrotik.options.length)   idMikrotik.selectedIndex = 0;
+  if (discapacidad && discapacidad.options && discapacidad.options.length) discapacidad.selectedIndex = 0;
+  // Switch facturacion electronica desactivado
+  if (chelectronica) chelectronica.checked = false;
+
+  // Errores visibles
+  ['errorCliente','errorIpUsuario','errorRepetidora','errorAp','errorCoordenada',
+   'errorDireccion','errorMedio','errorAnchoBanda','errorCiudad'].forEach(function(eid){
+    var e = document.getElementById(eid); if (e) e.textContent = '';
+  });
+
+  // Tabla de productos del contrato y total
+  if (tblNuevoContrato) tblNuevoContrato.innerHTML = '';
+  var tp = document.getElementById('totalPagar');     if (tp) tp.value = '';
+  var th = document.getElementById('totalPagarHidden'); if (th) th.value = '';
+  var bt = document.getElementById('btnAccion'); if (bt) bt.textContent = 'Completar Contrato';
 }
+
+// Hook: al activar el tab 'Nuevo' siempre dejar los campos vacios.
+// (Solo si el usuario llega al tab manualmente, NO durante una edicion
+// que usa firstTab.show() despues de cargar los datos.)
+document.addEventListener('DOMContentLoaded', function () {
+  var tab = document.getElementById('nav-nuevo-tab');
+  if (!tab) return;
+  tab.addEventListener('click', function () {
+    // Si btnAccion dice 'Actualizar', el usuario esta editando (no limpiar)
+    var bt = document.getElementById('btnAccion');
+    if (bt && bt.textContent.trim().toLowerCase().indexOf('actualizar') !== -1) return;
+    if (typeof limpiarCampos === 'function') limpiarCampos();
+  });
+});
 
 function calcularEnero() {
   if (chEnero.checked == true && chEnero.value != 2) {
