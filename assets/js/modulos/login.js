@@ -8,6 +8,20 @@ const conectar = document.querySelector('#conectar');
 
 
 document.addEventListener('DOMContentLoaded', function () {
+    const submitBtn = formulario.querySelector('button[type="submit"]');
+    const submitOriginalHTML = submitBtn ? submitBtn.innerHTML : '';
+
+    function setLoading(on) {
+        if (!submitBtn) return;
+        if (on) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Validando…';
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = submitOriginalHTML;
+        }
+    }
+
     formulario.addEventListener('submit', function (e) {
         e.preventDefault();
         errorCorreo.textContent = '';
@@ -17,36 +31,34 @@ document.addEventListener('DOMContentLoaded', function () {
         } else if (clave.value == '') {
             errorClave.textContent = 'LA CONTRASEÑA ES REQUERIDO';
         } else {
+            setLoading(true);
             const url = base_url + 'principal/validar';
-            //crear formData
             const data = new FormData(this);
-            //hacer una instancia del objeto XMLHttpRequest 
             const http = new XMLHttpRequest();
-            //Abrir una Conexion - POST - GET
             http.open('POST', url, true);
-            //Enviar Datos
             http.send(data);
-            //verificar estados
             http.onreadystatechange = function () {
-                if (this.readyState == 4 && this.status == 200) {
-                    const res = JSON.parse(this.responseText);
-                    if (res.type == 'success') {
-                        window.location = base_url + 'admin';
-                    } else {
-                        Swal.fire({
-                            toast: true,
-                            position: 'top-right',
-                            icon: res.type,
-                            title: res.msg,
-                            showConfirmButton: false,
-                            timer: 3000
-                        });
+                if (this.readyState == 4) {
+                    if (this.status == 200) {
+                        const res = JSON.parse(this.responseText);
+                        if (res.type == 'success') {
+                            // Mantener loading hasta que el redirect termine
+                            window.location = base_url + 'admin';
+                            return;
+                        } else {
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-right',
+                                icon: res.type,
+                                title: res.msg,
+                                showConfirmButton: false,
+                                timer: 3000
+                            });
+                        }
                     }
+                    setLoading(false);
                 }
             }
         }
     });
-    
-  
-
 })

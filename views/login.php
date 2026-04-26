@@ -5,17 +5,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="shortcut icon" type="image/x-icon" href="<?php echo BASE_URL; ?>assets/images/favicon.ico">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="<?php echo BASE_URL; ?>assets/css/pace.min.css" rel="stylesheet" />
     <script src="<?php echo BASE_URL; ?>assets/js/pace.min.js" defer></script>
     <link href="<?php echo BASE_URL; ?>assets/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="<?php echo BASE_URL; ?>assets/css/app.css" rel="stylesheet">
     <link href="<?php echo BASE_URL; ?>assets/css/icons.css" rel="stylesheet">
     <title><?php echo htmlspecialchars(TITLE, ENT_QUOTES, 'UTF-8') . ' - ' . htmlspecialchars($data['title'], ENT_QUOTES, 'UTF-8'); ?></title>
     <style>
-        body.bg-login { font-family: 'Roboto', sans-serif; }
+        /* Fontstack del sistema: 0ms de carga, se ve igual o mejor que Roboto en desktop */
+        body.bg-login { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
         .login-page  { min-height: 100vh; padding: 2rem 1rem; }
         .login-card  { border: 0; border-radius: 18px; box-shadow: 0 12px 40px rgba(0,0,0,.10); }
         .login-brand img { max-height: 90px; width: auto; }
