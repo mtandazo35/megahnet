@@ -20,6 +20,10 @@ class Productos extends Controller
             header('Location: ' . BASE_URL);
             exit;
         }
+        // Liberar lock de sesion PHP inmediatamente — este controller no escribe
+        // a $_SESSION, asi que otros requests del mismo usuario pueden correr en
+        // paralelo en vez de serializarse detras del file lock.
+        session_write_close();
         parent::__construct();
     }
     public function index()

@@ -9,6 +9,7 @@ class Categorias extends Controller
             header('Location: ' . BASE_URL);
             exit;
         }
+        session_write_close(); // libera lock — read-only en adelante
     }
     public function index()
     {

@@ -19,6 +19,7 @@ class Inventarios extends Controller
             exit;
         }
         $this->id_usuario = $_SESSION['id_usuario'];
+        session_write_close(); // libera lock — read-only en adelante
     }
     public function index()
     {
