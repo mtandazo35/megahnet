@@ -1,21 +1,16 @@
 <?php include_once 'views/templates/header.php';
-// Declaramos nuestras fechas inicial y final
-$fechaInicial = date('Y-m-d');
-$fechaFinal = date($data['empresa']['firmafinal']);
+// Vigencia de firma electronica (manejo defensivo: empresa puede no traer la fecha
+// configurada, ser '0000-00-00' o un formato invalido => $dias <= 0 dispara bloqueo).
+$firmaFinalRaw       = isset($data['empresa']['firmafinal']) ? trim((string)$data['empresa']['firmafinal']) : '';
+$firmaFinalSegundos  = ($firmaFinalRaw !== '') ? strtotime($firmaFinalRaw) : false;
+$fechaInicialSegundos = time();
+$dias = ($firmaFinalSegundos !== false)
+    ? (int) floor(($firmaFinalSegundos - $fechaInicialSegundos) / 86400)
+    : 0;
 
-
-
-$limiteDocumento = $data['empresa']['cantidaddocumento'];
-$cantidadDocumento = $data['cantidadDocumento'][0]['cantidad'];
-$totalDocumento = $limiteDocumento - $cantidadDocumento;
-//echo $cantidadDocumento;
-
-// Las convertimos a segundos
-$fechaInicialSegundos = strtotime($fechaInicial);
-$fechaFinalSegundos = strtotime($fechaFinal);
-
-// Hacemos las operaciones para calcular los dias entre las dos fechas y mostramos el resultado
-$dias = ($fechaFinalSegundos - $fechaInicialSegundos) / 86400;
+$limiteDocumento   = isset($data['empresa']['cantidaddocumento']) ? (int)$data['empresa']['cantidaddocumento'] : 0;
+$cantidadDocumento = isset($data['cantidadDocumento'][0]['cantidad']) ? (int)$data['cantidadDocumento'][0]['cantidad'] : 0;
+$totalDocumento    = $limiteDocumento - $cantidadDocumento;
 //echo "La diferencia entre la fecha : " . $fechaInicial . " y " . $fechaFinal . " es de: " . round($dias, 0, PHP_ROUND_HALF_UP)  . " dias." ;
 
 //Resultado de los dias de diferencia entre dos fechas
@@ -356,36 +351,10 @@ $dias = ($fechaFinalSegundos - $fechaInicialSegundos) / 86400;
     </div>
 
 
-<?php } else { ?>
-
-    <div class="error-404 d-flex align-items-center justify-content-center">
-        <div class="container">
-            <div class="card py-5">
-                <div class="row g-0">
-                    <div class="col col-xl-5">
-                        <div class="card-body p-4">
-                            <h1 class="display-1"><span class="text-primary">4</span><span class="text-danger">0</span><span class="text-success">4</span></h1>
-                            <h4 class="font-weight-bold display-4">Bloqueo Temporal</h4>
-                            <p>La Sección de ventas ha sido suspendido de forma temporal!
-                                <br>Debido a la caducidad de su firma electrónica!
-                                <br>Para solucionarlo, Contactar con soporte Técnico para la renovación de su firma!
-                                <br>Caso contrario no podrá ejercer sus ventas!
-                            </p>
-                            <div class="mt-5">
-                                <a href="<?php echo BASE_URL . 'admin'; ?>" class="btn btn-primary btn-lg px-md-5 radius-30">Regresar</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-xl-7">
-                        <img src="https://cdn.searchenginejournal.com/wp-content/uploads/2019/03/shutterstock_1338315902.png" class="img-fluid" alt="">
-                    </div>
-                </div>
-
-                <!--end row-->
-            </div>
-        </div>
-    </div>
-<?php } ?>
+<?php } else {
+    $nombreModulo = 'facturas';
+    include 'views/templates/firma_bloqueo.php';
+} ?>
 
 
 
