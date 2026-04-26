@@ -1,159 +1,184 @@
 <?php include_once 'views/templates/header.php'; ?>
 
-<div class="card">
+<div class="page-header d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2" id="page-header-modern">
+    <div>
+        <h4 class="mb-0 fw-semibold"><i class="bx bx-package text-primary me-1"></i>Productos</h4>
+        <small class="text-muted">Catálogo de productos y servicios</small>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalProducto" id="btnAbrirNuevoProducto">
+            <i class="bx bx-plus me-1"></i>Nuevo producto
+        </button>
+        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalCargarProductos">
+            <i class="bx bx-cloud-upload me-1"></i>Cargar plantilla
+        </button>
+        <a href="<?php echo BASE_URL . 'productos/reportePdf'; ?>" target="_blank" class="btn btn-outline-secondary">
+            <i class="bx bxs-file-pdf me-1"></i>Reporte PDF
+        </a>
+        <a href="<?php echo BASE_URL . 'productos/inactivos'; ?>" class="btn btn-outline-secondary">
+            <i class="bx bx-trash me-1"></i>Inactivos
+        </a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
     <div class="card-body">
-        <div class="d-flex align-items-center">
-            <div></div>
-            <div class="dropdown ms-auto">
-                <a class="dropdown-toggle dropdown-toggle-nocaret" href="#" data-bs-toggle="dropdown"><i class='bx bx-dots-horizontal-rounded font-22 text-option'></i>
-                </a>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="<?php echo BASE_URL . 'productos/reportePdf'; ?>" target="_blank"><i class="fas fa-file-pdf text-danger"></i> Reporte PDF</a>
-                    </li>
-                   <!--- <li><a class="dropdown-item" href="<?php echo BASE_URL . 'productos/reporteExcel'; ?>"><i class="fas fa-file-excel text-success"></i> Reporte Excel</a>
-                    </li>
-                    <li><a class="dropdown-item" href="<?php echo BASE_URL . 'productos/generarBarcode'; ?>" target="_blank"><i class="fas fa-barcode"></i> Barcode</a>
-                    </li>--->
-                    <li><a class="dropdown-item" href="<?php echo BASE_URL . 'productos/inactivos'; ?>"><i class="fas fa-trash text-danger"></i> Inactivos</a>
-                    </li>
-                </ul>
-            </div>
+        <?php $tituloListado='Listado de Productos'; $iconoListado='bx-package'; include 'views/templates/listado_titulo.php'; ?>
+        <div class="table-responsive">
+            <table class="table table-hover nowrap" id="tblProductos" style="width: 100%;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Acciones</th>
+                        <th>Descripción</th>
+                        <th>Código</th>
+                        <th class="text-end">P. Compra</th>
+                        <th class="text-end">P. Venta</th>
+                        <th class="text-center">Stock</th>
+                        <th>Categoría</th>
+                        <th>Foto</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
-        <nav>
-            <div class="nav nav-tabs" id="nav-tab" role="tablist">
-                <button class="nav-link active" id="nav-productos-tab" data-bs-toggle="tab" data-bs-target="#nav-productos" type="button" role="tab" aria-controls="nav-productos" aria-selected="true">Productos</button>
-                <button class="nav-link" id="nav-cargar-tab" data-bs-toggle="tab" data-bs-target="#nav-cargar" type="button" role="tab" aria-controls="nav-cargar" aria-selected="false">Cargar Productos</button>
+    </div>
+</div>
 
-                <button class="nav-link" id="nav-nuevo-tab" data-bs-toggle="tab" data-bs-target="#nav-nuevo" type="button" role="tab" aria-controls="nav-nuevo" aria-selected="false">Nuevo</button>
+<!-- ============ MODAL: NUEVO / EDITAR PRODUCTO ============ -->
+<div class="modal fade" id="modalProducto" tabindex="-1" aria-labelledby="modalProductoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="modalProductoLabel"><i class="bx bx-package text-primary me-1"></i>Datos del producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-        </nav>
-        <div class="tab-content" id="nav-tabContent">
-            <div class="tab-pane fade show active mt-2" id="nav-productos" role="tabpanel" aria-labelledby="nav-productos-tab" tabindex="0">
-                <?php $tituloListado='Listado de Productos'; $iconoListado='bx-package'; include 'views/templates/listado_titulo.php'; ?>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover nowrap" id="tblProductos" style="width: 100%;">
-                        <thead>
-                            <tr>
-							<th></th>
-                            <th>Descripcion</th>
-
-                                <th>Codigo</th>
-                                <th>P. Compra</th>
-                                <th>P. Venta</th>
-                                <th>Stock</th>
-                                <th>Categoria</th>
-                                <th>Foto</th>
-                                
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="tab-pane fade p-3" id="nav-nuevo" role="tabpanel" aria-labelledby="nav-nuevo-tab" tabindex="0">
-                <form id="formulario" autocomplete="off">
+            <form id="formulario" autocomplete="off">
+                <div class="modal-body">
                     <input type="hidden" id="id" name="id">
                     <input type="hidden" id="foto_actual" name="foto_actual">
-                    <div class="row mb-3">
-                        <div class="col-md-4 mb-3">
-                            <label for="codigo">Código <span class="text-danger">*</span></label>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label small mb-1" for="codigo">Código <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-barcode"></i></span>
+                                <span class="input-group-text"><i class="bx bx-barcode"></i></span>
                                 <input class="form-control" type="text" name="codigo" id="codigo" placeholder="Barcode">
                             </div>
-                            <span id="errorCodigo" class="text-danger"></span>
+                            <span id="errorCodigo" class="text-danger small"></span>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="nombre">Nombre <span class="text-danger">*</span></label>
+                        <div class="col-md-8">
+                            <label class="form-label small mb-1" for="nombre">Nombre <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-list"></i></span>
-                                <input class="form-control" type="text" name="nombre" id="nombre" placeholder="Nombre">
+                                <span class="input-group-text"><i class="bx bx-purchase-tag-alt"></i></span>
+                                <input class="form-control" type="text" name="nombre" id="nombre" placeholder="Nombre del producto">
                             </div>
-                            <span id="errorNombre" class="text-danger"></span>
+                            <span id="errorNombre" class="text-danger small"></span>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="form-group">
-                                <label for="id_iva">Valor Tributario <span class="text-danger">*</span></label>
-                                <select id="id_iva" class="form-control" name="id_iva">
-                                    <option value="">Seleccionar</option>
-                                    <!---<option value="05">Con Iva 5%</option>
-                                    <option value="12">Con Iva 12%</option>
-                                    <option value="13">Con Iva 13%</option>
-                                    <option value="14">Con Iva 14%</option>--->
-                                    <option value="15">Con Iva 15%</option>
-                                    <option value="0">Sin Iva 0%</option>
 
-                                </select>
-                            </div>
-                            <span id="errorIva" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="precio_compra">Precio Compra </label>
+                        <div class="col-md-4">
+                            <label class="form-label small mb-1" for="precio_compra">Precio Compra</label>
                             <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
-                                <input class="form-control" type="number" step="0.01" min="0.01" name="precio_compra" id="precio_compra" placeholder="Nombre" onkeypress="validarNumeroYDecimal(event)">
+                                <span class="input-group-text">$</span>
+                                <input class="form-control" type="number" step="0.01" min="0" name="precio_compra" id="precio_compra" placeholder="0.00" onkeypress="validarNumeroYDecimal(event)">
                             </div>
-                            <span id="errorCompra" class="text-danger"></span>
+                            <span id="errorCompra" class="text-danger small"></span>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="precio_venta">Precio Venta <span class="text-danger">*</span></label>
+                        <div class="col-md-4">
+                            <label class="form-label small mb-1" for="precio_venta">Precio Venta <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
-                                <input class="form-control" type="number" step="0.01" min="0.01" name="precio_venta" id="precio_venta" placeholder="Nombre" onkeypress="validarNumeroYDecimal(event)">
+                                <span class="input-group-text">$</span>
+                                <input class="form-control" type="number" step="0.01" min="0.01" name="precio_venta" id="precio_venta" placeholder="0.00" onkeypress="validarNumeroYDecimal(event)">
                             </div>
-                            <span id="errorVenta" class="text-danger"></span>
+                            <span id="errorVenta" class="text-danger small"></span>
                         </div>
-                       <!--- <div class="col-md-3 mb-3">
-                            <div class="form-group">
-                                <label for="id_medida">Medida <span class="text-danger">*</span></label>
-                                <select id="id_medida" class="form-control" name="id_medida">
-                                    <option value="">Seleccionar</option>
-                                    <?php foreach ($data['medidas'] as $medida) { ?>
-                                        <option value="<?php echo $medida['id']; ?>"><?php echo $medida['medida']; ?></option>
-                                    <?php } ?>
-                                </select>
-                            </div>
-                            <span id="errorMedida" class="text-danger"></span>
-                        </div> --->
-                        <div class="col-md-4 mb-3">
-                            <div class="form-group">
-                                <label for="id_categoria">Categorias <span class="text-danger">*</span></label>
-                                <select id="id_categoria" class="form-control" name="id_categoria">
-                                    <option value="">Seleccionar</option>
-                                    <?php foreach ($data['categorias'] as $categoria) { ?>
-                                        <option value="<?php echo $categoria['id']; ?>"><?php echo $categoria['categoria']; ?></option>
-                                    <?php } ?>
-                                </select>
-                            </div>
-                            <span id="errorCategoria" class="text-danger"></span>
+                        <div class="col-md-4">
+                            <label class="form-label small mb-1" for="id_iva">Valor Tributario <span class="text-danger">*</span></label>
+                            <select id="id_iva" class="form-select" name="id_iva">
+                                <option value="">Seleccionar</option>
+                                <option value="15">Con IVA 15%</option>
+                                <option value="0">Sin IVA 0%</option>
+                            </select>
+                            <span id="errorIva" class="text-danger small"></span>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="form-group">
-                                <label for="foto">Foto (Opcional)</label>
-                                <input id="foto" class="form-control" type="file" name="foto">
-                            </div>
-                            <div id="containerPreview" style="width: 50%;height: 50%;margin-top: 15px;">
-                            
-                            </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small mb-1" for="id_categoria">Categoría <span class="text-danger">*</span></label>
+                            <select id="id_categoria" class="form-select" name="id_categoria">
+                                <option value="">Seleccionar</option>
+                                <?php foreach ($data['categorias'] as $categoria) { ?>
+                                    <option value="<?php echo htmlspecialchars($categoria['id'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($categoria['categoria'], ENT_QUOTES, 'UTF-8'); ?></option>
+                                <?php } ?>
+                            </select>
+                            <span id="errorCategoria" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small mb-1" for="foto">Foto (opcional)</label>
+                            <input id="foto" class="form-control" type="file" name="foto" accept="image/*">
+                        </div>
+
+                        <div class="col-12">
+                            <div id="containerPreview" class="text-center" style="margin-top: 8px;"></div>
                         </div>
                     </div>
-                    <div class="text-end">
-                        <button class="btn btn-danger" type="button" id="btnNuevo">Nuevo</button>
-                        <button class="btn btn-primary" type="submit" id="btnAccion">Registrar</button>
-                    </div>
-                </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" id="btnNuevo"><i class="bx bx-eraser me-1"></i>Limpiar</button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnAccion"><i class="bx bx-save me-1"></i>Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============ MODAL: CARGAR DESDE EXCEL ============ -->
+<div class="modal fade" id="modalCargarProductos" tabindex="-1" aria-labelledby="modalCargarProductosLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="modalCargarProductosLabel"><i class="bx bx-cloud-upload text-primary me-1"></i>Cargar productos desde Excel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <div class="tab-pane fade p-3" id="nav-cargar" role="tabpanel">
+            <div class="modal-body">
                 <?php
-                $tituloCarga      = 'Cargar productos desde Excel';
-                $descripcionCarga = 'Sube un archivo <strong>.xlsx</strong> con los productos a registrar.';
+                $tituloCarga      = 'Sube tu archivo de productos';
+                $descripcionCarga = 'Selecciona un archivo <strong>.xlsx</strong> con los productos a registrar.';
                 include 'views/templates/cargar_excel.php';
                 ?>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var modal = document.getElementById('modalProducto');
+    var modalCargar = document.getElementById('modalCargarProductos');
+    var form  = document.getElementById('formulario');
+    var formCargar = document.getElementById('cargarDatosExcel');
+    var btnAccion = document.getElementById('btnAccion');
+
+    if (form && modal) form.addEventListener('mhn:registroOk', function () {
+        bootstrap.Modal.getOrCreateInstance(modal).hide();
+    });
+    if (formCargar && modalCargar) formCargar.addEventListener('mhn:registroOk', function () {
+        bootstrap.Modal.getOrCreateInstance(modalCargar).hide();
+    });
+
+    var btnAbrir = document.getElementById('btnAbrirNuevoProducto');
+    if (btnAbrir && form && btnAccion) btnAbrir.addEventListener('click', function () {
+        form.reset();
+        document.getElementById('id').value = '';
+        document.getElementById('foto_actual').value = '';
+        var preview = document.getElementById('containerPreview'); if (preview) preview.innerHTML = '';
+        btnAccion.textContent = 'Registrar';
+        ['errorCodigo','errorNombre','errorIva','errorCompra','errorVenta','errorCategoria']
+            .forEach(function(id){ var el=document.getElementById(id); if (el) el.textContent=''; });
+    });
+});
+window.abrirModalProducto = function () {
+    var el = document.getElementById('modalProducto');
+    if (el) bootstrap.Modal.getOrCreateInstance(el).show();
+};
+</script>
 
 <?php include_once 'views/templates/footer.php'; ?>

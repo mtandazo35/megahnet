@@ -173,7 +173,8 @@ function editarProducto(idProducto) {
             containerPreview.innerHTML = `<img class="img-thumbnail" src="${fotopre}" width="50%">
             <button style="width: 50%; margin-top: 5px;" class="btn btn-danger" type="button" onclick="deleteImg()"><i class="fas fa-trash"></i></button>`;
             btnAccion.textContent = 'Actualizar';
-            firstTab.show()
+            if (typeof window.abrirModalProducto === 'function') { window.abrirModalProducto(); }
+            else { firstTab.show(); }
         }
     }
 }
