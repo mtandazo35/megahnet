@@ -311,9 +311,10 @@
 
 <script>
 // Modal "Agregar Abono": al seleccionar un tipo de pago en el dropdown
-// (opciones EFECTIVO/TRANSFERENCIA/DEPOSITOS/CHEQUE/RETENCIONES hardcodeadas
-// igual que en el modal "Varios Abono"), se agrega al carrito via la
-// funcion global agregarTipoPago() y se refresca la tabla #tblNuevaTipoPago.
+// (mismas opciones EFECTIVO/TRANSFERENCIA/DEPOSITOS/CHEQUE/RETENCIONES que
+// el modal "Varios Abono"), se agrega al carrito via agregarTipoPago()
+// y se refresca la tabla #tblNuevaTipoPago.
+// El select MANTIENE la opcion seleccionada (mismo comportamiento que Varios Abono).
 document.addEventListener('DOMContentLoaded', function () {
     var sel = document.getElementById('selectTipoPago');
     if (!sel) return;
@@ -325,7 +326,8 @@ document.addEventListener('DOMContentLoaded', function () {
             // id = nombre (string) — el backend usa el nombre, no un id numerico
             agregarTipoPago(nombre, nombre, 0, '');
         }
-        sel.value = ''; // vuelve a "Seleccionar" para permitir agregar otro
+        // No reseteamos el select: la opcion elegida queda visible.
+        // Si el usuario quiere agregar otro tipo, simplemente cambia la seleccion.
     });
 });
 </script>
