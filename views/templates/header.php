@@ -27,6 +27,14 @@
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/plugins/fullcalendar/css/main.min.css" />
 
     <title><?php echo TITLE . ' - ' . $data['title']; ?></title>
+
+    <!-- Tab persist: oculta tab-content hasta que tab-persist.js active el tab correcto -->
+    <script>
+        if (window.location.hash) document.documentElement.classList.add('tab-pending');
+    </script>
+    <style>
+        .tab-pending .tab-content, .tab-pending .nav-tabs { visibility: hidden; }
+    </style>
 </head>
 
 <body>
