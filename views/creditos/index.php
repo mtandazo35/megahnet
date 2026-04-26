@@ -151,11 +151,12 @@
                             <input class="form-control" type="text" id="telefonoCliente" placeholder="Telefono" disabled>
                         </div>
                     </div>
-                    <div class="col-md-12 mb-2">
+                    <div class="col-md-12">
                         <label>Dirección</label>
-                        <ul class="list-group">
-                            <li class="list-group-item" id="direccionCliente"><i class="fas fa-home"></i></li>
-                        </ul>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text"><i class="fas fa-home"></i></span>
+                            <div class="form-control direccion-display" id="direccionCliente"></div>
+                        </div>
                     </div>
                     <div class="col-md-4 mb-2">
                         <label>Abonado</label>
@@ -331,4 +332,20 @@
         </div>
     </div>
 </div>
+<style>
+/* Direccion como display-only (innerHTML se setea desde JS) */
+.direccion-display {
+    background-color: #e9ecef;
+    color: #495057;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    cursor: default;
+}
+.direccion-display:empty::before {
+    content: 'Dirección';
+    color: #adb5bd;
+}
+</style>
+
 <?php include_once 'views/templates/footer.php'; ?>
