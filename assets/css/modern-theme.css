@@ -421,3 +421,25 @@ input[type="date"]#hasta,
     flex: 0 0 auto;
     width: auto;
 }
+
+/* ===========================================================
+   Suprimir outlines azules feos al refrescar la pagina
+   - tab-pane[tabindex=0] recibe focus programatico cuando se
+     restaura la pestana activa => Bootstrap dibuja outline
+   - dataTables_wrapper recibe focus al inicializarse => idem
+   - Mantenemos a11y: inputs, botones y links siguen mostrando
+     su propio :focus-visible para navegacion por teclado.
+   =========================================================== */
+.tab-pane:focus,
+.tab-pane.show:focus,
+.tab-pane[tabindex]:focus,
+div.dataTables_wrapper:focus,
+div.dataTables_wrapper *:focus:not(input):not(select):not(textarea):not(button):not(a) {
+    outline: none !important;
+    box-shadow: none !important;
+}
+/* Misma regla pero usando :focus-visible para override estricto */
+.tab-pane:focus-visible,
+.tab-pane.show:focus-visible {
+    outline: none !important;
+}
