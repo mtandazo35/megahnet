@@ -16,10 +16,6 @@
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Forzar color scheme claro: evita que el browser pinte fondo oscuro
-         siguiendo el tema del SO antes de que se carguen los CSS. -->
-    <meta name="color-scheme" content="light">
-    <meta name="theme-color" content="#f4f6fb">
     <!--favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="<?php echo BASE_URL; ?>assets/images/favicon.ico">
     <link href="<?php echo BASE_URL; ?>assets/plugins/simplebar/css/simplebar.css" rel="stylesheet" />
@@ -44,55 +40,12 @@
 
     <title><?php echo TITLE . ' - ' . $data['title']; ?></title>
 
-    <!-- Background base: evita flash negro/oscuro durante navegacion (CSS aun cargando) -->
-    <style>
-        html, body { background-color: #f4f6fb; }
-        body.bg-login { background-color: #f4f6fb; }
-        .wrapper, .page-wrapper, .page-content { background-color: #f4f6fb; }
-        .sidebar-wrapper { background-color: #ffffff; }
-
-        /* View Transitions desactivadas:
-           - Causaban que los modales BS5 se congelaran en snapshots cuando
-             se abrian dentro de elementos con view-transition-name
-           - Mantengo solo el bg base #f4f6fb que evita el flash negro del
-             tema oscuro del SO */
-
-        /* Loader bar superior durante navegacion (no afecta interactividad) */
-        body.mhn-navigating::before {
-            content: '';
-            position: fixed;
-            top: 0; left: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #2563eb, #7c3aed, #2563eb);
-            background-size: 200% 100%;
-            z-index: 9999;
-            animation: mhn-loader-fill 600ms ease-out forwards;
-            box-shadow: 0 0 8px rgba(37,99,235,.5);
-            pointer-events: none;
-        }
-        @keyframes mhn-loader-fill {
-            0%   { width: 0%;  background-position: 0%   50%; }
-            60%  { width: 70%; background-position: 100% 50%; }
-            100% { width: 100%; background-position: 100% 50%; }
-        }
-    </style>
     <!-- Tab persist: oculta tab-content hasta que tab-persist.js active el tab correcto -->
     <script>
         if (window.location.hash) document.documentElement.classList.add('tab-pending');
     </script>
-    <!-- Sidebar scroll persist: oculta el sidebar hasta restaurar la posicion (evita flicker) -->
-    <script>
-        try {
-            var __t = sessionStorage.getItem('mhn_sidebar_scroll');
-            if (__t && parseInt(__t, 10) > 0) {
-                document.documentElement.classList.add('sb-restoring');
-            }
-        } catch(e){}
-    </script>
     <style>
         .tab-pending .tab-content, .tab-pending .nav-tabs { visibility: hidden; }
-        /* Mientras restauramos el scroll, ocultamos el sidebar para que no se vea el "salto" */
-        html.sb-restoring .sidebar-wrapper { visibility: hidden; }
     </style>
 </head>
 
@@ -501,158 +454,18 @@ document.addEventListener("click", function(e){
 </script>
 
 <script>
-// Persistir el scroll del sidebar entre navegaciones (sessionStorage).
-// El sidebar esta oculto via .sb-restoring (CSS en <head>) hasta que terminemos
-// de restaurar; asi el usuario no ve el "flicker" de scroll en 0 saltando.
+// Defensivo: limpiar clases zombi del body al cargar (evita que un estado
+// anterior deje el contenido inerte u oculto).
 (function(){
-    var KEY = 'mhn_sidebar_scroll';
-
-    function getScroller(){
-        return document.querySelector('.sidebar-wrapper .simplebar-content-wrapper');
-    }
-
-    function saveScroll(){
-        try {
-            var s = getScroller() || document.querySelector('.sidebar-wrapper');
-            if (s) sessionStorage.setItem(KEY, String(s.scrollTop));
-        } catch(e) { /* noop */ }
-    }
-
-    function reveal(){ document.documentElement.classList.remove('sb-restoring'); }
-
-    function tryRestore(){
-        var s = getScroller();
-        if (!s) return false;
-        var t = sessionStorage.getItem(KEY);
-        if (t !== null) s.scrollTop = parseInt(t, 10) || 0;
-        reveal();
-        return true;
-    }
-
-    // 1) Intento inmediato si SimpleBar ya inicializo
-    if (!tryRestore()) {
-        // 2) MutationObserver: detecta el momento exacto en que SimpleBar inyecta
-        //    .simplebar-content-wrapper, y restaura sin pausa visible.
-        var sw = document.querySelector('.sidebar-wrapper');
-        if (sw) {
-            var obs = new MutationObserver(function(){
-                if (tryRestore()) obs.disconnect();
-            });
-            obs.observe(sw, { childList: true, subtree: true });
-        }
-        // 3) Failsafe: a los 600ms, revelar el sidebar de todos modos
-        //    (evita dejarlo invisible si algo falla con SimpleBar).
-        setTimeout(function(){
-            tryRestore();
-            reveal();
-        }, 600);
-    }
-
-    // Guardar al salir de la pagina (pagehide es bfcache-friendly, beforeunload no).
-    window.addEventListener('pagehide', saveScroll);
-
-    // Tambien guardar inmediatamente al hacer click en cualquier link del menu
-    // (defensivo: si pagehide no dispara, esto si captura).
-    document.addEventListener('click', function(e){
-        var a = e.target.closest('.sidebar-wrapper a[href]');
-        if (!a) return;
-        var href = a.getAttribute('href') || '';
-        if (href === '' || href === '#' || href.indexOf('javascript:') === 0) return;
-        saveScroll();
-    }, true);
-})();
-
-// Fade-out manual del contenido al hacer click en navegacion: elimina el
-// flash blanco entre paginas. Funciona en TODOS los browsers (no depende
-// de View Transitions). El sidebar/topbar quedan estables visualmente.
-(function(){
-    function isNavigationLink(a){
-        if (!a) return false;
-        var href = a.getAttribute('href') || '';
-        if (!href || href === '#' || href.charAt(0) === '#') return false;
-        if (href.indexOf('javascript:') === 0) return false;
-        if (href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return false;
-        if (a.target === '_blank') return false;
-        if (a.hasAttribute('download')) return false;
-        // Solo mismo origen
-        try {
-            var u = new URL(href, location.href);
-            if (u.origin !== location.origin) return false;
-            if (u.href === location.href) return false;
-        } catch(e) { return false; }
-        // Saltar links que abren modales/dropdowns BS5
-        if (a.hasAttribute('data-bs-toggle')) return false;
-        return true;
-    }
-
-    document.addEventListener('click', function(e){
-        // Ignorar si el usuario aprieta Ctrl/Cmd/Shift (abre nueva pestana)
-        if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
-        var a = e.target.closest('a[href]');
-        if (!isNavigationLink(a)) return;
-        document.body.classList.add('mhn-navigating');
-    }, true);
-
-    // Si el browser cancela la navegacion (volver atras dentro de la cache),
-    // o pageshow desde bfcache, quitar la clase
-    window.addEventListener('pageshow', function(){
+    function clean(){
         document.body.classList.remove('mhn-navigating');
-    });
-    // Defensivo: quitar la clase al cargar el DOM siempre (por si quedo zombi
-    // de una navegacion anterior). Sin esto, el modal podria quedar inactivo
-    // si el contenido tenia opacity:0 / pointer-events:none.
+    }
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function(){
-            document.body.classList.remove('mhn-navigating');
-        });
+        document.addEventListener('DOMContentLoaded', clean);
     } else {
-        document.body.classList.remove('mhn-navigating');
+        clean();
     }
-})();
-
-// Prefetch on hover: cuando el usuario pasa el mouse sobre un link
-// del mismo origen, precarga el HTML/recursos en background. Al hacer
-// click, la pagina ya esta en cache => navegacion casi instantanea.
-(function(){
-    var support = (function(){
-        try {
-            var l = document.createElement('link');
-            return l.relList && l.relList.supports && l.relList.supports('prefetch');
-        } catch(e) { return false; }
-    })();
-    if (!support) return;
-    if (navigator.connection && navigator.connection.saveData) return; // respetar Save-Data
-    var done = new Set();
-    var hoverTimer;
-    var DELAY = 60; // ms hover antes de iniciar prefetch (evita prefetch accidentales)
-
-    function prefetch(url){
-        if (done.has(url)) return;
-        done.add(url);
-        var link = document.createElement('link');
-        link.rel = 'prefetch';
-        link.href = url;
-        link.as = 'document';
-        document.head.appendChild(link);
-    }
-
-    function onHover(e){
-        var a = e.target.closest('a[href]');
-        if (!a) return;
-        var href = a.getAttribute('href') || '';
-        if (!href || href === '#' || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
-        if (a.target === '_blank' || a.hasAttribute('download')) return;
-        var u;
-        try { u = new URL(href, location.href); } catch (err) { return; }
-        if (u.origin !== location.origin) return;
-        if (u.href === location.href) return;
-        clearTimeout(hoverTimer);
-        hoverTimer = setTimeout(function(){ prefetch(u.href); }, DELAY);
-    }
-    function cancelHover(){ clearTimeout(hoverTimer); }
-
-    document.addEventListener('mouseover', onHover, { passive: true, capture: true });
-    document.addEventListener('mouseout',  cancelHover, { passive: true, capture: true });
+    window.addEventListener('pageshow', clean);
 })();
 </script>
 
