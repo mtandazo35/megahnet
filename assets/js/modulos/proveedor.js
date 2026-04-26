@@ -46,33 +46,18 @@ document.addEventListener('DOMContentLoaded', function(){
         responsive: true,
         order: [[0, 'asc']],
     });
-    //Inicializar un Editor
-    ClassicEditor
-        .create(document.querySelector('#direccion'), {
-            toolbar: {
-                items: [
-                    'selectAll', '|',
-                    'heading', '|',
-                    'bold', 'italic',
-                    'outdent', 'indent', '|',
-                    'undo', 'redo',
-                    'alignment', '|',
-                    'link', 'blockQuote', 'insertTable', 'mediaEmbed'
-                ],
-                shouldNotGroupWhenFull: true
-            },
-        })
-        .then(editor => {
-            editorDireccion = editor
-        })
-        .catch(error => {
-            console.error(error);
-        });
-    //limpiar campos
+    // CKEditor desactivado para Dirección: textarea simple es suficiente
+    // (el editor rico fallaba dentro del modal oculto y rompia el flow editar/submit).
+    //
+    // limpiar campos
     btnNuevo.addEventListener('click', function(){
         id.value = '';
         btnAccion.textContent = 'Registrar';
-        editorDireccion.setData('');
+        if (typeof editorDireccion !== 'undefined' && editorDireccion) {
+            editorDireccion.setData('');
+        } else if (direccion) {
+            direccion.value = '';
+        }
         formulario.reset();
         limpiarCampos();
     })
@@ -80,19 +65,17 @@ document.addEventListener('DOMContentLoaded', function(){
     formulario.addEventListener('submit', function(e){
         e.preventDefault();
         limpiarCampos();
-        editorDireccion.setData('');
-
+        // No limpiar la direccion antes de validarla (causaria fallar siempre la validacion)
         if (ruc.value == '') {
             errorRuc.textContent = 'EL RUC ES REQUERIDO';
         } else if (nombre.value == '') {
             errorNombre.textContent = 'EL NOMBRE ES REQUERIDO';
-        }else if (direccion.value == '') {
+        } else if (direccion.value == '') {
             errorDireccion.textContent = 'LA DIRECCION ES REQUERIDO';
-        }else{
+        } else {
             const url = base_url + 'proveedor/registrar';
             insertarRegistros(url, this, tblProveedores, btnAccion, false);
         }
-        
     })
 })
 
