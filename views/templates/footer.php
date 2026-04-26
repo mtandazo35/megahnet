@@ -18,6 +18,37 @@
 <script src="<?php echo BASE_URL; ?>assets/js/bootstrap.bundle.min.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/jquery.min.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/plugins/simplebar/js/simplebar.min.js"></script>
+<script>
+// Sidebar scroll persist — corre INMEDIATAMENTE después de que SimpleBar
+// wrappea .sidebar-wrapper. SimpleBar es síncrono al init, así que el
+// .simplebar-content-wrapper ya existe cuando este script corre. Aplicamos
+// scrollTop ANTES del primer paint del browser → sin flash de "scroll en
+// top → salta a posición". Esa era la queja del usuario.
+(function(){
+    var KEY = 'mhn_sidebar_scroll_v2';
+    var saveTimer = null;
+
+    var scroller = document.querySelector('.sidebar-wrapper .simplebar-content-wrapper');
+    if (!scroller) return;
+
+    // 1) Restaurar
+    try {
+        var t = sessionStorage.getItem(KEY);
+        if (t !== null) scroller.scrollTop = parseInt(t, 10) || 0;
+    } catch(e){}
+
+    // 2) Listener throttled — guarda mientras el usuario scrollea
+    function saveNow(){
+        try { sessionStorage.setItem(KEY, String(scroller.scrollTop)); } catch(e){}
+    }
+    function saveThrottled(){
+        if (saveTimer) return;
+        saveTimer = setTimeout(function(){ saveTimer = null; saveNow(); }, 120);
+    }
+    scroller.addEventListener('scroll', saveThrottled, { passive: true });
+    window.addEventListener('pagehide', saveNow);
+})();
+</script>
 <script src="<?php echo BASE_URL; ?>assets/plugins/metismenu/js/metisMenu.min.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/plugins/chartjs/js/Chart.min.js"></script>

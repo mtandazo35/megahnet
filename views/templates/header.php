@@ -493,79 +493,12 @@ document.addEventListener("click", function(e){
 })();
 </script>
 
-<script>
-// Mantener la posicion del scroll del sidebar entre navegaciones.
-// Approach: guardar continuamente al hacer scroll en el sidebar (no al click).
-// Asi NO importa que disparo la navegacion (link sidebar, boton DataTable,
-// modal, etc.): el ultimo scrollTop esta siempre actualizado en sessionStorage.
-(function(){
-    var KEY = 'mhn_sidebar_scroll_v2';
-    var saveTimer = null;
-
-    function getScroller(){
-        // Tras inicializar SimpleBar, el scroller real es el .simplebar-content-wrapper
-        return document.querySelector('.sidebar-wrapper .simplebar-content-wrapper');
-    }
-
-    function saveNow(){
-        var s = getScroller();
-        if (!s) return;
-        try { sessionStorage.setItem(KEY, String(s.scrollTop)); } catch(e){}
-    }
-
-    // Throttle: guardar como mucho cada 120ms mientras el usuario scrollea
-    function saveThrottled(){
-        if (saveTimer) return;
-        saveTimer = setTimeout(function(){ saveTimer = null; saveNow(); }, 120);
-    }
-
-    function attachScrollListener(){
-        var s = getScroller();
-        if (!s || s.__mhnScrollAttached) return false;
-        s.__mhnScrollAttached = true;
-        s.addEventListener('scroll', saveThrottled, { passive: true });
-        return true;
-    }
-
-    function restore(){
-        var s = getScroller();
-        if (!s) return false;
-        try {
-            var t = sessionStorage.getItem(KEY);
-            if (t !== null) s.scrollTop = parseInt(t, 10) || 0;
-        } catch(e){}
-        return true;
-    }
-
-    // Restaurar + adjuntar listener apenas SimpleBar inyecte el wrapper.
-    // Usamos MutationObserver porque SimpleBar es async y rAF no es confiable.
-    function init(){
-        if (restore()) {
-            attachScrollListener();
-            return;
-        }
-        var sw = document.querySelector('.sidebar-wrapper');
-        if (!sw) return;
-        var obs = new MutationObserver(function(){
-            if (restore()) {
-                attachScrollListener();
-                obs.disconnect();
-            }
-        });
-        obs.observe(sw, { childList: true, subtree: true });
-        // Failsafe: 1.5s max para no observar para siempre
-        setTimeout(function(){ obs.disconnect(); }, 1500);
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-    // Defensa: guardar al salir de la pagina por si throttle no llego a guardar
-    window.addEventListener('pagehide', saveNow);
-})();
-</script>
+<!-- Scroll persist movido a footer.php inmediatamente despues de simplebar.min.js
+     Razon: SimpleBar inicializa sincronicamente cuando su script se ejecuta.
+     Si aplicamos scrollTop justo DESPUES de su carga (antes del primer paint
+     del browser), no se ve el flash de "scroll en top → salta a posicion".
+     Aqui en <body> con DOMContentLoaded ya es demasiado tarde — el browser
+     ya pinto la pagina con scrollTop=0. -->
 
 <!-- ===== Navegacion rapida: prefetch on hover + feedback visual + progress bar =====
      Ataca la percepcion de lentitud al cambiar de pestana. No usa PJAX (los modulos
