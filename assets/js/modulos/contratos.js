@@ -84,6 +84,14 @@ const tipopago = document.querySelector('#tipopago');
 
 
 document.addEventListener('DOMContentLoaded', function () {
+  // Forzar campos vacios al cargar (incluso si el backend precargo $data['clienteNuevo']
+  // o quedaron datos del ultimo contrato). El usuario debe buscar el cliente
+  // siempre antes de cargar los datos tecnicos.
+  // Usar querySelectorAll porque hay IDs duplicados en la vista (rama clienteNuevo / no).
+  document.querySelectorAll('#buscarCliente, #telefonoCliente, #direccionCliente, #idCliente').forEach(function(el){
+    if ('value' in el) el.value = '';
+  });
+
   // cargar productos de localStorage
   mostrarProducto()
 
