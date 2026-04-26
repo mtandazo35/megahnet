@@ -454,6 +454,56 @@ document.addEventListener("click", function(e){
 </script>
 
 <script>
+// Persistir el scroll del sidebar entre navegaciones (localStorage).
+(function(){
+    var KEY = 'mhn_sidebar_scroll';
+
+    function getScroller(){
+        // SimpleBar inyecta .simplebar-content-wrapper dentro de .sidebar-wrapper.
+        // Si SimpleBar no esta inicializado todavia, fallback al wrapper directo.
+        return document.querySelector('.sidebar-wrapper .simplebar-content-wrapper')
+            || document.querySelector('.sidebar-wrapper');
+    }
+
+    function saveScroll(){
+        try {
+            var s = getScroller();
+            if (s) sessionStorage.setItem(KEY, String(s.scrollTop));
+        } catch(e) { /* noop */ }
+    }
+
+    function restoreScroll(){
+        try {
+            var s = getScroller();
+            var t = sessionStorage.getItem(KEY);
+            if (s && t !== null) s.scrollTop = parseInt(t, 10) || 0;
+        } catch(e) { /* noop */ }
+    }
+
+    // Restaurar al cargar (con pequeno delay para que SimpleBar inicialice)
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function(){ setTimeout(restoreScroll, 50); });
+    } else {
+        setTimeout(restoreScroll, 50);
+    }
+
+    // Guardar antes de salir de la pagina
+    window.addEventListener('beforeunload', saveScroll);
+    window.addEventListener('pagehide', saveScroll);
+
+    // Tambien guardar inmediatamente al hacer click en cualquier link del menu
+    // (defensivo: si beforeunload no dispara por alguna razon, esto si captura).
+    document.addEventListener('click', function(e){
+        var a = e.target.closest('.sidebar-wrapper a[href]');
+        if (!a) return;
+        var href = a.getAttribute('href') || '';
+        if (href === '' || href === '#' || href.indexOf('javascript:') === 0) return;
+        saveScroll();
+    }, true);
+})();
+</script>
+
+<script>
 (function(){
     // 1) Highlight active item segun URL
     const path = location.pathname.replace(/^\//,'').replace(/\/$/, '');
