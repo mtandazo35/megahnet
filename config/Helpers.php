@@ -272,6 +272,96 @@ function respaldoBD_restaurar_sin_predump($nombre) {
     return $ret === 0;
 }
 
+/**
+ * Lista de tablas "borrables" (datos transaccionales).
+ * NO incluye: usuarios (preserva admin actual), configuracion, tipo_pago,
+ * tipo_comprobante, codigos_retencion (catálogos del sistema/SRI).
+ */
+function respaldoBD_tablasBorrables() {
+    return [
+        'abonos','acceso','apartados','cajas','casos','categorias','clientes',
+        'compras','contratos','cotizaciones','creditos','datos_cabecera_electronica',
+        'detalle_apartado','detalle_factura_electronica','estado_corte','gastos',
+        'grupo_trabajo','inventario','ip','ip_anuladas','medidas','mes_facturar',
+        'mikrotik','nota_credito_cabecera','nota_credito_detalle','orden_venta',
+        'productos','proveedor','repetidoras','respuesta_sri','retencion',
+        'retencion_detalle','sucursales','ventas','zonas',
+    ];
+}
+
+/**
+ * Borra datos de tablas seleccionadas. SIEMPRE crea un backup previo automático
+ * para rollback. Preserva el usuario actual logueado en la tabla usuarios si
+ * 'usuarios' viene en la lista.
+ *
+ * @param array $tablas    Tablas a truncar. Filtradas contra la whitelist.
+ * @param int   $userKeep  ID de usuario a preservar en tabla 'usuarios' (si aplica).
+ * @return array  ['ok'=>bool, 'backup_previo'=>str, 'tablas_eliminadas'=>array, 'errores'=>array]
+ */
+function respaldoBD_borrarDatos($tablas, $userKeep) {
+    if (!is_array($tablas) || empty($tablas)) {
+        throw new Exception('Lista de tablas vacía');
+    }
+    $userKeep = (int)$userKeep;
+    if ($userKeep <= 0) {
+        throw new Exception('Usuario admin requerido para preservar');
+    }
+
+    // 1) Backup previo automático (rollback safety)
+    $pre = respaldoBD_generar();
+
+    // 2) Filtrar contra whitelist — nadie borra fuera de aquí
+    $whitelist = array_flip(respaldoBD_tablasBorrables());
+    $aProcesar = [];
+    foreach ($tablas as $t) {
+        $t = preg_replace('/[^a-z0-9_]/i', '', (string)$t);
+        if ($t === '') continue;
+        if (isset($whitelist[$t])) $aProcesar[] = $t;
+    }
+    if (empty($aProcesar)) {
+        return ['ok'=>true, 'backup_previo'=>$pre['nombre'], 'tablas_eliminadas'=>[], 'errores'=>['Ninguna tabla válida']];
+    }
+
+    // 3) Truncate con FK checks deshabilitados (evita errores por foreign keys)
+    $eliminadas = [];
+    $errores = [];
+    try {
+        $pdo = new PDO(
+            'mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';' . CHARSET,
+            USER, PASSWORD,
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        );
+        $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
+
+        foreach ($aProcesar as $t) {
+            try {
+                if ($t === 'usuarios') {
+                    // Caso especial: NO truncar — borrar todos excepto el admin actual
+                    $stmt = $pdo->prepare("DELETE FROM `usuarios` WHERE id != ?");
+                    $stmt->execute([$userKeep]);
+                    $eliminadas[] = 'usuarios (excepto admin actual)';
+                } else {
+                    $pdo->exec("TRUNCATE TABLE `$t`");
+                    $eliminadas[] = $t;
+                }
+            } catch (\Throwable $e) {
+                $errores[] = "$t: " . $e->getMessage();
+            }
+        }
+
+        $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
+    } catch (\Throwable $e) {
+        throw new Exception('Error de conexión BD: ' . $e->getMessage());
+    }
+
+    return [
+        'ok' => true,
+        'backup_previo' => $pre['nombre'],
+        'tablas_eliminadas' => $eliminadas,
+        'errores' => $errores,
+    ];
+}
+
 // Subir un respaldo desde el navegador y guardarlo en el directorio
 function respaldoBD_subir($file) {
     if (!isset($file["tmp_name"]) || $file["error"] !== 0)

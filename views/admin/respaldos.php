@@ -5,11 +5,12 @@
     <div class="col-12">
       <div class="card">
         <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <h4 class="mb-0"><i class="bx bx-cloud-download"></i> Respaldos de Base de Datos</h4>
-            <div>
+            <div class="d-flex flex-wrap gap-2">
               <button id="btnGenerar" class="btn btn-primary"><i class="bx bx-refresh"></i> Generar respaldo ahora</button>
               <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalSubir"><i class="bx bx-upload"></i> Subir respaldo</button>
+              <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalBorrarDatos"><i class="bx bx-eraser"></i> Borrar datos</button>
             </div>
           </div>
           <div class="alert alert-info">
@@ -182,6 +183,129 @@ document.addEventListener("DOMContentLoaded", function(){
       });
   };
 });
+</script>
+
+<!-- ============ MODAL: BORRAR DATOS ============ -->
+<div class="modal fade" id="modalBorrarDatos" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header text-white" style="background: linear-gradient(135deg,#dc2626,#7f1d1d); border-radius: calc(0.5rem - 1px) calc(0.5rem - 1px) 0 0;">
+        <h5 class="modal-title"><i class="bx bx-error-circle me-1"></i>Borrar datos de la base</h5>
+        <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning border-warning">
+          <strong><i class="bx bx-shield-x"></i> Operación destructiva.</strong> Antes de borrar, se generará automáticamente un <b>respaldo</b> que aparecerá en la lista para rollback.<br>
+          <small class="text-muted">Las tablas <code>usuarios</code> (excepto el admin actual), <code>configuracion</code> y catálogos SRI <strong>no</strong> aparecen aquí — están protegidas.</small>
+        </div>
+
+        <div class="d-flex gap-2 mb-3">
+          <button type="button" class="btn btn-outline-danger btn-sm" id="btnSeleccionarTodas"><i class="bx bx-check-square me-1"></i>Seleccionar todas</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="btnDeseleccionarTodas"><i class="bx bx-square me-1"></i>Deseleccionar</button>
+        </div>
+
+        <div id="listaTablas" class="row g-2 mb-3" style="max-height: 280px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px;">
+          <div class="col-12 text-muted small">Cargando lista de tablas…</div>
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label fw-semibold">Para confirmar, escribe <code>BORRAR DATOS</code> abajo:</label>
+          <input type="text" class="form-control" id="confirmBorrar" autocomplete="off" placeholder="Escribe BORRAR DATOS">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btnBorrarConfirmar" disabled><i class="bx bx-trash me-1"></i>Borrar datos</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var modalEl = document.getElementById('modalBorrarDatos');
+  if (!modalEl) return;
+  var listaCont = document.getElementById('listaTablas');
+  var inputConfirm = document.getElementById('confirmBorrar');
+  var btnConfirmar = document.getElementById('btnBorrarConfirmar');
+  var btnSelAll = document.getElementById('btnSeleccionarTodas');
+  var btnDeselAll = document.getElementById('btnDeseleccionarTodas');
+  var loaded = false;
+
+  modalEl.addEventListener('show.bs.modal', function(){
+    inputConfirm.value = '';
+    btnConfirmar.disabled = true;
+    if (loaded) return;
+    fetch(base_url + 'admin/tablasBorrables').then(r => r.json()).then(function(res){
+      if (!res.ok) { listaCont.innerHTML = '<div class="col-12 text-danger small">' + (res.error || 'Error') + '</div>'; return; }
+      var html = '';
+      res.tablas.forEach(function(t){
+        html += '<div class="col-md-4 col-sm-6">'
+             +   '<label class="form-check small d-flex align-items-center gap-1">'
+             +     '<input type="checkbox" class="form-check-input mhn-tabla-cb" value="' + t + '" checked>'
+             +     '<code style="font-size:11.5px">' + t + '</code>'
+             +   '</label>'
+             + '</div>';
+      });
+      listaCont.innerHTML = html;
+      loaded = true;
+    }).catch(function(){ listaCont.innerHTML = '<div class="col-12 text-danger small">Error de red</div>'; });
+  });
+
+  btnSelAll.addEventListener('click', function(){
+    listaCont.querySelectorAll('.mhn-tabla-cb').forEach(function(cb){ cb.checked = true; });
+  });
+  btnDeselAll.addEventListener('click', function(){
+    listaCont.querySelectorAll('.mhn-tabla-cb').forEach(function(cb){ cb.checked = false; });
+  });
+
+  inputConfirm.addEventListener('input', function(){
+    btnConfirmar.disabled = inputConfirm.value !== 'BORRAR DATOS';
+  });
+
+  btnConfirmar.addEventListener('click', function(){
+    var seleccionadas = Array.from(listaCont.querySelectorAll('.mhn-tabla-cb:checked')).map(function(cb){ return cb.value; });
+    if (seleccionadas.length === 0) {
+      Swal.fire({ icon:'warning', title:'Selecciona al menos una tabla' });
+      return;
+    }
+    Swal.fire({
+      title: '¿Última confirmación?',
+      html: 'Vas a borrar <b>' + seleccionadas.length + '</b> tabla(s).<br>Se creará un respaldo automático antes para rollback.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      confirmButtonText: 'Sí, borrar',
+      cancelButtonText: 'Cancelar'
+    }).then(function(r){
+      if (!r.isConfirmed) return;
+      Swal.fire({ title: 'Generando respaldo y borrando datos…', didOpen: function(){ Swal.showLoading(); }, allowOutsideClick: false });
+      fetch(base_url + 'admin/borrarDatos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ confirm: 'BORRAR DATOS', tablas: seleccionadas })
+      })
+      .then(function(rs){ return rs.json(); })
+      .then(function(res){
+        Swal.close();
+        if (res.ok) {
+          var detalle = '<small class="text-muted">Respaldo previo (rollback): <code>' + (res.backup_previo||'-') + '</code></small><br><br>'
+                     + '<b>Tablas vaciadas:</b><br>'
+                     + '<small style="font-size:11px">' + (res.tablas_eliminadas||[]).join(', ') + '</small>';
+          if ((res.errores||[]).length) detalle += '<br><br><span class="text-warning">Errores: ' + res.errores.join('; ') + '</span>';
+          Swal.fire({ icon:'success', title:'Datos borrados', html: detalle, width: 600 }).then(function(){
+            // Recargar la tabla de respaldos para que se vea el rollback
+            if (window.location) window.location.reload();
+          });
+        } else {
+          Swal.fire({ icon:'error', title:'Error', text: res.error || 'Falló el borrado' });
+        }
+      })
+      .catch(function(){ Swal.fire({ icon:'error', title:'Error de red' }); });
+    });
+  });
+})();
 </script>
 
 <?php include_once "views/templates/footer.php"; ?>

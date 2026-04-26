@@ -754,6 +754,47 @@ class Admin extends Controller
         exit;
     }
 
+    /** Lista de tablas que se pueden vaciar (whitelist desde el helper). */
+    public function tablasBorrables()
+    {
+        header('Content-Type: application/json');
+        if (empty($_SESSION['id_usuario']) || ($_SESSION['rol'] ?? 0) != 1) {
+            echo json_encode(['ok'=>false, 'error'=>'No autorizado']); exit;
+        }
+        echo json_encode(['ok'=>true, 'tablas'=>respaldoBD_tablasBorrables()]);
+        exit;
+    }
+
+    /**
+     * DESTRUCTIVO. Borra datos de tablas seleccionadas. Crea backup previo
+     * automático para rollback. Requiere rol=1 (admin) y confirmación literal
+     * "BORRAR DATOS" en el body.
+     */
+    public function borrarDatos()
+    {
+        header('Content-Type: application/json');
+        if (empty($_SESSION['id_usuario']) || ($_SESSION['rol'] ?? 0) != 1) {
+            echo json_encode(['ok'=>false, 'error'=>'Solo administradores']); exit;
+        }
+        $json = file_get_contents('php://input');
+        $datos = json_decode($json, true) ?: [];
+
+        if (($datos['confirm'] ?? '') !== 'BORRAR DATOS') {
+            echo json_encode(['ok'=>false, 'error'=>'Confirmación incorrecta — escribe "BORRAR DATOS"']); exit;
+        }
+        $tablas = $datos['tablas'] ?? [];
+        if (!is_array($tablas) || empty($tablas)) {
+            echo json_encode(['ok'=>false, 'error'=>'Selecciona al menos una tabla']); exit;
+        }
+        try {
+            $r = respaldoBD_borrarDatos($tablas, (int)$_SESSION['id_usuario']);
+            echo json_encode($r);
+        } catch (\Throwable $e) {
+            echo json_encode(['ok'=>false, 'error'=>$e->getMessage()]);
+        }
+        exit;
+    }
+
     public function descargarRespaldo($nombre = '')
     {
         if (empty($_SESSION['id_usuario'])) { header('Location: ' . BASE_URL); exit; }
