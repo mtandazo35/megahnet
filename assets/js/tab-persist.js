@@ -1,7 +1,11 @@
-// Persiste la pestaña activa en location.hash y la activa SIN parpadeo
-// (intercambia .active/.show directamente en el DOM antes del primer paint).
+// Persiste la pestaña activa en location.hash y la activa SIN parpadeo.
+// El swap de clases ocurre apenas se ejecuta el script (antes del primer
+// paint visible), pero el evento shown.bs.tab se dispara en DOMContentLoaded
+// para que los handlers de modulos (creditos.js, etc.) ya esten registrados.
 (function () {
-    function activarPorHash() {
+    var pendingBtn = null; // boton activado por hash, para disparar evento despues
+
+    function swapClasses() {
         var hash = window.location.hash;
         if (!hash || hash.length < 2) {
             document.documentElement.classList.remove('tab-pending');
@@ -18,7 +22,6 @@
         var nav     = btn.closest('.nav-tabs') || btn.closest('.nav') || document.body;
         var content = pane.parentElement;
 
-        // Quitar active/show del tab default
         nav.querySelectorAll('.nav-link.active').forEach(function (b) {
             b.classList.remove('active');
             b.setAttribute('aria-selected', 'false');
@@ -27,12 +30,25 @@
             p.classList.remove('active', 'show');
         });
 
-        // Activar el correcto
         btn.classList.add('active');
         btn.setAttribute('aria-selected', 'true');
         pane.classList.add('active', 'show');
 
         document.documentElement.classList.remove('tab-pending');
+        pendingBtn = btn;
+    }
+
+    function dispatchShown() {
+        if (!pendingBtn) return;
+        try {
+            // jQuery primero (forma usada en codigo legacy del proyecto)
+            if (window.jQuery) {
+                window.jQuery(pendingBtn).trigger('shown.bs.tab');
+            }
+            // Native CustomEvent por si algun listener usa addEventListener
+            pendingBtn.dispatchEvent(new Event('shown.bs.tab', { bubbles: true }));
+        } catch (e) { /* noop */ }
+        pendingBtn = null;
     }
 
     function attachListeners() {
@@ -46,21 +62,32 @@
         });
     }
 
-    // Ejecutar lo antes posible. El script va al final del footer asi que el DOM
-    // ya esta parseado, pero verificamos por seguridad.
+    // 1) Swap inmediato (sin esperar) para evitar parpadeo
+    swapClasses();
+
+    // 2) Disparar el evento + listeners cuando el DOM y todos los scripts
+    //    de modulo hayan corrido
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () {
-            activarPorHash();
+            dispatchShown();
             attachListeners();
         });
     } else {
-        activarPorHash();
-        attachListeners();
+        // DOM ya parseado: esperamos un tick para que scripts subsecuentes
+        // (cargados despues de este en el footer) registren sus handlers
+        setTimeout(function () {
+            dispatchShown();
+            attachListeners();
+        }, 0);
     }
 
-    window.addEventListener('hashchange', activarPorHash);
+    // 3) Soporte para back/forward del navegador
+    window.addEventListener('hashchange', function () {
+        swapClasses();
+        dispatchShown();
+    });
 
-    // Fallback: si por alguna razon no se quito tab-pending (timeout 1s), lo quitamos
+    // Fallback de seguridad: si por alguna razon no se quito tab-pending
     setTimeout(function () {
         document.documentElement.classList.remove('tab-pending');
     }, 1000);
