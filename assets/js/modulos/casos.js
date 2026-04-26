@@ -28,31 +28,30 @@ const errorDireccion = document.querySelector('#errorDireccion')
 document.addEventListener('DOMContentLoaded', function () {
   // cargar productos de localStorage
 
-  // autocomplete contratos
+  // autocomplete contratos (buscar cliente que tenga contrato activo)
   $('#buscarCliente').autocomplete({
     source: function (request, response) {
       $.ajax({
         url: base_url + 'casos/buscar',
         dataType: 'json',
-        data: {
-          term: request.term
-        },
+        data: { term: request.term },
         success: function (data) {
           response(data)
           if (data.length > 0) {
-            errorCliente.textContent = ''
-          }else {
-            errorCliente.textContent = 'NO HAY CONTRATOS CON EL CLIENTE'
+            errorCliente.innerHTML = ''
+          } else {
+            errorCliente.innerHTML = 'Sin contratos activos para "<b>' + request.term.replace(/[<>]/g,'') + '</b>". Crea un contrato en <a href="' + base_url + 'contratos" class="text-primary">Contratos</a> primero.'
           }
         }
       })
     },
     minLength: 2,
     select: function (event, ui) {
-      coordenadaContrato.value = ui.item.coordenada
-      direccionContrato.value = ui.item.direccion
-      comentarioContrato.value = ui.item.comentario
+      coordenadaContrato.value = ui.item.coordenada || ''
+      direccionContrato.value  = ui.item.direccion  || ''
+      comentarioContrato.value = ui.item.comentario || ''
       idContrato.value = ui.item.id
+      errorCliente.innerHTML = ''
     }
   })
   // autocomplete grupo trabajo

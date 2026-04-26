@@ -8,16 +8,26 @@ class CasosModel extends Query
 
     public function buscarPorNombre($valor)
     {
-        $sql = "SELECT c.id AS idContrato, c.id_cliente,c.coordenada, c.direccion,c.comentario,cl.nombre FROM contratos c
-        INNER JOIN clientes cl ON cl.id=c.id_cliente WHERE cl.nombre LIKE '%" . $valor . "%' OR cl.num_identidad LIKE '%" . $valor . "%' AND c.estado = 1";
-        return $this->selectAll($sql);
+        // Prepared statement (anti SQL injection) + parentesis correctos en WHERE
+        // (antes: 'A OR B AND C' agrupaba mal por precedencia).
+        $like = '%' . $valor . '%';
+        $sql = "SELECT c.id AS idContrato, c.id_cliente, c.coordenada, c.direccion, c.comentario, cl.nombre
+                FROM contratos c
+                INNER JOIN clientes cl ON cl.id = c.id_cliente
+                WHERE (cl.nombre LIKE ? OR cl.num_identidad LIKE ?) AND c.estado = 1
+                LIMIT 10";
+        return $this->selectAll($sql, [$like, $like]);
     }
 
     public function buscarPorNombreGrupoTrabajo($valor)
     {
-        $sql = "SELECT gt.id,gt.descripcion, CONCAT(u.nombre,' ',u.apellido) AS responsable FROM grupo_trabajo gt 
-        INNER JOIN usuarios u ON u.id=gt.id_responsable WHERE gt.descripcion LIKE '%" . $valor . "%' OR u.nombre LIKE '%" . $valor . "%' OR u.apellido LIKE '%" . $valor . "%' AND gt.estado = 1";
-        return $this->selectAll($sql);
+        $like = '%' . $valor . '%';
+        $sql = "SELECT gt.id, gt.descripcion, CONCAT(u.nombre, ' ', u.apellido) AS responsable
+                FROM grupo_trabajo gt
+                INNER JOIN usuarios u ON u.id = gt.id_responsable
+                WHERE (gt.descripcion LIKE ? OR u.nombre LIKE ? OR u.apellido LIKE ?) AND gt.estado = 1
+                LIMIT 10";
+        return $this->selectAll($sql, [$like, $like, $like]);
     }
 
     public function registrarCaso($fecha, $hora, $idContrato, $idUsuario, $grupoAsignado, $problemaReportado, $estado)
