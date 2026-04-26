@@ -476,6 +476,59 @@ document.addEventListener("click", function(e){
 })();
 </script>
 
+<script>
+// Mantener la posicion del scroll del sidebar entre navegaciones.
+// Implementacion simple: guardar antes de navegar, restaurar al cargar.
+// NO oculta el sidebar (eso causaba flicker antes).
+(function(){
+    var KEY = 'mhn_sidebar_scroll_v2';
+
+    function getScroller(){
+        return document.querySelector('.sidebar-wrapper .simplebar-content-wrapper')
+            || document.querySelector('.sidebar-wrapper');
+    }
+
+    function save(){
+        try {
+            var s = getScroller();
+            if (s) sessionStorage.setItem(KEY, String(s.scrollTop));
+        } catch(e){}
+    }
+
+    function restore(){
+        var s = getScroller();
+        if (!s) return false;
+        try {
+            var t = sessionStorage.getItem(KEY);
+            if (t !== null) s.scrollTop = parseInt(t, 10) || 0;
+        } catch(e){}
+        return true;
+    }
+
+    // Guardar al click en links del sidebar (capture: antes de que el browser navegue)
+    document.addEventListener('click', function(e){
+        var a = e.target.closest('.sidebar-wrapper a[href]');
+        if (!a) return;
+        var href = a.getAttribute('href') || '';
+        if (!href || href === '#' || href.indexOf('javascript:') === 0) return;
+        save();
+    }, true);
+    window.addEventListener('pagehide', save);
+
+    // Restaurar lo antes posible. SimpleBar puede tardar 1-2 frames en inyectar
+    // su wrapper interno, asi que reintentamos hasta 6 veces con rAF.
+    function attemptRestore(remaining){
+        if (restore()) return;
+        if (remaining > 0) requestAnimationFrame(function(){ attemptRestore(remaining - 1); });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function(){ attemptRestore(6); });
+    } else {
+        attemptRestore(6);
+    }
+})();
+</script>
+
         </div>
         <!--end sidebar wrapper -->
         <!--start header -->
