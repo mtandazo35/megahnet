@@ -1,0 +1,49 @@
+# Dependencias
+/vendor/
+/node_modules/
+
+# Datos / runtime
+/storage/
+/static/
+/uploads/
+/facturaelectronica/
+/cache/
+/logs/
+*.log
+log.txt
+
+# Backups
+*.sql
+*.sql.gz
+*.zip
+*.tar.gz
+*.bak
+backup_*/
+
+# Variables locales (NO subir credenciales)
+config/local.php
+config/.env
+config/.sri-ambiente
+.env
+.env.*
+!.env.example
+
+# Firmas digitales SRI (privadas)
+*.p12
+*.pfx
+firmas/
+
+# IDE / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Composer
+composer.phar
+
+# Temporales del proyecto
+*.tmp
+*.cache
