@@ -20,20 +20,21 @@
 <script src="<?php echo BASE_URL; ?>assets/plugins/simplebar/js/simplebar.min.js"></script>
 <script>
 // Sidebar scroll persist.
-// SimpleBar registra su handler en DOMContentLoaded para auto-wrappear
-// elementos con [data-simplebar]. Como cargamos SimpleBar ANTES que este
-// script, SimpleBar registra su listener primero. Mi listener corre
-// inmediatamente después del de SimpleBar → cuando mi código corre,
-// .simplebar-content-wrapper ya está en el DOM.
+// SimpleBar wrappea asíncronamente con requestAnimationFrame — incluso
+// después de DOMContentLoaded el .simplebar-content-wrapper puede no
+// estar todavía. Por eso poleamos con rAF hasta que aparezca (máx 30
+// frames ~500ms). Apenas existe, restauramos scrollTop y enganchamos
+// el listener de save.
 (function(){
     var KEY = 'mhn_sidebar_scroll_v2';
     var saveTimer = null;
+    var attached = false;
 
-    function applyScroll() {
-        var scroller = document.querySelector('.sidebar-wrapper .simplebar-content-wrapper');
-        if (!scroller) return;
+    function attach(scroller) {
+        if (attached) return;
+        attached = true;
 
-        // 1) Restaurar
+        // 1) Restaurar scroll guardado
         try {
             var t = sessionStorage.getItem(KEY);
             if (t !== null) scroller.scrollTop = parseInt(t, 10) || 0;
@@ -51,12 +52,20 @@
         window.addEventListener('pagehide', saveNow);
     }
 
-    // SimpleBar wrappea en DOMContentLoaded. Esperamos a que termine.
+    function poll(remaining) {
+        var scroller = document.querySelector('.sidebar-wrapper .simplebar-content-wrapper');
+        if (scroller) { attach(scroller); return; }
+        if (remaining > 0) {
+            requestAnimationFrame(function(){ poll(remaining - 1); });
+        }
+    }
+
+    // Arrancar el polling en DOMContentLoaded (cuando SimpleBar ya disparó
+    // su init) y dar hasta ~30 frames para que termine de wrappear.
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', applyScroll);
+        document.addEventListener('DOMContentLoaded', function(){ poll(30); });
     } else {
-        // Si ya disparó (caso raro: navegación back/forward con caché), aplicar
-        applyScroll();
+        poll(30);
     }
 })();
 </script>
