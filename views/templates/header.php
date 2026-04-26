@@ -20,6 +20,8 @@
          siguiendo el tema del SO antes de que se carguen los CSS. -->
     <meta name="color-scheme" content="light">
     <meta name="theme-color" content="#f4f6fb">
+    <!-- Transicion suave entre paginas (Chrome 126+, Safari 18+; en otros se ignora) -->
+    <meta name="view-transition" content="same-origin">
     <!--favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="<?php echo BASE_URL; ?>assets/images/favicon.ico">
     <link href="<?php echo BASE_URL; ?>assets/plugins/simplebar/css/simplebar.css" rel="stylesheet" />
@@ -50,6 +52,16 @@
         body.bg-login { background-color: #f4f6fb; }
         .wrapper, .page-wrapper, .page-content { background-color: #f4f6fb; }
         .sidebar-wrapper { background-color: #ffffff; }
+        /* === View Transitions API: fade rapido entre paginas (browsers modernos) === */
+        @view-transition { navigation: auto; }
+        ::view-transition-old(root) {
+            animation: 90ms cubic-bezier(.4,0,1,1) both vt-fade-out;
+        }
+        ::view-transition-new(root) {
+            animation: 180ms cubic-bezier(0,0,.2,1) both vt-fade-in;
+        }
+        @keyframes vt-fade-out { to { opacity: 0; } }
+        @keyframes vt-fade-in  { from { opacity: 0; } }
     </style>
     <!-- Tab persist: oculta tab-content hasta que tab-persist.js active el tab correcto -->
     <script>
@@ -523,12 +535,11 @@ document.addEventListener("click", function(e){
         }, 600);
     }
 
-    // Guardar antes de salir de la pagina
-    window.addEventListener('beforeunload', saveScroll);
+    // Guardar al salir de la pagina (pagehide es bfcache-friendly, beforeunload no).
     window.addEventListener('pagehide', saveScroll);
 
     // Tambien guardar inmediatamente al hacer click en cualquier link del menu
-    // (defensivo: si beforeunload no dispara por alguna razon, esto si captura).
+    // (defensivo: si pagehide no dispara, esto si captura).
     document.addEventListener('click', function(e){
         var a = e.target.closest('.sidebar-wrapper a[href]');
         if (!a) return;
@@ -536,6 +547,51 @@ document.addEventListener("click", function(e){
         if (href === '' || href === '#' || href.indexOf('javascript:') === 0) return;
         saveScroll();
     }, true);
+})();
+
+// Prefetch on hover: cuando el usuario pasa el mouse sobre un link
+// del mismo origen, precarga el HTML/recursos en background. Al hacer
+// click, la pagina ya esta en cache => navegacion casi instantanea.
+(function(){
+    var support = (function(){
+        try {
+            var l = document.createElement('link');
+            return l.relList && l.relList.supports && l.relList.supports('prefetch');
+        } catch(e) { return false; }
+    })();
+    if (!support) return;
+    if (navigator.connection && navigator.connection.saveData) return; // respetar Save-Data
+    var done = new Set();
+    var hoverTimer;
+    var DELAY = 60; // ms hover antes de iniciar prefetch (evita prefetch accidentales)
+
+    function prefetch(url){
+        if (done.has(url)) return;
+        done.add(url);
+        var link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = url;
+        link.as = 'document';
+        document.head.appendChild(link);
+    }
+
+    function onHover(e){
+        var a = e.target.closest('a[href]');
+        if (!a) return;
+        var href = a.getAttribute('href') || '';
+        if (!href || href === '#' || href.charAt(0) === '#' || href.indexOf('javascript:') === 0 || href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return;
+        if (a.target === '_blank' || a.hasAttribute('download')) return;
+        var u;
+        try { u = new URL(href, location.href); } catch (err) { return; }
+        if (u.origin !== location.origin) return;
+        if (u.href === location.href) return;
+        clearTimeout(hoverTimer);
+        hoverTimer = setTimeout(function(){ prefetch(u.href); }, DELAY);
+    }
+    function cancelHover(){ clearTimeout(hoverTimer); }
+
+    document.addEventListener('mouseover', onHover, { passive: true, capture: true });
+    document.addEventListener('mouseout',  cancelHover, { passive: true, capture: true });
 })();
 </script>
 
