@@ -137,20 +137,29 @@ class Mikrotiks extends Controller
 
     /**
      * Helper interno: prueba conexion al router. La clave puede venir
-     * encriptada (asume base64+openssl_decrypt si llega encriptada).
+     * encriptada (base64+openssl) o en texto plano (registrar() la guarda
+     * sin encriptar). Detectamos el formato para no fallar.
      */
     private function _probarConexionRouter($ip, $usuario, $claveRaw, $puerto, $claveEncriptada = false)
     {
         require_once 'libraries/mikrotik/routeros_api.class.php';
 
-        // Decriptar si viene de BD
         $clave = $claveRaw;
         if ($claveEncriptada) {
-            $bin   = base64_decode($claveRaw);
-            $ivLen = openssl_cipher_iv_length(METODOASIC);
-            $iv    = substr($bin, 0, $ivLen);
-            $enc   = substr($bin, $ivLen);
-            $clave = (string)openssl_decrypt($enc, METODOASIC, KEY, 0, $iv);
+            // Intentar decriptar con tolerancia: si la BD tiene clave plana
+            // (registrar() actual no encripta), usar el valor tal cual.
+            $bin = base64_decode((string)$claveRaw, true);
+            if ($bin !== false && strlen($bin) > openssl_cipher_iv_length(METODOASIC)) {
+                $ivLen = openssl_cipher_iv_length(METODOASIC);
+                $iv    = substr($bin, 0, $ivLen);
+                $enc   = substr($bin, $ivLen);
+                $dec   = @openssl_decrypt($enc, METODOASIC, KEY, 0, $iv);
+                if ($dec !== false && $dec !== '') {
+                    $clave = $dec;
+                }
+                // Si dec falla, $clave queda como $claveRaw (texto plano)
+            }
+            // Si no es base64 valido, $clave ya es $claveRaw
         }
 
         $API = new RouterosAPI();

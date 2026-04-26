@@ -33,12 +33,19 @@ foreach ($lista as $row) {
     $usuario  = $row['usuario'];
     $puerto   = (int)($row['puerto'] ?: 8728);
 
-    // Decriptar clave
-    $bin   = base64_decode($row['clave']);
-    $ivLen = openssl_cipher_iv_length(METODOASIC);
-    $iv    = substr($bin, 0, $ivLen);
-    $enc   = substr($bin, $ivLen);
-    $clave = (string)openssl_decrypt($enc, METODOASIC, KEY, 0, $iv);
+    // Clave: la BD puede tener clave plana (registrar actual no encripta) o
+    // encriptada (legacy). Intentamos decriptar con tolerancia.
+    $clave = $row['clave'];
+    $bin = base64_decode((string)$row['clave'], true);
+    if ($bin !== false && strlen($bin) > openssl_cipher_iv_length(METODOASIC)) {
+        $ivLen = openssl_cipher_iv_length(METODOASIC);
+        $iv    = substr($bin, 0, $ivLen);
+        $enc   = substr($bin, $ivLen);
+        $dec   = @openssl_decrypt($enc, METODOASIC, KEY, 0, $iv);
+        if ($dec !== false && $dec !== '') {
+            $clave = $dec;
+        }
+    }
 
     $API = new RouterosAPI();
     $API->port    = $puerto;
