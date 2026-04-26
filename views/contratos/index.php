@@ -36,6 +36,16 @@
             <div class="tab-pane fade show active p-3" id="nav-historial" role="tabpanel"
                 aria-labelledby="nav-historial-tab" tabindex="0">
 
+                <div class="filtros-fechas mb-2">
+                    <div class="form-group">
+                        <label for="desde">Desde</label>
+                        <input id="desde" class="form-control" type="date">
+                    </div>
+                    <div class="form-group">
+                        <label for="hasta">Hasta</label>
+                        <input id="hasta" class="form-control" type="date">
+                    </div>
+                </div>
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover align-middle nowrap" id="tblHistorial"
                         style="width: 100%;">
@@ -59,16 +69,6 @@
                         <tbody>
                         </tbody>
                     </table>
-                    <div class="d-flex justify-content-center mb-3">
-                        <div class="form-group">
-                            <label for="desde">Desde</label>
-                            <input id="desde" class="form-control" type="date">
-                        </div>
-                        <div class="form-group">
-                            <label for="hasta">Hasta</label>
-                            <input id="hasta" class="form-control" type="date">
-                        </div>
-                    </div>
                 </div>
             </div>
             <div class="tab-pane fade p-3" id="nav-contratos" role="tabpanel" aria-labelledby="nav-contratos-tab"
@@ -375,6 +375,16 @@
             <div class="tab-pane fade p-3" id="nav-contratosSuspender" role="tabpanel"
                 aria-labelledby="nav-contratosSuspender-tab" tabindex="0">
 
+                <div class="filtros-fechas mb-2">
+                    <div class="form-group">
+                        <label for="desde">Desde</label>
+                        <input id="desde" class="form-control" type="date">
+                    </div>
+                    <div class="form-group">
+                        <label for="hasta">Hasta</label>
+                        <input id="hasta" class="form-control" type="date">
+                    </div>
+                </div>
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover align-middle nowrap"
                         id="tblcontratosSuspender" style="width: 100%;">
@@ -392,16 +402,6 @@
                         <tbody>
                         </tbody>
                     </table>
-                    <div class="d-flex justify-content-center mb-3">
-                        <div class="form-group">
-                            <label for="desde">Desde</label>
-                            <input id="desde" class="form-control" type="date">
-                        </div>
-                        <div class="form-group">
-                            <label for="hasta">Hasta</label>
-                            <input id="hasta" class="form-control" type="date">
-                        </div>
-                    </div>
                 </div>
             </div>
 

@@ -43,6 +43,16 @@
 
 
 
+                <div class="filtros-fechas mb-2">
+                    <div class="form-group">
+                        <label for="desde">Desde</label>
+                        <input id="desde" class="form-control" type="date">
+                    </div>
+                    <div class="form-group">
+                        <label for="hasta">Hasta</label>
+                        <input id="hasta" class="form-control" type="date">
+                    </div>
+                </div>
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover align-middle nowrap" id="tblHistorial" style="width: 100%;">
                         <thead>
@@ -63,16 +73,6 @@
                         </tbody>
                     </table>
 
-                </div>
-                <div class="d-flex justify-content-center mb-3">
-                    <div class="form-group">
-                        <label for="desde">Desde</label>
-                        <input id="desde" class="form-control" type="date">
-                    </div>
-                    <div class="form-group">
-                        <label for="hasta">Hasta</label>
-                        <input id="hasta" class="form-control" type="date">
-                    </div>
                 </div>
             </div>
             <div class="tab-pane fade p-3" id="nav-abonos" role="tabpanel" aria-labelledby="nav-abonos-tab" tabindex="0">

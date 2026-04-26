@@ -386,33 +386,37 @@ th.DTCR_pointer { border-left: 3px solid #2563eb !important; }
 
 /* ===========================================================
    Filtros de rango de fechas (Desde / Hasta) en historiales
-   - Compactos: max 180px por input
-   - Layout horizontal con gap claro
-   - Labels pequeños arriba, mismo estilo modern
+   - Wrapper .filtros-fechas: flex inline horizontal a la izquierda
+   - Inputs compactos (180px max), labels chicos arriba
    =========================================================== */
-input[type="date"]#desde,
-input[type="date"]#hasta,
-.form-control-sm[type="date"] {
-    max-width: 180px;
-    font-size: .9rem;
-    padding: .35rem .6rem;
+.filtros-fechas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    align-items: flex-end;
+    padding: .65rem .75rem;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+}
+.filtros-fechas .form-group { margin: 0; }
+.filtros-fechas label[for="desde"],
+.filtros-fechas label[for="hasta"] {
+    font-size: .75rem;
+    font-weight: 500;
+    color: #6b7280;
+    margin-bottom: .2rem;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: .3px;
 }
 
-/* Wrapper legacy: form-group hermanos con #desde / #hasta */
-.form-group:has(> #desde),
-.form-group:has(> #hasta) {
-    display: inline-block;
-    vertical-align: top;
-    margin-right: .75rem;
-    margin-bottom: .5rem;
-}
-.form-group > label[for="desde"],
-.form-group > label[for="hasta"] {
-    font-size: .8rem;
-    font-weight: 500;
-    color: #6c757d;
-    margin-bottom: .15rem;
-    display: block;
+input[type="date"]#desde,
+input[type="date"]#hasta {
+    max-width: 180px;
+    font-size: .875rem;
+    padding: .35rem .6rem;
+    border-radius: 8px;
 }
 
 /* Para el wrapper moderno (flex con col-sm-3) limitar igual el ancho */
@@ -420,6 +424,56 @@ input[type="date"]#hasta,
 .col-sm-3:has(> input[type="date"]#hasta) {
     flex: 0 0 auto;
     width: auto;
+}
+
+/* ===========================================================
+   Paginacion DataTables: botones estilizados
+   =========================================================== */
+.dataTables_wrapper .dataTables_paginate {
+    padding-top: .5rem;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    padding: .35rem .75rem !important;
+    margin: 0 2px !important;
+    border-radius: 8px !important;
+    font-size: .85rem !important;
+    border: 1px solid #e5e7eb !important;
+    background: #fff !important;
+    color: #4b5563 !important;
+    transition: background .12s, color .12s, border-color .12s;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: #f3f4f6 !important;
+    border-color: #d1d5db !important;
+    color: #111827 !important;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: #2563eb !important;
+    border-color: #2563eb !important;
+    color: #fff !important;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+    background: #f9fafb !important;
+    border-color: #e5e7eb !important;
+    color: #9ca3af !important;
+    cursor: not-allowed;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.previous,
+.dataTables_wrapper .dataTables_paginate .paginate_button.next {
+    font-weight: 500;
+}
+/* Integracion BS5 (DataTables 1.13+ usa .page-link) */
+.dataTables_wrapper .pagination .page-link {
+    border-radius: 8px;
+    margin: 0 2px;
+    border: 1px solid #e5e7eb;
+    color: #4b5563;
+}
+.dataTables_wrapper .pagination .page-item.active .page-link {
+    background: #2563eb;
+    border-color: #2563eb;
 }
 
 /* ===========================================================

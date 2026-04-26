@@ -17,7 +17,7 @@
         <div class="tab-content" id="nav-tabContent">
             <div class="tab-pane fade show active p-3" id="nav-historial" role="tabpanel"
                 aria-labelledby="nav-historial-tab" tabindex="0">
-                <div class="d-flex justify-content-center mb-3">
+                <div class="filtros-fechas mb-2">
                     <div class="form-group">
                         <label for="desde">Desde</label>
                         <input id="desde" class="form-control" type="date">
