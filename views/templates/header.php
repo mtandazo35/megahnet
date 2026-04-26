@@ -270,6 +270,30 @@
 .wrapper.toggled .sidebar-toggle-btn i,
 .toggle-icon.rotate-icon i { transform: rotate(180deg); }
 
+/* ===== Sidebar colapsado: ocultar logo y buscador, centrar toggle ===== */
+.wrapper.toggled .sidebar-header .logo-wrap,
+.wrapper.toggled .sidebar-search {
+    display: none !important;
+}
+.wrapper.toggled .sidebar-header {
+    justify-content: center;
+    padding: 12px 8px;
+    gap: 0;
+}
+.wrapper.toggled .sidebar-toggle-btn {
+    margin: 0 auto;
+}
+
+/* Quitar outlines de focus en el sidebar (las franjas azules feas) */
+.sidebar-wrapper:focus,
+.sidebar-wrapper:focus-visible,
+.sidebar-wrapper *:focus:not(input):not(button):not(a):not(select):not(textarea),
+.simplebar-content-wrapper:focus,
+.simplebar-content-wrapper:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
 /* ===== Menu items (tema claro) ===== */
 #menu .menu-label {
     font-size: 10px;
