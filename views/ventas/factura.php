@@ -1,119 +1,102 @@
-<!DOCTYPE html>
-<html lang="en">
+<?php
+// Reporte PDF: Venta (factura fisica) con detalle.
+$venta = $data['venta']   ?? [];
+$emp   = $data['empresa'] ?? [];
 
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title></title>
-    <link rel="stylesheet" href="<?php echo BASE_URL . 'assets/css/factura.css'; ?>">
-</head>
+$pdfTitulo    = 'FACTURA';
+$pdfSubtitulo = 'N° ' . ($venta['serie'] ?? '');
+$pdfMeta = [
+    ['label' => 'Fecha', 'value' => $venta['fecha'] ?? ''],
+    ['label' => 'Hora',  'value' => $venta['hora']  ?? ''],
+];
 
-<body>
-    <table id="datos-empresa">
+$_e = function ($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); };
+$productos = !empty($venta['productos']) ? json_decode($venta['productos'], true) : [];
+if (!is_array($productos)) $productos = [];
+
+// Totales (manteniendo logica original: IGV/IVA 12% incluido en el total)
+$totalRaw  = (float)($venta['total'] ?? 0);
+$descuento = (float)($venta['descuento'] ?? 0);
+$subTotal  = $totalRaw / 1.12;
+$igv       = $totalRaw - $subTotal;
+$totalSD   = $totalRaw - $descuento;  // Total con descuento aplicado
+$totalCD   = $totalRaw;                // Total sin descuento (bruto)
+$anulada   = (int)($venta['estado'] ?? 1) === 0;
+
+ob_start();
+?>
+<h2 class="section">Datos del cliente</h2>
+<table class="dt" style="margin-top:6px">
+    <tr>
+        <td style="width:25%; background:#f9fafb"><strong><?php echo $_e($venta['identidad'] ?? 'CI/RUC'); ?>:</strong></td>
+        <td style="width:25%"><?php echo $_e($venta['num_identidad'] ?? ''); ?></td>
+        <td style="width:25%; background:#f9fafb"><strong>Nombre:</strong></td>
+        <td style="width:25%"><?php echo $_e($venta['nombre'] ?? ''); ?></td>
+    </tr>
+    <tr>
+        <td style="background:#f9fafb"><strong>Teléfono:</strong></td>
+        <td><?php echo $_e($venta['telefono'] ?? ''); ?></td>
+        <td style="background:#f9fafb"><strong>Dirección:</strong></td>
+        <td><?php echo $_e($venta['direccion'] ?? ''); ?></td>
+    </tr>
+</table>
+
+<h2 class="section">Detalle de productos</h2>
+<?php if (empty($productos)) { ?>
+    <div class="empty">Sin productos.</div>
+<?php } else { ?>
+<table class="dt">
+    <thead>
         <tr>
-            <td class="logo">
-                <img src="<?php echo BASE_URL . 'assets/images/logo.png'; ?>" alt="">
-            </td>
-            <td class="info-empresa">
-                <p><?php echo $data['empresa']['nombre']; ?></p>
-                <p>Ruc: <?php echo $data['empresa']['ruc']; ?></p>
-                <p>Teléfono: <?php echo $data['empresa']['telefono']; ?></p>
-                <p>Dirección: <?php echo $data['empresa']['direccion']; ?></p>
-            </td>
-            <td class="info-compra">
-                <div class="container-factura">
-                    <span class="factura">Factura</span>
-                    <p>N°: <strong><?php echo $data['venta']['serie']; ?></strong></p>
-                    <p>Fecha: <?php echo $data['venta']['fecha']; ?></p>
-                    <p>Hora: <?php echo $data['venta']['hora']; ?></p>
-                </div>
-            </td>
+            <th style="width:8%">Cant.</th>
+            <th>Descripción</th>
+            <th style="width:18%">P. Unitario</th>
+            <th style="width:18%">Subtotal</th>
         </tr>
-    </table>
-
-
-    <h5 class="title">Datos del Cliente</h5>
-    <table id="container-info">
+    </thead>
+    <tbody>
+        <?php foreach ($productos as $p) {
+            $cant = (float)($p['cantidad'] ?? 0);
+            $pre  = (float)($p['precio'] ?? 0);
+        ?>
         <tr>
-            <td>
-                <strong><?php echo $data['venta']['identidad'] ?>: </strong>
-                <p><?php echo $data['venta']['num_identidad'] ?></p>
-            </td>
-            <td>
-                <strong>Nombre: </strong>
-                <p><?php echo $data['venta']['nombre'] ?></p>
-            </td>
+            <td class="ctr"><?php echo $cant; ?></td>
+            <td><?php echo $_e($p['nombre'] ?? ''); ?></td>
+            <td class="num">$ <?php echo number_format($pre, 2); ?></td>
+            <td class="num">$ <?php echo number_format($cant * $pre, 2); ?></td>
         </tr>
-        <tr>
-            <td>
-                <strong>Teléfono: </strong>
-                <p><?php echo $data['venta']['telefono'] ?></p>
-            </td>
-            <td>
-                <strong>Dirección: </strong>
-                <p><?php echo $data['venta']['direccion'] ?></p>
-            </td>
-        </tr>
-    </table>
-    <h5 class="title">Detalle de los Productos</h5>
-    <table id="container-producto">
-        <thead>
-            <tr>
-                <th>Cant</th>
-                <th>Descripción</th>
-                <th>Precio</th>
-                <th>SubTotal</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php
-            $productos = json_decode($data['venta']['productos'], true);
-            //IGV incluido
-            $subTotal = $data['venta']['total'] / 1.12;
-            $igv = $data['venta']['total'] - $subTotal;
-            $totalSD = $data['venta']['total'] - $data['venta']['descuento'];
-            $totalCD = $data['venta']['total'];
-
-            //IGV no incluido
-            // $subTotal = $data['venta']['total'];
-            // $igv = $subTotal * 0.18;
-            // $total = $subTotal + $igv;
-
-            foreach ($productos as $producto) { ?>
-                <tr>
-                    <td><?php echo $producto['cantidad']; ?></td>
-                    <td><?php echo $producto['nombre']; ?></td>
-                    <td><?php echo number_format($producto['precio'], 2); ?></td>
-                    <td><?php echo number_format($producto['cantidad'] * $producto['precio'], 2); ?></td>
-                </tr>
-            <?php } ?>
-            <tr class="total">
-                <td class="text-right" colspan="3">SubTotal</td>
-                <td class="text-right"><?php echo number_format($subTotal, 2); ?></td>
-            </tr>
-            <tr class="total">
-                <td class="text-right" colspan="3">Iva 12%</td>
-                <td class="text-right"><?php echo number_format($igv, 2); ?></td>
-            </tr>
-            <tr class="total">
-                <td class="text-right" colspan="3">Total con Descuento</td>
-                <td class="text-right"><?php echo number_format($totalSD, 2); ?></td>
-            </tr>
-            <tr class="total">
-                <td class="text-right" colspan="3">Total sin Descuento</td>
-                <td class="text-right"><?php echo number_format($totalCD, 2); ?></td>
-            </tr>
-        </tbody>
-    </table>
-    <div class="mensaje">
-        <h4><?php echo $data['venta']['metodo'] ?></h4>
-        <?php echo $data['empresa']['mensaje']; ?>
-        <?php if ($data['venta']['estado'] == 0) { ?>
-            <h1>Venta Anulado</h1>
         <?php } ?>
-    </div>
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="3" style="text-align:right">SUBTOTAL</td>
+            <td class="num">$ <?php echo number_format($subTotal, 2); ?></td>
+        </tr>
+        <tr>
+            <td colspan="3" style="text-align:right">IVA 12%</td>
+            <td class="num">$ <?php echo number_format($igv, 2); ?></td>
+        </tr>
+        <tr>
+            <td colspan="3" style="text-align:right">Total con descuento</td>
+            <td class="num">$ <?php echo number_format($totalSD, 2); ?></td>
+        </tr>
+        <tr>
+            <td colspan="3" style="text-align:right; font-size:13px">TOTAL</td>
+            <td class="num" style="font-size:13px">$ <?php echo number_format($totalCD, 2); ?></td>
+        </tr>
+    </tfoot>
+</table>
+<?php } ?>
 
-</body>
+<div style="margin-top:14px; padding:8px 12px; background:#f0f9ff; border-left: 4px solid #0ea5e9; font-size:12px;">
+    <strong>Método de pago:</strong> <?php echo $_e($venta['metodo'] ?? ''); ?>
+</div>
 
-</html>
+<?php if ($anulada) { ?>
+<div style="margin-top:14px; padding:14px; background:#fee2e2; color:#991b1b; text-align:center; font-size:18px; font-weight:bold; letter-spacing:2px; border-radius:6px;">
+    VENTA ANULADA
+</div>
+<?php }
+$pdfContenido = ob_get_clean();
+$empresa = $emp;
+include __DIR__ . '/../templates/_pdf_layout.php';
