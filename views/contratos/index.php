@@ -71,207 +71,207 @@
                     </div>
                 </div>
             </div>
-            <div class=" tab-pane fade p-3" id="nav-contratos" role="tabpanel" aria-labelledby="nav-contratos-tab"
+            <div class="tab-pane fade p-3" id="nav-contratos" role="tabpanel" aria-labelledby="nav-contratos-tab"
                 tabindex="0">
-                <h5 class="card-title text-center"><i class="fas fa-list-alt"></i> Nuevo Contrato</h5>
-                <hr>
-                <div class="row justify-content-between">
+                <input type="hidden" id="id" name="id">
 
-                    <input type="hidden" id="id" name="id">
-                    <div class="col-md-12">
-                        <div class="form-group">
-                            <label for="idZonas">Zona <span class="text-danger">*</span></label>
-                            <select id="idZonas" class="form-control" name="idZonas" onchange="seleccionarip()">
+                <!-- ============ 1. DATOS DEL CLIENTE ============ -->
+                <div class="nc-section">
+                    <div class="nc-section-title"><i class="fas fa-user-circle"></i> Datos del Cliente</div>
+                    <?php if ($data['clienteNuevo'] > 0) { ?>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="nc-label">Buscar Cliente <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
+                                <input type="hidden" id="idCliente" value="<?= $data['clienteNuevo']['id'] ?>">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input class="form-control" type="text" id="buscarCliente" placeholder="Buscar Cliente"
+                                    value="<?= $data['clienteNuevo']['nombre'] ?>">
+                            </div>
+                            <span class="text-danger fw-bold" id="errorCliente"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="nc-label">Telefono</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input class="form-control" type="text" id="telefonoCliente" placeholder="Telefono"
+                                    value="<?= $data['clienteNuevo']['telefono'] ?>" disabled>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="nc-label">Direccion</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
+                                <input class="form-control" type="text" id="direccionCliente" placeholder="Dirección"
+                                    value="<?= $data['clienteNuevo']['direccion'] ?>" disabled>
+                            </div>
+                        </div>
+                    </div>
+                    <?php } else { ?>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="nc-label">Buscar Cliente <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
+                                <input type="hidden" id="idCliente">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input class="form-control" type="text" id="buscarCliente" placeholder="Buscar Cliente">
+                            </div>
+                            <span class="text-danger fw-bold" id="errorCliente"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="nc-label">Telefono</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input class="form-control" type="text" id="telefonoCliente" placeholder="Telefono" disabled>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="nc-label">Direccion</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
+                                <input class="form-control" type="text" id="direccionCliente" placeholder="Dirección" disabled>
+                            </div>
+                        </div>
+                    </div>
+                    <?php } ?>
+                </div>
+
+                <!-- ============ 2. DATOS TECNICOS ============ -->
+                <div class="nc-section">
+                    <div class="nc-section-title"><i class="fas fa-network-wired"></i> Datos Técnicos del Contrato</div>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="nc-label">Zona <span class="text-danger">*</span></label>
+                            <select id="idZonas" class="form-select form-select-sm" name="idZonas" onchange="seleccionarip()">
                                 <option value="">Seleccionar</option>
-                                <?php foreach ($data['zonas'] as $zona) {
-
-                                ?>
-                                <option value="<?php echo $zona['id']; ?>">
-                                    <?php echo $zona['descripcion']; ?> </option>
+                                <?php foreach ($data['zonas'] as $zona) { ?>
+                                <option value="<?php echo $zona['id']; ?>"><?php echo $zona['descripcion']; ?></option>
+                                <?php } ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="nc-label">Repetidoras <span class="text-danger">*</span></label>
+                            <select id="repetidora" class="form-select form-select-sm" name="repetidora" onchange="seleccionaripRepetidora()">
+                                <option value="">Seleccionar</option>
+                                <?php foreach ($data['repetidoras'] as $repetidoras) { ?>
+                                <option value="<?php echo $repetidoras['ssid']; ?>"><?php echo $repetidoras['ssid']; ?></option>
+                                <?php } ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="nc-label">Mikrotik <span class="text-danger">*</span></label>
+                            <select id="idMikrotik" class="form-select form-select-sm" name="idMikrotik">
+                                <option value="">Seleccionar</option>
+                                <?php foreach ($data['mikrotiks'] as $mikrotik) { ?>
+                                <option value="<?php echo $mikrotik['id']; ?>"><?php echo $mikrotik['nombre']; ?></option>
                                 <?php } ?>
                             </select>
                         </div>
 
-                    </div>
-
-                    <div class="col-md-4">
-                        <label>Ip Usuario <span class="text-danger">*</span></label>
-                        <div class="input-group mb-4">
-                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                            <input type="hidden" name="origenIp" id="origenIp">
-                            <input type="hidden" name="idIpAnuladas" id="idIpAnuladas">
-                            <input type="hidden" name="idIp" id="idIp">
-                            <input class="form-control" type="text" id="ipUsuario" placeholder="Ip Usuario">
+                        <div class="col-md-3">
+                            <label class="nc-label">Ip Usuario <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-network-wired"></i></span>
+                                <input type="hidden" name="origenIp" id="origenIp">
+                                <input type="hidden" name="idIpAnuladas" id="idIpAnuladas">
+                                <input type="hidden" name="idIp" id="idIp">
+                                <input class="form-control" type="text" id="ipUsuario" placeholder="Ip Usuario">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="nc-label">Ap <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-wifi"></i></span>
+                                <input class="form-control" type="text" id="ap" placeholder="Ap">
+                            </div>
+                            <span id="errorAp" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="nc-label">Coordenada <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                                <input class="form-control" type="text" id="coordenada" placeholder="Coordenada">
+                            </div>
+                            <span id="errorCoordenada" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="nc-label">Dirección <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-map"></i></span>
+                                <input class="form-control" type="text" id="direccion" placeholder="Direccion">
+                            </div>
+                            <span id="errorDireccion" class="text-danger small"></span>
                         </div>
 
-                    </div>
-
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label for="repetidora">Repetidoras <span class="text-danger">*</span></label>
-                            <select id="repetidora" class="form-control" name="repetidora" onchange="seleccionaripRepetidora()">
-                                <option value="">Seleccionar</option>
-                                <?php foreach ($data['repetidoras'] as $repetidoras) {
-
-                                ?>
-                                <option value="<?php echo $repetidoras['ssid']; ?>">
-                                    <?php echo $repetidoras['ssid']; ?> </option>
-                                <?php } ?>
-                            </select>
+                        <div class="col-md-3">
+                            <label class="nc-label">Ciudad <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-city"></i></span>
+                                <input class="form-control" type="text" id="ciudad" placeholder="Ciudad">
+                            </div>
+                            <span id="errorCiudad" class="text-danger small"></span>
                         </div>
-
-
-
-
-                    </div>
-
-
-                    <!--- <div class="col-md-4">
-
-                        <label>Repetidora <span class="text-danger">*</span></label>
-                        <div class="input-group mb-4">
-                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                            <input class="form-control" type="text" id="repetidora" placeholder="Repetidora">
+                        <div class="col-md-3">
+                            <label class="nc-label">Comentario</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-comment"></i></span>
+                                <input class="form-control" type="text" id="comentario" placeholder="Comentario">
+                            </div>
                         </div>
-                        <span id="errorRepetidora" class="text-danger"></span>
-
-                    </div>--->
-                    <div class="col-md-4">
-
-                        <label>Ap <span class="text-danger">*</span></label>
-                        <div class="input-group mb-4">
-                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                            <input class="form-control" type="text" id="ap" placeholder="Ap">
-                        </div>
-                        <span id="errorAp" class="text-danger"></span>
-
-                    </div>
-                    <div class="col-md-3">
-
-                        <label>Coordenada <span class="text-danger">*</span></label>
-                        <div class="input-group mb-4">
-                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                            <input class="form-control" type="text" id="coordenada" placeholder="Coordenada">
-                        </div>
-                        <span id="errorCoordenada" class="text-danger"></span>
-
-                    </div>
-
-                    <div class="col-md-3">
-
-                        <label>Dirección <span class="text-danger">*</span></label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
-                            <input class="form-control" type="text" id="direccion" placeholder="Direcion">
-                        </div>
-                        <span id="errorDireccion" class="text-danger"></span>
-
-                    </div>
-                     <div class="col-md-3">
-
-                        <label>Ciudad <span class="text-danger">*</span></label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
-                            <input class="form-control" type="text" id="ciudad" placeholder="Ciudad">
-                        </div>
-                        <span id="errorCiudad" class="text-danger"></span>
-
-                    </div>
-                    <div class="col-md-3">
-
-                        <label>Comentario</label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
-                            <input class="form-control" type="text" id="comentario" placeholder="Comentario">
-                        </div>
-                    </div>
-                    <div class="col-md-2 mb-">
-                        <div class="form-group">
-                            <label for="medio">Medio<span class="text-danger">*</span></label>
-                            <select id="medio" class="form-control" name="medio">
+                        <div class="col-md-2">
+                            <label class="nc-label">Medio <span class="text-danger">*</span></label>
+                            <select id="medio" class="form-select form-select-sm" name="medio">
                                 <option value="">SELECCIONAR</option>
                                 <option value="INALAMBRICO">INALAMBRICO</option>
                                 <option value="FIBRA">FIBRA</option>
                             </select>
+                            <span id="errorMedio" class="text-danger small"></span>
                         </div>
-                        <span id="errorMedio" class="text-danger"></span>
-                    </div>
-                    <div class="col-md-2 mb-3">
-                        <div class="form-group">
-                            <label for="comparticion">Compartición<span class="text-danger">*</span></label>
-                            <select id="comparticion" class="form-control" name="comparticion">
+                        <div class="col-md-2">
+                            <label class="nc-label">Compartición <span class="text-danger">*</span></label>
+                            <select id="comparticion" class="form-select form-select-sm" name="comparticion">
                                 <option value="">SELECCIONAR</option>
                                 <option value="1:1">1:1</option>
                                 <option value="2:1">2:1</option>
                                 <option value="4:1">4:1</option>
                                 <option value="8:1">8:1</option>
                             </select>
+                            <span id="errorComparticion" class="text-danger small"></span>
                         </div>
-                        <span id="errorComparticion" class="text-danger"></span>
-                    </div>
-                    <div class="col-md-2">
-
-                        <label>Ancho de Banda</label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
-                            <input class="form-control" type="text" id="anchoBanda" placeholder="Ancho de Banda">
+                        <div class="col-md-2">
+                            <label class="nc-label">Ancho de Banda</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-tachometer-alt"></i></span>
+                                <input class="form-control" type="text" id="anchoBanda" placeholder="Ancho">
+                            </div>
                         </div>
-                        <span id="errorAnchoBanda" class="text-danger"></span>
-
-                    </div>
-                    <div class="col-md-2 mb-3">
-                        <div class="form-group">
-                            <label for="discapacidad">Discapacidad</label>
-                            <select id="discapacidad" class="form-control" name="tipoBanco">
+                        <div class="col-md-2">
+                            <label class="nc-label">Discapacidad</label>
+                            <select id="discapacidad" class="form-select form-select-sm" name="tipoBanco">
                                 <option value="NO">NO</option>
                                 <option value="SI">SI</option>
                             </select>
                         </div>
-                    </div>
-                    <div class="col-md-2 mb-3">
-                        <div class="form-group">
-                            <label for="idMikrotik">Mikrotik <span class="text-danger">*</span></label>
-                            <select id="idMikrotik" class="form-control" name="idMikrotik">
-                                <option value="">Seleccionar</option>
-                                <?php foreach ($data['mikrotiks'] as $mikrotik) {
-
-                                ?>
-                                <option value="<?php echo $mikrotik['id']; ?>">
-                                    <?php echo $mikrotik['nombre']; ?> </option>
-                                <?php } ?>
-                            </select>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="chelectronica"
+                                    name="chelectronica" value="0">
+                                <label class="form-check-label" for="chelectronica">Facturacion Electrónica</label>
+                            </div>
                         </div>
-
-
-
-
-                    </div>
-
-                    <div class="col-lg-2 col-sm-2 mb-2" style="display: flex;">
-                        <div class="form-check form-switch" style="margin: auto;">
-                            <input class="form-check-input" type="checkbox" role="switch" id="chelectronica"
-                                name="chelectronica" value="0">
-                            <label class="form-check-label" for="flexSwitchCheckChecked">Facturacion Electrónica</label>
-                        </div>
-
-
                     </div>
                 </div>
-                <div class="row mb-2">
-                    <div class="col-md-6">
-                        <div class="btn-group btn-group-toggle mb-2" data-toggle="buttons">
-                            <label class="btn btn-primary">
-                                <input type="radio" id="barcode" checked name="buscarProducto"><i
-                                    style="padding-left:5px;" class="fas fa-barcode"></i> Servisios
-                            </label>
-                            <label class="btn btn-info text-white">
-                                <input type="radio" id="nombre" name="buscarProducto"><i style="padding-left:5px;"
-                                    class="fas fa-list"></i> Productos
-                            </label>
-                        </div>
+                <!-- ============ 3. SERVICIOS / PRODUCTOS ============ -->
+                <div class="nc-section">
+                    <div class="nc-section-title"><i class="fas fa-shopping-cart"></i> Servicios y Productos</div>
+                    <div class="btn-group btn-group-sm mb-2" data-toggle="buttons">
+                        <label class="btn btn-primary">
+                            <input type="radio" id="barcode" checked name="buscarProducto"><i style="padding-left:5px;" class="fas fa-barcode"></i> Servicios
+                        </label>
+                        <label class="btn btn-info text-white">
+                            <input type="radio" id="nombre" name="buscarProducto"><i style="padding-left:5px;" class="fas fa-list"></i> Productos
+                        </label>
                     </div>
-
-                </div>
                 <div class="col-md-6" style="margin: auto; display:none;">
                     <div id="containerBuscador " class="btn-group btn-group-toggle mb-2" data-toggle="buttons">
                         <label class="btn btn-primary">
@@ -337,91 +337,30 @@
                         </tbody>
                     </table>
                 </div>
+                </div>
+                <!-- /Servicios y Productos -->
 
-                <hr>
-
-                <div class="row justify-content-between">
-                    <div class="col-md-4">
-
-                        <?php if ($data['clienteNuevo'] > 0) { ?>
-
-
-                        <div>
-                            <label>Buscar Cliente</label>
-                            <div class="input-group mb-2">
-                                <input type="hidden" id="idCliente" value="<?= $data['clienteNuevo']['id'] ?>">
-                                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                <input class="form-control" type="text" id="buscarCliente" placeholder="Buscar Cliente"
-                                    value="<?= $data['clienteNuevo']['nombre'] ?>">
+                <!-- ============ 4. RESUMEN Y CONFIRMACION ============ -->
+                <div class="nc-section nc-section-resumen">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                            <label class="nc-label">Vendedor</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input class="form-control" type="text" value="<?php echo $_SESSION['nombre_usuario']; ?>" placeholder="Vendedor" disabled>
                             </div>
-                            <span class="text-danger fw-bold mb-2" id="errorCliente"></span>
                         </div>
-
-                        <label>Telefono</label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                            <input class="form-control" type="text" id="telefonoCliente" placeholder="Telefono"
-                                value="<?= $data['clienteNuevo']['telefono'] ?>" disabled>
-                        </div>
-                        <label>Direccion</label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
-                            <input class="form-control" type="text" id="direccionCliente" placeholder="Dirección"
-                                value="<?= $data['clienteNuevo']['direccion'] ?>" disabled>
-                        </div>
-
-
-
-
-                        <?php } else {  ?>
-
-                        <div>
-                            <label>Buscar Cliente</label>
-                            <div class="input-group mb-2">
-                                <input type="hidden" id="idCliente">
-                                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                                <input class="form-control" type="text" id="buscarCliente" placeholder="Buscar Cliente">
+                        <div class="col-md-4">
+                            <label class="nc-label">Total a Pagar</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
+                                <input class="form-control fw-bold" type="text" id="totalPagar" placeholder="Total Pagar" disabled>
                             </div>
-                            <span class="text-danger fw-bold mb-2" id="errorCliente"></span>
                         </div>
-                        <label>Telefono</label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                            <input class="form-control" type="text" id="telefonoCliente" placeholder="Telefono"
-                                disabled>
-                        </div>
-
-                        <label>Direccion</label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
-                            <input class="form-control" type="text" id="direccionCliente" placeholder="Dirección"
-                                disabled>
-                        </div>
-                        <?php } ?>
-
-
-                    </div>
-
-                    <div class="col-md-4">
-                        <label>Vendedor</label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text"><i class="fas fa-user"></i></span>
-                            <input class="form-control" type="text" value="<?php echo $_SESSION['nombre_usuario']; ?>"
-                                placeholder="Vendedor" disabled>
-                        </div>
-
-
-                        <label>Total a Pagar</label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
-                            <input class="form-control" type="text" id="totalPagar" placeholder="Total Pagar" disabled>
-                        </div>
-                        <div class="d-grid">
-                            <button class="btn btn-primary" type="button" id="btnAccion">Completar</button>
+                        <div class="col-md-4">
+                            <button class="btn btn-primary w-100" type="button" id="btnAccion"><i class="fas fa-check-circle me-1"></i>Completar Contrato</button>
                         </div>
                     </div>
-
-
                 </div>
             </div>
             <div class="tab-pane fade p-3" id="nav-cargar" role="tabpanel">
@@ -1037,6 +976,40 @@
 .text-success { color: #16a34a !important; }
 .bg-warning-subtle { background: rgba(245,158,11,.15) !important; }
 .text-warning { color: #d97706 !important; }
+
+/* ===== Nuevo Contrato: secciones compactas ===== */
+.nc-section {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+}
+.nc-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: #2563eb;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #eff6ff;
+}
+.nc-section-title i {
+    margin-right: 6px;
+}
+.nc-section-resumen {
+    background: #f0f9ff;
+    border-color: #bae6fd;
+}
+.nc-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
 
 /* ===== Modal Facturar Contratos: grid de meses ===== */
 .meses-grid {
