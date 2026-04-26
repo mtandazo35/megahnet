@@ -16,6 +16,10 @@
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Forzar color scheme claro: evita que el browser pinte fondo oscuro
+         siguiendo el tema del SO antes de que se carguen los CSS. -->
+    <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#f4f6fb">
     <!--favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="<?php echo BASE_URL; ?>assets/images/favicon.ico">
     <link href="<?php echo BASE_URL; ?>assets/plugins/simplebar/css/simplebar.css" rel="stylesheet" />
@@ -40,6 +44,13 @@
 
     <title><?php echo TITLE . ' - ' . $data['title']; ?></title>
 
+    <!-- Background base: evita flash negro/oscuro durante navegacion (CSS aun cargando) -->
+    <style>
+        html, body { background-color: #f4f6fb; }
+        body.bg-login { background-color: #f4f6fb; }
+        .wrapper, .page-wrapper, .page-content { background-color: #f4f6fb; }
+        .sidebar-wrapper { background-color: #ffffff; }
+    </style>
     <!-- Tab persist: oculta tab-content hasta que tab-persist.js active el tab correcto -->
     <script>
         if (window.location.hash) document.documentElement.classList.add('tab-pending');

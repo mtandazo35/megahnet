@@ -4,6 +4,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#f4f6fb">
+    <style>html, body { background-color: #f4f6fb; }</style>
     <link rel="shortcut icon" type="image/x-icon" href="<?php echo BASE_URL; ?>assets/images/favicon.ico">
     <link href="<?php echo BASE_URL; ?>assets/css/pace.min.css" rel="stylesheet" />
     <script src="<?php echo BASE_URL; ?>assets/js/pace.min.js" defer></script>
