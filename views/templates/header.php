@@ -478,21 +478,36 @@ document.addEventListener("click", function(e){
 
 <script>
 // Mantener la posicion del scroll del sidebar entre navegaciones.
-// Implementacion simple: guardar antes de navegar, restaurar al cargar.
-// NO oculta el sidebar (eso causaba flicker antes).
+// Approach: guardar continuamente al hacer scroll en el sidebar (no al click).
+// Asi NO importa que disparo la navegacion (link sidebar, boton DataTable,
+// modal, etc.): el ultimo scrollTop esta siempre actualizado en sessionStorage.
 (function(){
     var KEY = 'mhn_sidebar_scroll_v2';
+    var saveTimer = null;
 
     function getScroller(){
-        return document.querySelector('.sidebar-wrapper .simplebar-content-wrapper')
-            || document.querySelector('.sidebar-wrapper');
+        // Tras inicializar SimpleBar, el scroller real es el .simplebar-content-wrapper
+        return document.querySelector('.sidebar-wrapper .simplebar-content-wrapper');
     }
 
-    function save(){
-        try {
-            var s = getScroller();
-            if (s) sessionStorage.setItem(KEY, String(s.scrollTop));
-        } catch(e){}
+    function saveNow(){
+        var s = getScroller();
+        if (!s) return;
+        try { sessionStorage.setItem(KEY, String(s.scrollTop)); } catch(e){}
+    }
+
+    // Throttle: guardar como mucho cada 120ms mientras el usuario scrollea
+    function saveThrottled(){
+        if (saveTimer) return;
+        saveTimer = setTimeout(function(){ saveTimer = null; saveNow(); }, 120);
+    }
+
+    function attachScrollListener(){
+        var s = getScroller();
+        if (!s || s.__mhnScrollAttached) return false;
+        s.__mhnScrollAttached = true;
+        s.addEventListener('scroll', saveThrottled, { passive: true });
+        return true;
     }
 
     function restore(){
@@ -505,27 +520,33 @@ document.addEventListener("click", function(e){
         return true;
     }
 
-    // Guardar al click en links del sidebar (capture: antes de que el browser navegue)
-    document.addEventListener('click', function(e){
-        var a = e.target.closest('.sidebar-wrapper a[href]');
-        if (!a) return;
-        var href = a.getAttribute('href') || '';
-        if (!href || href === '#' || href.indexOf('javascript:') === 0) return;
-        save();
-    }, true);
-    window.addEventListener('pagehide', save);
+    // Restaurar + adjuntar listener apenas SimpleBar inyecte el wrapper.
+    // Usamos MutationObserver porque SimpleBar es async y rAF no es confiable.
+    function init(){
+        if (restore()) {
+            attachScrollListener();
+            return;
+        }
+        var sw = document.querySelector('.sidebar-wrapper');
+        if (!sw) return;
+        var obs = new MutationObserver(function(){
+            if (restore()) {
+                attachScrollListener();
+                obs.disconnect();
+            }
+        });
+        obs.observe(sw, { childList: true, subtree: true });
+        // Failsafe: 3s max para no quedar observando para siempre
+        setTimeout(function(){ obs.disconnect(); }, 3000);
+    }
 
-    // Restaurar lo antes posible. SimpleBar puede tardar 1-2 frames en inyectar
-    // su wrapper interno, asi que reintentamos hasta 6 veces con rAF.
-    function attemptRestore(remaining){
-        if (restore()) return;
-        if (remaining > 0) requestAnimationFrame(function(){ attemptRestore(remaining - 1); });
-    }
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function(){ attemptRestore(6); });
+        document.addEventListener('DOMContentLoaded', init);
     } else {
-        attemptRestore(6);
+        init();
     }
+    // Defensa: guardar al salir de la pagina por si throttle no llego a guardar
+    window.addEventListener('pagehide', saveNow);
 })();
 </script>
 
