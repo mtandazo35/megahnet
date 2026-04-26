@@ -132,8 +132,9 @@ function editarUsuario(idusuario) {
             grupotrabajo.value = res.id_grupo_trabajo;
             //clave.value = res.clave;
             //clave.setAttribute('readonly', 'readonly');
-            btnAccion.textContent = 'Actualizar';            
-            firstTab.show();
+            btnAccion.textContent = 'Actualizar';
+            if (typeof window.abrirModalUsuario === 'function') { window.abrirModalUsuario(); }
+            else { firstTab.show(); }
         }
     }
 
