@@ -3,10 +3,16 @@
 <div class="page-header d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2" id="page-header-modern">
     <div>
         <h4 class="mb-0 fw-semibold"><i class="bx bx-user text-primary me-1"></i>Clientes</h4>
-        <small class="text-muted">Registra, consulta y carga clientes</small>
+        <small class="text-muted">Listado, registro y carga masiva de clientes</small>
     </div>
-    <div class="d-flex gap-2">
-        <a href="<?php echo BASE_URL . 'clientes/inactivos'; ?>" class="btn btn-outline-secondary btn-sm">
+    <div class="d-flex flex-wrap gap-2">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCliente" id="btnAbrirNuevoCliente">
+            <i class="bx bx-user-plus me-1"></i>Nuevo cliente
+        </button>
+        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalCargarClientes">
+            <i class="bx bx-cloud-upload me-1"></i>Cargar plantilla
+        </button>
+        <a href="<?php echo BASE_URL . 'clientes/inactivos'; ?>" class="btn btn-outline-secondary">
             <i class="bx bx-trash me-1"></i>Inactivos
         </a>
     </div>
@@ -14,30 +20,36 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-body">
-        <ul class="nav nav-tabs nav-primary mb-3" role="tablist" id="nav-tab">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="nav-nuevo-tab" data-bs-toggle="tab" data-bs-target="#nav-nuevo" type="button" role="tab" aria-controls="nav-nuevo" aria-selected="true">
-                    <i class="bx bx-user-plus me-1"></i>Nuevo Cliente
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="nav-clientes-tab" data-bs-toggle="tab" data-bs-target="#nav-clientes" type="button" role="tab" aria-controls="nav-clientes" aria-selected="false">
-                    <i class="bx bx-user me-1"></i>Clientes
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="nav-cargar-tab" data-bs-toggle="tab" data-bs-target="#nav-cargar" type="button" role="tab" aria-controls="nav-cargar" aria-selected="false">
-                    <i class="bx bx-spreadsheet me-1"></i>Cargar Clientes
-                </button>
-            </li>
-        </ul>
+        <?php $tituloListado='Listado de Clientes'; $iconoListado='bx-user'; include 'views/templates/listado_titulo.php'; ?>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle nowrap" id="tblClientes" style="width: 100%;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Acciones</th>
+                        <th>Razón Social</th>
+                        <th>N° Identidad</th>
+                        <th>Identidad</th>
+                        <th>Teléfono</th>
+                        <th>Correo</th>
+                        <th>Dirección</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
-        <div class="tab-content" id="nav-tabContent">
-
-            <!-- ============ NUEVO CLIENTE ============ -->
-            <div class="tab-pane fade show active" id="nav-nuevo" role="tabpanel" aria-labelledby="nav-nuevo-tab" tabindex="0">
-                <?php $tituloListado='Datos del cliente'; $iconoListado='bx-user-plus'; include 'views/templates/listado_titulo.php'; ?>
-                <form id="formulario" autocomplete="off">
+<!-- ============ MODAL: NUEVO / EDITAR CLIENTE ============ -->
+<div class="modal fade" id="modalCliente" tabindex="-1" aria-labelledby="modalClienteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="modalClienteLabel"><i class="bx bx-user-plus text-primary me-1"></i>Datos del cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form id="formulario" autocomplete="off">
+                <div class="modal-body">
                     <input type="hidden" id="id" name="id">
                     <div class="row g-3">
                         <div class="col-md-3">
@@ -96,51 +108,78 @@
                             <span id="errorDireccion" class="text-danger small"></span>
                         </div>
                     </div>
-
-                    <hr class="my-4">
-                    <div class="d-flex flex-wrap gap-2 justify-content-end">
-                        <button class="btn btn-light" type="button" id="btnNuevo">
-                            <i class="bx bx-eraser me-1"></i>Limpiar
-                        </button>
-                        <button class="btn btn-primary" type="submit" id="btnAccion">
-                            <i class="bx bx-save me-1"></i>Registrar
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- ============ CLIENTES ============ -->
-            <div class="tab-pane fade" id="nav-clientes" role="tabpanel" aria-labelledby="nav-clientes-tab" tabindex="0">
-                <?php $tituloListado='Listado de Clientes'; $iconoListado='bx-user'; include 'views/templates/listado_titulo.php'; ?>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle nowrap" id="tblClientes" style="width: 100%;">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Acciones</th>
-                                <th>Razón Social</th>
-                                <th>N° Identidad</th>
-                                <th>Identidad</th>
-                                <th>Teléfono</th>
-                                <th>Correo</th>
-                                <th>Dirección</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
                 </div>
-            </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" id="btnNuevo">
+                        <i class="bx bx-eraser me-1"></i>Limpiar
+                    </button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnAccion">
+                        <i class="bx bx-save me-1"></i>Registrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-            <!-- ============ CARGAR CLIENTES ============ -->
-            <div class="tab-pane fade" id="nav-cargar" role="tabpanel" aria-labelledby="nav-cargar-tab" tabindex="0">
+<!-- ============ MODAL: CARGAR DESDE EXCEL ============ -->
+<div class="modal fade" id="modalCargarClientes" tabindex="-1" aria-labelledby="modalCargarClientesLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="modalCargarClientesLabel"><i class="bx bx-cloud-upload text-primary me-1"></i>Cargar clientes desde Excel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
                 <?php
                 $tituloCarga      = 'Cargar clientes desde Excel';
                 $descripcionCarga = 'Sube un archivo <strong>.xlsx</strong> con los clientes a registrar.';
                 include 'views/templates/cargar_excel.php';
                 ?>
             </div>
-
         </div>
     </div>
 </div>
+
+<script>
+// Cerrar modales tras registro exitoso (evento mhn:registroOk emitido por insertarRegistros).
+document.addEventListener('DOMContentLoaded', function () {
+    var modalCliente   = document.getElementById('modalCliente');
+    var modalCargar    = document.getElementById('modalCargarClientes');
+    var formulario     = document.getElementById('formulario');
+    var formCargar     = document.getElementById('cargarDatosExcel');
+    var btnAccion      = document.getElementById('btnAccion');
+
+    if (formulario && modalCliente) {
+        formulario.addEventListener('mhn:registroOk', function () {
+            bootstrap.Modal.getOrCreateInstance(modalCliente).hide();
+        });
+    }
+    if (formCargar && modalCargar) {
+        formCargar.addEventListener('mhn:registroOk', function () {
+            bootstrap.Modal.getOrCreateInstance(modalCargar).hide();
+        });
+    }
+    // Reset del modal al abrirlo via boton "Nuevo cliente" (no en edicion)
+    var btnAbrir = document.getElementById('btnAbrirNuevoCliente');
+    if (btnAbrir && formulario && btnAccion) {
+        btnAbrir.addEventListener('click', function () {
+            formulario.reset();
+            document.getElementById('id').value = '';
+            btnAccion.textContent = 'Registrar';
+            // limpiar mensajes de error
+            ['errorIdentidad','errorNum_identidad','errorNombre','errorTelefono','errorCorreo','errorDireccion']
+                .forEach(function(id){ var el = document.getElementById(id); if (el) el.textContent = ''; });
+        });
+    }
+});
+// Wrapper para que editarCliente() del clientes.js abra el modal en lugar del tab antiguo.
+// (firstTab.show() es no-op; necesitamos abrir el modal explicitamente.)
+window.abrirModalCliente = function () {
+    var el = document.getElementById('modalCliente');
+    if (el) bootstrap.Modal.getOrCreateInstance(el).show();
+};
+</script>
 
 <?php include_once 'views/templates/footer.php'; ?>

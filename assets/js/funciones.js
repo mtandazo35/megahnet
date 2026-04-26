@@ -1,14 +1,16 @@
+// Tab helpers null-safe: si la vista NO tiene #nav-tab (ej. usa modales),
+// firstTab/primerTab quedan como no-ops para no romper modulos legacy.
 const firstTabEl = document.querySelector('#nav-tab button:last-child');
-const firstTab = new bootstrap.Tab(firstTabEl);
+const firstTab = firstTabEl ? new bootstrap.Tab(firstTabEl) : { show: function(){} };
 
 const primerTabEl = document.querySelector('#nav-tab button:first-child');
-const primerTab = new bootstrap.Tab(primerTabEl);
+const primerTab = primerTabEl ? new bootstrap.Tab(primerTabEl) : { show: function(){} };
 
 
 function insertarRegistros(url, idFormulario, tbl, idButton, accion) {
     //crear formData
     const data = new FormData(idFormulario);
-    //hacer una instancia del objeto XMLHttpRequest 
+    //hacer una instancia del objeto XMLHttpRequest
     const http = new XMLHttpRequest();
     //Abrir una Conexion - POST - GET
     http.open('POST', url, true);
@@ -37,6 +39,12 @@ function insertarRegistros(url, idFormulario, tbl, idButton, accion) {
                     tbl.ajax.reload();
                     primerTab.show();
                 }
+                // Evento custom para que vistas con modales cierren el modal tras exito.
+                try {
+                    idFormulario.dispatchEvent(new CustomEvent('mhn:registroOk', {
+                        detail: res, bubbles: true
+                    }));
+                } catch (e) { /* ignore */ }
             }
         }
     }

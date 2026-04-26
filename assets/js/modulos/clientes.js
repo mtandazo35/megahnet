@@ -143,16 +143,11 @@ function eliminarCliente(idCliente) {
 
 function editarCliente(idCliente) {
     limpiarCampos();
-   // editorDireccion.setData('');
 
     const url = base_url + 'clientes/editar/' + idCliente;
-    //hacer una instancia del objeto XMLHttpRequest 
     const http = new XMLHttpRequest();
-    //Abrir una Conexion - POST - GET
     http.open('GET', url, true);
-    //Enviar Datos
     http.send();
-    //verificar estados
     http.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
             const res = JSON.parse(this.responseText);
@@ -162,12 +157,15 @@ function editarCliente(idCliente) {
             nombre.value = res.nombre;
             telefono.value = res.telefono;
             correo.value = res.correo;
-            direccion.value=res.direccion;
-           
-           // editorDireccion.setData(res.direccion);
-            btnAccion.textContent = 'Actualizar';
-            firstTab.show()
+            direccion.value = res.direccion;
 
+            btnAccion.textContent = 'Actualizar';
+            // Abrir modal (la vista define window.abrirModalCliente)
+            if (typeof window.abrirModalCliente === 'function') {
+                window.abrirModalCliente();
+            } else {
+                firstTab.show();
+            }
         }
     }
 }
