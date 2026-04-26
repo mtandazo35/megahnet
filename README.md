@@ -16,76 +16,89 @@ Sistema de gestion + facturacion electronica SRI (Ecuador) en PHP.
 
 ## Stack
 
-- PHP 8.x (Apache/Nginx + PHP-FPM)
-- MySQL 5.7+
+- PHP 8.x (Apache + mod_php)
+- MariaDB / MySQL 5.7+
 - Composer
 - Bootstrap 5 + jQuery + DataTables (frontend)
 
-## Setup local
+## Instalacion rapida (Debian/Ubuntu fresh)
 
 ```bash
-git clone <repo-url> megahnet
+git clone git@github.com:mtandazo35/megahnet.git
 cd megahnet
+sudo bash install.sh
+```
 
-# 1) Dependencias
-composer install
+El script instala todo lo necesario y deja el sistema corriendo:
 
-# 2) Configuracion
-cp .env.example .env
-# Editar .env con credenciales reales
+- Apache 2 + mod_rewrite + PHP 8 + MariaDB + Composer
+- Crea BD `sistema` + usuario MariaDB + contrasena random en `.env`
+- Importa `db/schema.sql` (39 tablas)
+- Crea usuario admin por defecto: **admin@admin.com / 12345678**
+- Hace `composer install --no-dev`
+- Genera los symlinks de routing case-insensitive
+- Configura vhost Apache (acceso por IP, sin dominio)
+- Bloquea acceso publico a `.env`, `.git`, `composer.json`, `log.txt`
 
-# 3) Base de datos
-mysql -u root -p -e "CREATE DATABASE sistema CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-# Importar tu dump de BD
+Se puede correr **multiples veces sin romper la instalacion** (es idempotente).
 
-# 4) Carpetas runtime (no se versionan)
-mkdir -p storage static facturaelectronica
-chmod -R 775 storage static facturaelectronica
+### Variables opcionales
 
-# 5) Servidor web
-# Apuntar DocumentRoot a la raiz del proyecto.
-# Reescritura via .htaccess (incluido).
+```bash
+sudo ADMIN_EMAIL=tu@correo.com ADMIN_PASS='tu-clave' bash install.sh
+sudo DB_NAME=otrabd DB_USER=otroUser bash install.sh
+```
+
+### Actualizar el codigo
+
+```bash
+cd /var/www/html/megahnet
+git pull
+sudo bash install.sh   # idempotente, refresca composer/symlinks/vhost
 ```
 
 ## Estructura
 
 ```
-controllers/   Controladores MVC
-models/        Modelos / acceso a BD
-views/         Vistas + templates
-config/        Configuracion (Config.php sanitizado)
-libraries/     Librerias propias
-cron/          Tareas programadas
-assets/        CSS / JS / imagenes
-facturaelectronica/  XMLs SRI (no en git)
-storage/       Configs runtime + sesiones (no en git)
+controllers/      Controladores MVC
+models/           Modelos / acceso a BD
+views/            Vistas + templates
+config/           Configuracion (Config.php lee de .env)
+libraries/        Librerias propias
+cron/             Tareas programadas
+assets/           CSS / JS / imagenes
+db/
+  schema.sql       Estructura de BD (sin datos)
+  seed-admin.sql   Plantilla de usuario admin inicial
+install.sh         Instalador all-in-one
+.env.example       Plantilla de variables de entorno
 ```
 
-## Notas para deploy en Linux
+## Carpetas runtime (no versionadas)
 
-El sistema requiere algunos symlinks de routing case-insensitive en `controllers/`
-y `models/` (Linux es case-sensitive). Tras `git clone` ejecutar:
+`storage/` `static/` `facturaelectronica/` se crean automaticamente con
+permisos `www-data:775`.
 
-```bash
-# Aliases de case-routing (no se incluyen en el repo)
-cd controllers
-ln -sf mikrotiks.php  Mikrotik.php
-ln -sf mikrotiks.php  Mikrotiks.php
-ln -sf SriDashboard.php Sridashboard.php
-ln -sf OrdenVenta.php Ordenventa.php
-ln -sf notaCredito.php Notacredito.php
-ln -sf notaCredito.php NotaCredito.php
-ln -sf notaCredito.php notacredito.php
-ln -sf GrupoTrabajos.php Grupotrabajos.php
-ln -sf RangoIp.php Rangoip.php
-cd ../models
-ln -sf notacreditoModel.php notaCreditoModel.php
-```
+## Configuracion / secretos
 
-En Windows (case-insensitive) no son necesarios.
+Toda la configuracion sensible vive en `.env` (gitignored). `config/Config.php`
+incluye un mini-loader que parsea `.env` al arranque sin requerir composer.
 
-## Credenciales y secretos
+Variables principales:
 
-Este repo NO contiene credenciales reales. Toda configuracion sensible se carga
-via env-vars (ver `.env.example`). El archivo `config/Config.php` lee de
-`getenv()` con fallbacks seguros para desarrollo.
+- `BASE_URL` - URL publica del sistema
+- `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` - credenciales MariaDB
+- `USER_SMTP`, `CLAVE_SMTP`, `HOST_SMTP`, `PUERTO_SMTP` - SMTP para correos
+- `CRYPT_KEY` - clave de cifrado interno
+- `MIKROTIK_*` - credenciales del router (opcional)
+
+Ver `.env.example` para el listado completo.
+
+## Notas
+
+- Los symlinks de routing en `controllers/` y `models/` se crean por
+  `install.sh` porque Linux es case-sensitive (Windows no los necesita).
+- El admin por defecto usa bcrypt (`PASSWORD_DEFAULT`). **Cambiar la clave en
+  el primer login.**
+- El instalador detecta si ya hay tablas/usuarios y NO sobrescribe datos
+  existentes.

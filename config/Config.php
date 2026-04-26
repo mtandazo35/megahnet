@@ -1,4 +1,21 @@
 <?php
+// Mini cargador de .env (sin dependencias externas). Lee config/../.env y
+// expone las variables via getenv() para que las constantes definan abajo.
+$__envFile = dirname(__DIR__) . '/.env';
+if (file_exists($__envFile)) {
+    foreach (file($__envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $__line) {
+        if (!isset($__line[0]) || $__line[0] === '#' || strpos($__line, '=') === false) continue;
+        list($__k, $__v) = explode('=', $__line, 2);
+        $__k = trim($__k); $__v = trim($__v);
+        if ($__k === '') continue;
+        if (strlen($__v) >= 2 && ($__v[0] === '"' || $__v[0] === "'") && $__v[strlen($__v) - 1] === $__v[0]) {
+            $__v = substr($__v, 1, -1);
+        }
+        if (getenv($__k) === false) putenv("$__k=$__v");
+    }
+}
+unset($__envFile, $__line, $__k, $__v);
+
 /**
  * Configuracion principal del sistema.
  *
