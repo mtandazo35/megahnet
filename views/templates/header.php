@@ -372,6 +372,14 @@
 #menu > li.has-sub > ul.mm-show { display: block; }
 #menu > li.has-sub > ul.mm-collapsing { display: block; }
 
+/* metismenu añade .mm-collapsing con transition height 0.35s y la activa al
+   inicializarse aunque el submenu ya esté abierto. Eso producía un parpadeo
+   visible al cargar páginas dentro de submenús (ej. Mantenimiento). Apagamos
+   la animación: la apertura/cierre es instantánea (sin animación), igual que
+   el resto del sistema. */
+.metismenu .mm-collapsing,
+.metismenu .mm-collapse { transition: none !important; }
+
 /* ===== Header de listados (titulo encima de DataTable) ===== */
 .listado-header {
     display: flex;
