@@ -26,8 +26,44 @@ unset($__envFile, $__line, $__k, $__v);
 
 define("ROOT_PATH", dirname(__DIR__));
 
-// URL publica del sistema. CAMBIAR.
-define('BASE_URL', getenv('BASE_URL') ?: 'http://localhost/megahnet/');
+// URL publica del sistema.
+// Por defecto se autodetecta del request actual (scheme + host + subdir),
+// soportando Cloudflare y proxies inversos. El .env solo se usa como
+// override explicito (util para cron/CLI donde no hay request HTTP).
+$__envBase = trim((string)getenv('BASE_URL'));
+$__envBaseIsPlaceholder = ($__envBase === '' || $__envBase === 'http://localhost/megahnet/');
+
+if (!$__envBaseIsPlaceholder) {
+    define('BASE_URL', rtrim($__envBase, '/') . '/');
+} elseif (!empty($_SERVER['HTTP_HOST'])) {
+    // Scheme: HTTPS directo, X-Forwarded-Proto (proxies), CF-Visitor (Cloudflare), puerto 443
+    $__https = false;
+    if (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') {
+        $__https = true;
+    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') {
+        $__https = true;
+    } elseif (!empty($_SERVER['HTTP_CF_VISITOR']) && strpos((string)$_SERVER['HTTP_CF_VISITOR'], '"scheme":"https"') !== false) {
+        $__https = true;
+    } elseif (!empty($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443) {
+        $__https = true;
+    }
+    // Host: validar formato para evitar host-header injection
+    $__host = (string)$_SERVER['HTTP_HOST'];
+    if (!preg_match('/^[A-Za-z0-9\._\-\[\]:]+$/', $__host)) {
+        $__host = 'localhost';
+    }
+    // Subdir: si la app vive bajo /sub/, BASE_URL debe incluirlo
+    $__path = '/';
+    if (!empty($_SERVER['SCRIPT_NAME'])) {
+        $__dir = str_replace('\\', '/', dirname((string)$_SERVER['SCRIPT_NAME']));
+        $__path = ($__dir === '/' || $__dir === '.' || $__dir === '') ? '/' : $__dir . '/';
+    }
+    define('BASE_URL', ($__https ? 'https' : 'http') . '://' . $__host . $__path);
+} else {
+    // CLI/cron sin request: usar .env si existe, fallback inocuo
+    define('BASE_URL', $__envBase !== '' ? rtrim($__envBase, '/') . '/' : 'http://localhost/');
+}
+unset($__envBase, $__envBaseIsPlaceholder);
 
 // Base de datos
 define('HOSTT',    getenv('DB_HOST') ?: 'localhost');
