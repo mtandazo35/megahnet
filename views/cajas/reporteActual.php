@@ -1,110 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
+<?php
+// Reporte PDF de la caja activa (apertura sin cierre). La estructura de datos
+// del controller para "actual" es anidada (Datos, tipoPago).
+$tituloDoc      = $data['title'] ?? 'Reporte de caja actual';
+$numeroCaja     = $data['idCaja'] ?? '';
+$isActual       = !empty($data['actual']);
+$usuarioActual  = $_SESSION['nombre_usuario'] ?? '';
+$empresa        = $data['empresa'] ?? [];
 
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $data['title']; ?></title>
-    <link rel="stylesheet" href="<?php echo BASE_URL . 'assets/css/factura.css'; ?>">
-</head>
+$_m   = $data['movimientos']['Datos']     ?? [];
+$_tp  = $data['movimientos']['tipoPago']  ?? [];
+$mov = [
+    'inicial'  => $_m['inicialDecimal']   ?? '0.00',
+    'ingresos' => $_m['ingresosDecimal']  ?? '0.00',
+    'egresos'  => $_m['egresosDecimal']   ?? '0.00',
+    'gastos'   => $_m['gastosDecimal']    ?? '0.00',
+    'saldo'    => $_m['saldoDecimal']     ?? '0.00',
+];
+$tp = [
+    'efectivo'      => $_tp['efectivoDecimal']    ?? '0.00',
+    'bancarisado'   => $_tp['bancarisadoDecimal'] ?? '0.00',
+    'saldoEfectivo' => number_format(
+        ((float)str_replace(',', '', $_tp['efectivoDecimal'] ?? 0))
+            - ((float)str_replace(',', '', $_m['gastosDecimal'] ?? 0)),
+        2, '.', ','
+    ),
+];
+$gastos = $data['movimientos']['historialGastos'] ?? [];
 
-<body>
-    <table id="datos-empresa">
-        <tr>
-            <td class="logo">
-                <img src="<?php echo BASE_URL . 'assets/images/logo.png'; ?>" alt="">
-            </td>
-            <td class="info-empresa">
-                <p><?php echo $data['empresa']['nombre']; ?></p>
-                <p>Ruc: <?php echo $data['empresa']['ruc']; ?></p>
-                <p>Teléfono: <?php echo $data['empresa']['telefono']; ?></p>
-                <p>Dirección: <?php echo $data['empresa']['direccion']; ?></p>
-            </td>
-            <td class="info-compra">
-                <div class="container-factura">
-                    <span class="factura">Movimientos</span>
-                    <?php if ($data['actual']) { ?>
-                        <p>Actual</p>
-                        <p><?php echo $_SESSION['nombre_usuario']; ?></p>
-                    <?php } else { ?>
-                        <p>N°: <strong><?php echo $data['idCaja']; ?></strong></p>
-                    <?php } ?>
-                </div>
-            </td>
-        </tr>
-    </table>
-    <h4 style="text-align: center;">HISTORIAL MOVIMIENTOS</h4>
-
-    <table id="container-producto">
-        <thead>
-            <tr>
-                <th>Monto Inicial</th>
-                <th>Ingresos</th>
-                <th>Egresos</th>
-                <th>Gastos</th>
-                <th>Saldo</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td class="text-center"><?php echo $data['movimientos']['Datos']['inicialDecimal']; ?></td>
-                <td class="text-center"><?php echo $data['movimientos']['Datos']['ingresosDecimal']; ?></td>
-                <td class="text-center"><?php echo $data['movimientos']['Datos']['egresosDecimal']; ?></td>
-                <td class="text-center"><?php echo $data['movimientos']['Datos']['gastosDecimal']; ?></td>
-                <td class="text-center"><?php echo $data['movimientos']['Datos']['saldoDecimal']; ?></td>
-            </tr>
-        </tbody>
-    </table>
-    <h4 style="text-align: center;">HISTORIAL TIPO PAGOS</h4>
-
-    <table id="container-producto">
-        <thead>
-            <tr>
-                <th>Efectivo</th>
-                <th>Bancarisado</th>
-                <th>Saldo Efectivo</th>
-               
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td class="text-center"><?php echo $data['movimientos']['tipoPago']['efectivoDecimal']; ?></td>
-                <td class="text-center"><?php echo $data['movimientos']['tipoPago']['bancarisadoDecimal']; ?></td>
-                <td class="text-center"><?php echo number_format($data['movimientos']['tipoPago']['efectivoDecimal'] - $data['movimientos']['Datos']['gastosDecimal'],2,'.',','); ?></td>
-                
-            </tr>
-        </tbody>
-    </table>
-    <h4 style="text-align: center;">HISTORIAL GASTOS</h4>
-
-<table id="container-producto">
-    <thead>
-        <tr>
-            <th>Descripcion</th>
-            <th>Monto</th>
-            <th>Fecha</th>
-           
-        </tr>
-    </thead>
-    <tbody>
-
-<?php  
-foreach ($data['movimientos']['historialGastos'] as $historialGasto) { ?>
-        <tr>
-
-            <td class="text-center"><?php echo $historialGasto['descripcion']; ?></td>
-            <td class="text-center"><?php echo $historialGasto['monto']; ?></td>
-            <td class="text-center"><?php echo $historialGasto['fecha'] ; ?></td> 
-            </tr>
-
-            <?php  }?>
-    </tbody>
-</table>
-    <div class="mensaje">
-        <?php echo $data['empresa']['mensaje']; ?>
-    </div>
-
-</body>
-
-</html>
+include __DIR__ . '/_pdf_template.php';
