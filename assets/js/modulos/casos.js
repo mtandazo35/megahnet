@@ -227,9 +227,13 @@ function Editar (idCaso) {
 
 
 
-      // editorDireccion.setData(res.direccion)
       btnAccion.textContent = 'Actualizar'
-      firstTab.show()
+      // Abrir modal (la vista define window.abrirModalCaso)
+      if (typeof window.abrirModalCaso === 'function') {
+        window.abrirModalCaso();
+      } else {
+        firstTab.show();
+      }
     }
   }
 }
