@@ -76,6 +76,7 @@
 <script src="<?php echo BASE_URL; ?>assets/js/sweetalert2.all.min.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/ckeditor.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/funciones.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/tab-persist.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/jquery-ui.min.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/plugins/fullcalendar/js/main.min.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/es.js"></script>
