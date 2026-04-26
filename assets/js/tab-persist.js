@@ -65,20 +65,23 @@
     // 1) Swap inmediato (sin esperar) para evitar parpadeo
     swapClasses();
 
-    // 2) Disparar el evento + listeners cuando el DOM y todos los scripts
-    //    de modulo hayan corrido
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function () {
-            dispatchShown();
-            attachListeners();
-        });
-    } else {
-        // DOM ya parseado: esperamos un tick para que scripts subsecuentes
-        // (cargados despues de este en el footer) registren sus handlers
+    // 2) Disparar el evento + listeners cuando el DOM Y todos los handlers
+    //    de DOMContentLoaded hayan corrido. Como tab-persist.js esta primero
+    //    en el footer, su DOMContentLoaded fire antes que el de creditos.js
+    //    (que es donde se registra el listener .on('shown.bs.tab', ...)).
+    //    Por eso usamos setTimeout(0) DENTRO del handler: encola un macrotask
+    //    que corre despues de que TODOS los DOMContentLoaded sincronos
+    //    terminen, garantizando que el listener ya este registrado.
+    function deferDispatch() {
         setTimeout(function () {
             dispatchShown();
             attachListeners();
         }, 0);
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', deferDispatch);
+    } else {
+        deferDispatch();
     }
 
     // 3) Soporte para back/forward del navegador
