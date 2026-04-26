@@ -1,253 +1,203 @@
+<?php
+// Logo embebido en base64 (Dompdf no resuelve URLs externas confiablemente).
+$_logoSrc = '';
+foreach (['logo.png', 'Logo.jpg', 'logo.jpg'] as $_logoName) {
+    $_lp = ROOT_PATH . '/assets/images/' . $_logoName;
+    if (is_file($_lp)) {
+        $_data = @file_get_contents($_lp);
+        if ($_data !== false) {
+            $_ext = strtolower(pathinfo($_logoName, PATHINFO_EXTENSION));
+            $_mime = $_ext === 'png' ? 'image/png' : 'image/jpeg';
+            $_logoSrc = 'data:' . $_mime . ';base64,' . base64_encode($_data);
+            break;
+        }
+    }
+}
+$_e = function ($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); };
+
+$productos = $data['productos'] ?? [];
+$empresa   = $data['empresa']   ?? [];
+
+// Totales para el resumen al pie
+$totalStock = 0;
+$totalVentas = 0;
+$totalValorInv = 0;
+foreach ($productos as $p) {
+    $totalStock    += (int)($p['cantidad'] ?? 0);
+    $totalVentas   += (int)($p['ventas']   ?? 0);
+    $totalValorInv += ((float)($p['precio_compra'] ?? 0)) * ((int)($p['cantidad'] ?? 0));
+}
+?>
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $data['title']; ?></title>
-    <style>
-        @import url('fonts/BrixSansRegular.css');
-        @import url('fonts/BrixSansBlack.css');
+<meta charset="UTF-8">
+<title><?php echo $_e($data['title'] ?? 'Reporte de Productos'); ?></title>
+<style>
+    @page { margin: 22mm 14mm; }
+    * { box-sizing: border-box; }
+    body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #1f2937; margin: 0; }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    /* Header */
+    .header { width: 100%; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 14px; }
+    .header table { width: 100%; border-collapse: collapse; }
+    .header td { vertical-align: top; padding: 0; }
+    .header .logo-cell { width: 90px; }
+    .header .logo-cell img { max-width: 80px; max-height: 60px; }
+    .header .empresa-cell { padding-left: 8px; }
+    .header .empresa-cell .nombre { font-size: 14px; font-weight: bold; color: #111827; margin: 0 0 3px 0; }
+    .header .empresa-cell p { margin: 1px 0; font-size: 10px; color: #4b5563; }
+    .header .doc-cell { width: 180px; text-align: right; }
+    .header .doc-cell .badge {
+        display: inline-block;
+        background: #2563eb;
+        color: #fff;
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: bold;
+        border-radius: 4px;
+        letter-spacing: .5px;
+    }
+    .header .doc-cell .doc-meta { font-size: 10px; color: #6b7280; margin: 6px 0 0 0; }
 
-        p,
-        label,
-        span,
-        table {
-            font-family: 'BrixSansRegular';
-            font-size: 9pt;
-        }
+    /* Section title */
+    h2.section {
+        background: #f3f4f6;
+        color: #111827;
+        font-size: 12px;
+        font-weight: bold;
+        padding: 6px 10px;
+        margin: 0 0 0 0;
+        border-left: 3px solid #2563eb;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+    }
 
-        .h2 {
-            font-family: 'BrixSansBlack';
-            font-size: 16pt;
-        }
+    /* Tabla de productos */
+    table.dt {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+        font-size: 10px;
+    }
+    table.dt thead th {
+        background: #2563eb;
+        color: #fff;
+        font-weight: bold;
+        padding: 6px 8px;
+        border: 1px solid #1d4ed8;
+        text-align: center;
+    }
+    table.dt tbody td {
+        border: 1px solid #e5e7eb;
+        padding: 5px 8px;
+    }
+    table.dt tbody tr:nth-child(odd) td { background: #f9fafb; }
+    table.dt .num { text-align: right; font-family: DejaVu Sans Mono, monospace; }
+    table.dt .ctr { text-align: center; }
+    table.dt tfoot td {
+        background: #ecfdf5;
+        color: #065f46;
+        font-weight: bold;
+        padding: 6px 8px;
+        border: 1px solid #a7f3d0;
+    }
 
-        .h3 {
-            font-family: 'BrixSansBlack';
-            font-size: 12pt;
-            display: block;
-            background: #0a4661;
-            color: #FFF;
-            text-align: center;
-            padding: 3px;
-            margin-bottom: 5px;
+    .empty {
+        background: #f9fafb;
+        color: #9ca3af;
+        text-align: center;
+        padding: 14px;
+        border: 1px dashed #d1d5db;
+        font-style: italic;
+    }
 
-        }
-
-        #page_pdf {
-            width: 95%;
-            margin: 15px 10px 10px auto;
-        }
-
-        #factura_head,
-        #factura_cliente,
-        #factura_detalle {
-            width: 95%;
-            margin-bottom: 10px;
-        }
-
-        .info_empresa {
-            width: 50%;
-            text-align: center;
-        }
-
-        .info_factura {
-            width: 25%;
-        }
-
-        .info_logo {
-            width: 25%;
-        }
-
-        .info_cliente {
-            width: 95%;
-        }
-
-        .datos_cliente {
-            width: 95%;
-        }
-
-        .datos_cliente tr td {
-            width: 50%;
-        }
-
-        .datos_cliente {
-            padding: 10px 10px 0 10px;
-        }
-
-        .datos_cliente label {
-            width: 75px;
-            display: inline-block;
-        }
-
-        .datos_cliente p {
-            display: inline-block;
-        }
-
-        .textright {
-            text-align: right;
-        }
-
-        .textleft {
-            text-align: left;
-        }
-
-        .textcenter {
-            text-align: center;
-        }
-
-        .round {
-            border-radius: 10px;
-            border: 1px solid #0a4661;
-            overflow: hidden;
-            padding-bottom: 15px;
-        }
-
-        .round p {
-            padding: 0 15px;
-        }
-
-        #factura_detalle {
-            border-collapse: collapse;
-        }
-
-        #factura_detalle thead th {
-            background: #058167;
-            color: #FFF;
-            padding: 5px;
-        }
-
-        #detalle_productos tr:nth-child(even) {
-            background: #ededed;
-        }
-
-        #detalle_totales span {
-            font-family: 'BrixSansBlack';
-        }
-
-        .nota {
-            font-size: 8pt;
-        }
-
-        .label_gracias {
-            font-family: verdana;
-            font-weight: bold;
-            font-style: italic;
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .anulada {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translateX(-50%) translateY(-50%);
-        }
-
-        b {
-            font-weight: bold !important;
-
-        }
-
-        .enc {
-            font-weight: bold !important;
-            font-style: italic;
-        }
-
-        img {
-            margin: 25px 10px 10px auto;
-            width: 200px;
-            height: 130px;
-            position: fixed;
-            z-index: -150;
-            padding-left: 25px;
-        }
-    </style>
+    .gen-meta { margin-top: 14px; text-align: right; font-size: 9px; color: #9ca3af; }
+</style>
 </head>
-
 <body>
-    <div id="page_pdf">
-        <table id="factura_head">
-            <tr>
-                <td class="info_logo">
-                    <img src="<?php echo BASE_URL . 'assets/images/Logo.jpg'; ?>" alt="">
 
-                </td>
-
-
-                <td class="info_empresa">
-
-                    <div>
-                        <span class="h2"><?php echo strtoupper($data['empresa']['nombre']); ?></span>
-                        <p><?php echo $data['empresa']['razon_social']; ?></p>
-                        <p><?php echo $data['empresa']['direccion']; ?></p>
-                        <p>Ruc: <?php echo $data['empresa']['ruc']; ?></p>
-                        <p>Teléfono: <?php echo $data['empresa']['telefono']; ?></p>
-                        <p>Email: <?php echo $data['empresa']['correo']; ?></p>
-                    </div>
-
-                </td>
-
-                <td class="info_factura">
-                    <div class="round">
-                        <span class="h3 enc"> REPORTE PDF </span>
-                        <p>Fecha: <?php echo date('Y-m-d'); ?></p>
-                        <p>Hora: <?php echo date('H-m-s');; ?></p>
-                    </div>
-                </td>
-
-
-            </tr>
-        </table>
-        <br>
-        <h5 class="title textcenter">Detalle de los Productos</h5>
-        <br>
-        <table id="factura_detalle">
-            <thead>
-                <tr>
-                    <th>Descripción</th>
-                    <th class="textcenter">Precio Compra</th>
-                    <th class="textcenter">Precio Venta</th>
-                    <th class="textcenter"> Stock Actual</th>
-                    <th class="textcenter"> Ventas</th>
-
-                </tr>
-            </thead>
-            <tbody id="detalle_productos">
-
-                <?php
-                foreach ($data['productos'] as $producto) { ?>
-                    <tr>
-                        <td><?php echo $producto['descripcion']; ?></td>
-                        <td class="textright"><?php echo number_format($producto['precio_compra'], 2); ?></td>
-                        <td class="textright"><?php echo number_format($producto['precio_venta'], 2); ?></td>
-                        <td class="textright"><?php echo $producto['cantidad']; ?></td>
-                        <td class="textright"><?php echo $producto['ventas']; ?></td>
-                    </tr>
+<div class="header">
+    <table>
+        <tr>
+            <td class="logo-cell">
+                <?php if ($_logoSrc !== '') { ?>
+                    <img src="<?php echo $_logoSrc; ?>" alt="">
                 <?php } ?>
+            </td>
+            <td class="empresa-cell">
+                <p class="nombre"><?php echo $_e(strtoupper($empresa['nombre'] ?? '')); ?></p>
+                <?php if (!empty($empresa['razon_social'])) { ?>
+                    <p><?php echo $_e($empresa['razon_social']); ?></p>
+                <?php } ?>
+                <?php if (!empty($empresa['direccion'])) { ?>
+                    <p><?php echo $_e($empresa['direccion']); ?></p>
+                <?php } ?>
+                <?php if (!empty($empresa['ruc'])) { ?>
+                    <p>RUC: <?php echo $_e($empresa['ruc']); ?></p>
+                <?php } ?>
+                <?php if (!empty($empresa['telefono'])) { ?>
+                    <p>Teléfono: <?php echo $_e($empresa['telefono']); ?></p>
+                <?php } ?>
+                <?php if (!empty($empresa['correo'])) { ?>
+                    <p>Email: <?php echo $_e($empresa['correo']); ?></p>
+                <?php } ?>
+            </td>
+            <td class="doc-cell">
+                <span class="badge">REPORTE DE PRODUCTOS</span>
+                <p class="doc-meta">Fecha: <?php echo date('d/m/Y'); ?></p>
+                <p class="doc-meta">Hora: <?php echo date('H:i:s'); ?></p>
+                <p class="doc-meta">Total: <strong><?php echo count($productos); ?></strong> productos</p>
+            </td>
+        </tr>
+    </table>
+</div>
 
-            </tbody>
+<h2 class="section">Detalle de productos</h2>
 
+<?php if (empty($productos)) { ?>
+    <div class="empty">No hay productos registrados.</div>
+<?php } else { ?>
+<table class="dt">
+    <thead>
+        <tr>
+            <th style="width:6%">#</th>
+            <th style="width:14%">Código</th>
+            <th>Descripción</th>
+            <th style="width:12%">P. Compra</th>
+            <th style="width:12%">P. Venta</th>
+            <th style="width:9%">Stock</th>
+            <th style="width:9%">Ventas</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php $i = 1; foreach ($productos as $p) { ?>
+        <tr>
+            <td class="ctr"><?php echo $i++; ?></td>
+            <td><?php echo $_e($p['codigo'] ?? ''); ?></td>
+            <td><?php echo $_e($p['descripcion'] ?? ''); ?></td>
+            <td class="num">$ <?php echo number_format((float)($p['precio_compra'] ?? 0), 2); ?></td>
+            <td class="num">$ <?php echo number_format((float)($p['precio_venta'] ?? 0), 2); ?></td>
+            <td class="ctr"><?php echo (int)($p['cantidad'] ?? 0); ?></td>
+            <td class="ctr"><?php echo (int)($p['ventas'] ?? 0); ?></td>
+        </tr>
+        <?php } ?>
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="3" style="text-align:right">TOTALES</td>
+            <td class="num">Valor inv: $ <?php echo number_format($totalValorInv, 2); ?></td>
+            <td></td>
+            <td class="ctr"><?php echo $totalStock; ?></td>
+            <td class="ctr"><?php echo $totalVentas; ?></td>
+        </tr>
+    </tfoot>
+</table>
+<?php } ?>
 
-
-        </table>
-
-        <div>
-            <h4 class="label_gracias">¡Gracias por su visita!</h4>
-        </div>
-
-    </div>
-
-
-
+<div class="gen-meta">
+    Generado por <?php echo $_e(defined('TITLE') ? TITLE : 'Sistema'); ?> el <?php echo date('d/m/Y H:i'); ?>
+</div>
 
 </body>
-
 </html>
