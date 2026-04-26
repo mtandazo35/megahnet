@@ -20,8 +20,6 @@
          siguiendo el tema del SO antes de que se carguen los CSS. -->
     <meta name="color-scheme" content="light">
     <meta name="theme-color" content="#f4f6fb">
-    <!-- Transicion suave entre paginas (Chrome 126+, Safari 18+; en otros se ignora) -->
-    <meta name="view-transition" content="same-origin">
     <!--favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="<?php echo BASE_URL; ?>assets/images/favicon.ico">
     <link href="<?php echo BASE_URL; ?>assets/plugins/simplebar/css/simplebar.css" rel="stylesheet" />
@@ -53,67 +51,13 @@
         .wrapper, .page-wrapper, .page-content { background-color: #f4f6fb; }
         .sidebar-wrapper { background-color: #ffffff; }
 
-        /* === View Transitions API: navegacion estilo SPA (browsers modernos) ===
-           Importante: el overlay/group/snapshot deben tener bg explicito
-           para evitar el "flash negro" cuando el browser pinta el snapshot
-           sobre un fondo transparente. */
-        @view-transition { navigation: auto; }
+        /* View Transitions desactivadas:
+           - Causaban que los modales BS5 se congelaran en snapshots cuando
+             se abrian dentro de elementos con view-transition-name
+           - Mantengo solo el bg base #f4f6fb que evita el flash negro del
+             tema oscuro del SO */
 
-        /* Fondos forzados a TODOS los pseudo-elementos de view-transition */
-        ::view-transition,
-        ::view-transition-group(root),
-        ::view-transition-image-pair(root),
-        ::view-transition-old(root),
-        ::view-transition-new(root) {
-            background-color: #f4f6fb;
-        }
-
-        .sidebar-wrapper { view-transition-name: mhn-sidebar; background: #fff; }
-        header           { view-transition-name: mhn-topbar;  background: #fff; }
-        .page-content    { view-transition-name: mhn-content; background: #f4f6fb; }
-
-        ::view-transition-group(mhn-sidebar),
-        ::view-transition-image-pair(mhn-sidebar),
-        ::view-transition-old(mhn-sidebar),
-        ::view-transition-new(mhn-sidebar) { background: #fff; animation: none !important; }
-
-        ::view-transition-group(mhn-topbar),
-        ::view-transition-image-pair(mhn-topbar),
-        ::view-transition-old(mhn-topbar),
-        ::view-transition-new(mhn-topbar) { background: #fff; animation: none !important; }
-
-        ::view-transition-group(mhn-content),
-        ::view-transition-image-pair(mhn-content) { background: #f4f6fb; }
-        ::view-transition-old(mhn-content) {
-            background: #f4f6fb;
-            animation: 100ms ease-out both vt-fade-out;
-        }
-        ::view-transition-new(mhn-content) {
-            background: #f4f6fb;
-            animation: 180ms ease-in both vt-fade-in;
-        }
-
-        @keyframes vt-fade-out { to { opacity: 0; } }
-        @keyframes vt-fade-in  { from { opacity: 0; } to { opacity: 1; } }
-
-        /* Respetar prefer-reduced-motion: sin animacion */
-        @media (prefers-reduced-motion: reduce) {
-            ::view-transition-old(mhn-content),
-            ::view-transition-new(mhn-content) { animation: none; }
-        }
-
-        /* === Fade-out manual al hacer click en un link de navegacion ===
-           Funciona en TODOS los browsers (no requiere View Transitions).
-           Mientras el browser navega, el contenido viejo se va con fade
-           => no se ve el flash blanco/oscuro entre paginas. */
-        .page-content {
-            transition: opacity 120ms ease-out;
-        }
-        body.mhn-navigating .page-content {
-            opacity: 0;
-            pointer-events: none;
-        }
-        /* Loader bar superior durante navegacion */
+        /* Loader bar superior durante navegacion (no afecta interactividad) */
         body.mhn-navigating::before {
             content: '';
             position: fixed;
@@ -124,6 +68,7 @@
             z-index: 9999;
             animation: mhn-loader-fill 600ms ease-out forwards;
             box-shadow: 0 0 8px rgba(37,99,235,.5);
+            pointer-events: none;
         }
         @keyframes mhn-loader-fill {
             0%   { width: 0%;  background-position: 0%   50%; }
@@ -653,6 +598,16 @@ document.addEventListener("click", function(e){
     window.addEventListener('pageshow', function(){
         document.body.classList.remove('mhn-navigating');
     });
+    // Defensivo: quitar la clase al cargar el DOM siempre (por si quedo zombi
+    // de una navegacion anterior). Sin esto, el modal podria quedar inactivo
+    // si el contenido tenia opacity:0 / pointer-events:none.
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function(){
+            document.body.classList.remove('mhn-navigating');
+        });
+    } else {
+        document.body.classList.remove('mhn-navigating');
+    }
 })();
 
 // Prefetch on hover: cuando el usuario pasa el mouse sobre un link
