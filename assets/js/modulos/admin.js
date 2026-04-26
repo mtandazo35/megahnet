@@ -58,14 +58,16 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // vista Previa
+  const logoUploader = document.querySelector('#logoUploader')
   foto.addEventListener('change', function (e) {
+    if (!e.target.files[0]) return
     if (e.target.files[0].type == 'image/jpg' ||
       e.target.files[0].type == 'image/jpeg') {
       const url = e.target.files[0]
       const tmpUrl = URL.createObjectURL(url)
       foto_remove.value = 'Logo.jpg'
-      containerPreview.innerHTML = `<img class="img-thumbnail" style="width: 50%;margin-top: 10px;" src="${tmpUrl}" width="150">
-            <button class="btn btn-danger" style="width: 50%; margin-top: 5px;" type="button" onclick="deleteImg()"><i class="fas fa-trash"></i></button>`
+      containerPreview.innerHTML = `<img class="logo-preview-img" src="${tmpUrl}" alt="Logo">`
+      if (logoUploader) logoUploader.classList.add('has-image')
     } else {
       foto_remove.value = 'sinfoto.jpg'
       foto.value = ''
@@ -231,5 +233,9 @@ document.addEventListener('DOMContentLoaded', function () {
 function deleteImg() {
   foto_remove.value = 'sinfoto.jpg'
   foto.value = ''
-  containerPreview.innerHTML = ''
+  containerPreview.innerHTML = '<div class="lu-icon"><i class="bx bx-cloud-upload"></i></div>'
+    + '<div class="lu-title">Subir logo</div>'
+    + '<div class="lu-hint">JPG/JPEG · Click o arrastra aquí</div>'
+  const lu = document.querySelector('#logoUploader')
+  if (lu) lu.classList.remove('has-image')
 }
