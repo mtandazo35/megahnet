@@ -7,16 +7,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!--favicon-->
     <link rel="shortcut icon" type="image/x-icon" href="<?php echo BASE_URL; ?>assets/images/favicon.ico">
-    <!--plugins-->
-    <link href="<?php echo BASE_URL; ?>assets/plugins/simplebar/css/simplebar.css" rel="stylesheet" />
-    <link href="<?php echo BASE_URL; ?>assets/plugins/perfect-scrollbar/css/perfect-scrollbar.css" rel="stylesheet" />
-    <link href="<?php echo BASE_URL; ?>assets/plugins/metismenu/css/metisMenu.min.css" rel="stylesheet" />
+    <!-- preconnect a Google Fonts (acelera descarga de Roboto) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- loader-->
     <link href="<?php echo BASE_URL; ?>assets/css/pace.min.css" rel="stylesheet" />
-    <script src="<?php echo BASE_URL; ?>assets/js/pace.min.js"></script>
-    <!-- Bootstrap CSS -->
+    <script src="<?php echo BASE_URL; ?>assets/js/pace.min.js" defer></script>
+    <!-- Bootstrap + estilos propios -->
     <link href="<?php echo BASE_URL; ?>assets/css/bootstrap.min.css" rel="stylesheet">
-    <link href="<?php echo BASE_URL; ?>assets/css/bootstrap-extended.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <link href="<?php echo BASE_URL; ?>assets/css/app.css" rel="stylesheet">
     <link href="<?php echo BASE_URL; ?>assets/css/icons.css" rel="stylesheet">
@@ -91,37 +89,32 @@
         </div>
     </div>
     <!--end wrapper-->
-    <!-- Bootstrap JS -->
-    <script src="<?php echo BASE_URL; ?>assets/js/bootstrap.bundle.min.js"></script>
-    <!--plugins-->
-    <script src="<?php echo BASE_URL; ?>assets/js/jquery.min.js"></script>
-    <script src="<?php echo BASE_URL; ?>assets/plugins/simplebar/js/simplebar.min.js"></script>
-    <script src="<?php echo BASE_URL; ?>assets/plugins/metismenu/js/metisMenu.min.js"></script>
-    <script src="<?php echo BASE_URL; ?>assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js"></script>
-    <!--Password show & hide js -->
     <script>
-    $(document).ready(function() {
-        $("#show_hide_password a").on('click', function(event) {
-            event.preventDefault();
-            if ($('#show_hide_password input').attr("type") == "text") {
-                $('#show_hide_password input').attr('type', 'password');
-                $('#show_hide_password i').addClass("bx-hide");
-                $('#show_hide_password i').removeClass("bx-show");
-            } else if ($('#show_hide_password input').attr("type") == "password") {
-                $('#show_hide_password input').attr('type', 'text');
-                $('#show_hide_password i').removeClass("bx-hide");
-                $('#show_hide_password i').addClass("bx-show");
+    const base_url = '<?php echo BASE_URL; ?>';
+    // Show/hide password (vanilla, sin jQuery)
+    document.addEventListener('DOMContentLoaded', function () {
+        var trigger = document.querySelector('#show_hide_password a');
+        if (!trigger) return;
+        trigger.addEventListener('click', function (e) {
+            e.preventDefault();
+            var input = document.querySelector('#show_hide_password input');
+            var icon  = document.querySelector('#show_hide_password i');
+            if (!input || !icon) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('bx-hide');
+                icon.classList.add('bx-show');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('bx-show');
+                icon.classList.add('bx-hide');
             }
         });
     });
     </script>
-    <!--app JS-->
-    <script src="<?php echo BASE_URL; ?>assets/js/app.js"></script>
-    <script src="<?php echo BASE_URL; ?>assets/js/sweetalert2.all.min.js"></script>
-    <script>
-    const base_url = '<?php echo BASE_URL; ?>';
-    </script>
-    <script src="<?php echo BASE_URL; ?>assets/js/modulos/login.js"></script>
+    <!-- SweetAlert2 (usado por login.js) + login.js -->
+    <script src="<?php echo BASE_URL; ?>assets/js/sweetalert2.all.min.js" defer></script>
+    <script src="<?php echo BASE_URL; ?>assets/js/modulos/login.js" defer></script>
 </body>
 
 </html>
