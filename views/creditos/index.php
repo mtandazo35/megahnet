@@ -182,16 +182,10 @@
                             <input id="monto_total" class="form-control" type="text" placeholder="Monto Total" readonly>
                         </div>
                     </div>
-                    <!---- <div class="col-md-4 mb-2">
-                        <div class="form-group">
-                            <label for="monto_abonar">Abonar</label>
-                            <input id="monto_abonar" class="form-control" type="number" step="0.01" min="0.01" placeholder="Monto Abonar">
-                        </div>
-                    </div> --->
 
-                    <!-- Select dropdown: tipos de pago disponibles cargados al abrir modal -->
-                    <div class="col-12 mb-2">
-                        <label class="form-label small mb-1" for="selectTipoPago">Tipo Pago <span class="text-danger">*</span></label>
+                    <!-- Select dropdown: tipos de pago al lado del Monto Total -->
+                    <div class="col-md-8 mb-2">
+                        <label class="form-label mb-1" for="selectTipoPago">Tipo Pago <span class="text-danger">*</span></label>
                         <select class="form-select" id="selectTipoPago">
                             <option value="">Seleccionar</option>
                         </select>
