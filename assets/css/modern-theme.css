@@ -384,3 +384,40 @@ th.DTCR_pointer { border-left: 3px solid #2563eb !important; }
 /* Si hay 3 columnas (length, buttons, filter) garantizar buttons al centro */
 .dataTables_wrapper .dt-buttons { order: 2 !important; margin: 0 !important; }
 
+/* ===========================================================
+   Filtros de rango de fechas (Desde / Hasta) en historiales
+   - Compactos: max 180px por input
+   - Layout horizontal con gap claro
+   - Labels pequeños arriba, mismo estilo modern
+   =========================================================== */
+input[type="date"]#desde,
+input[type="date"]#hasta,
+.form-control-sm[type="date"] {
+    max-width: 180px;
+    font-size: .9rem;
+    padding: .35rem .6rem;
+}
+
+/* Wrapper legacy: form-group hermanos con #desde / #hasta */
+.form-group:has(> #desde),
+.form-group:has(> #hasta) {
+    display: inline-block;
+    vertical-align: top;
+    margin-right: .75rem;
+    margin-bottom: .5rem;
+}
+.form-group > label[for="desde"],
+.form-group > label[for="hasta"] {
+    font-size: .8rem;
+    font-weight: 500;
+    color: #6c757d;
+    margin-bottom: .15rem;
+    display: block;
+}
+
+/* Para el wrapper moderno (flex con col-sm-3) limitar igual el ancho */
+.col-sm-3:has(> input[type="date"]#desde),
+.col-sm-3:has(> input[type="date"]#hasta) {
+    flex: 0 0 auto;
+    width: auto;
+}
