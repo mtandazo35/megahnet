@@ -160,6 +160,36 @@
         if (!dtInactivos) return;
         restaurarRegistros(base_url + 'mikrotiks/restaurar/' + id, dtInactivos);
     };
+    // Eliminacion PERMANENTE: solo si no tiene contratos (validado en backend).
+    window.eliminarMikrotikPermanente = function (id) {
+        Swal.fire({
+            title: '¿Eliminar permanentemente?',
+            html: '<div class="text-muted small">Esta accion <b>NO</b> se puede deshacer. El registro se borrara de la base de datos.</div>',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626', cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar'
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            fetch(base_url + 'mikrotiks/eliminarPermanente/' + id, {
+                method: 'GET', credentials: 'same-origin'
+            })
+            .then(rs => rs.json())
+            .then(function (res) {
+                Swal.fire({
+                    toast: true, position: 'top-right',
+                    icon: res.type, title: res.msg,
+                    showConfirmButton: false, timer: 3000
+                });
+                if (res.type === 'success' && dtInactivos) {
+                    dtInactivos.ajax.reload(null, false);
+                }
+            })
+            .catch(function () {
+                Swal.fire({ icon: 'error', title: 'Error de red al eliminar' });
+            });
+        });
+    };
     document.addEventListener('mhn:restauradoOk', function () {
         if (typeof tblMikrotiks !== 'undefined' && tblMikrotiks) {
             tblMikrotiks.ajax.reload(null, false);

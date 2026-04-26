@@ -287,15 +287,59 @@ class Mikrotiks extends Controller
 
     public function eliminar($idMikrotik)
     {
-        if (isset($_GET) && is_numeric($idMikrotik)) {
-            $data = $this->model->eliminar(0, $idMikrotik);
-            if ($data > 0) {
-                $res = array('msg' => 'MIKROTIK ELIMINADO EXITOSAMENTE', 'type' => 'success');
-            } else {
-                $res = array('msg' => 'ERROR AL ELIMINAR', 'type' => 'error');
-            }
+        if (!is_numeric($idMikrotik)) {
+            echo json_encode(['msg' => 'ID INVALIDO', 'type' => 'error'], JSON_UNESCAPED_UNICODE);
+            die();
+        }
+        $idMikrotik = (int)$idMikrotik;
+
+        // Politica: no desactivar si tiene contratos activos asignados
+        $contratosActivos = $this->model->contarContratosActivos($idMikrotik);
+        if ($contratosActivos > 0) {
+            echo json_encode([
+                'msg'  => 'NO SE PUEDE DESACTIVAR: tiene ' . $contratosActivos . ' contrato(s) activo(s). Reasigna o cancela los contratos primero.',
+                'type' => 'warning'
+            ], JSON_UNESCAPED_UNICODE);
+            die();
+        }
+
+        $data = $this->model->eliminar(0, $idMikrotik);
+        if ($data > 0) {
+            $res = ['msg' => 'MIKROTIK DESACTIVADO EXITOSAMENTE', 'type' => 'success'];
         } else {
-            $res = array('msg' => 'ERROR DESCONOCIDO', 'type' => 'error');
+            $res = ['msg' => 'ERROR AL DESACTIVAR', 'type' => 'error'];
+        }
+        echo json_encode($res, JSON_UNESCAPED_UNICODE);
+        die();
+    }
+
+    /**
+     * DELETE permanente del MikroTik. Solo permitido si NO tiene contratos
+     * (ni activos ni inactivos) asociados — protege la integridad referencial.
+     */
+    public function eliminarPermanente($idMikrotik)
+    {
+        if (!is_numeric($idMikrotik)) {
+            echo json_encode(['msg' => 'ID INVALIDO', 'type' => 'error'], JSON_UNESCAPED_UNICODE);
+            die();
+        }
+        $idMikrotik = (int)$idMikrotik;
+
+        // Bloquear si tiene CUALQUIER contrato (activo o historico)
+        $totales = $this->model->contarContratosTotales($idMikrotik);
+        if ($totales > 0) {
+            echo json_encode([
+                'msg'  => 'NO SE PUEDE ELIMINAR: tiene ' . $totales . ' contrato(s) en su historial. Solo se puede eliminar permanentemente si nunca tuvo contratos asignados.',
+                'type' => 'warning'
+            ], JSON_UNESCAPED_UNICODE);
+            die();
+        }
+
+        $data = $this->model->eliminarPermanente($idMikrotik);
+        if ($data > 0) {
+            $res = ['msg' => 'MIKROTIK ELIMINADO PERMANENTEMENTE', 'type' => 'success'];
+        } else {
+            $res = ['msg' => 'ERROR AL ELIMINAR', 'type' => 'error'];
         }
         echo json_encode($res, JSON_UNESCAPED_UNICODE);
         die();
@@ -476,9 +520,16 @@ class Mikrotiks extends Controller
     {
         $data = $this->model->getMikrotiks(0);
         for ($i = 0; $i < count($data); $i++) {
-            $data[$i]['acciones'] = '<div>
-            <button class="btn btn-success" type="button" onclick="restaurarMikrotik(' . $data[$i]['id'] . ')"><i class="fas fa-check-circle"></i></button>
-            </div>';
+            $totales = $this->model->contarContratosTotales((int)$data[$i]['id']);
+            // Boton eliminar permanente: solo se permite si no tiene contratos
+            $btnEliminar = $totales > 0
+                ? '<button class="btn btn-sm btn-secondary" type="button" disabled title="No se puede eliminar: tiene ' . $totales . ' contrato(s) en historial"><i class="fas fa-lock"></i></button>'
+                : '<button class="btn btn-sm btn-danger" type="button" onclick="eliminarMikrotikPermanente(' . $data[$i]['id'] . ')" title="Eliminar permanentemente"><i class="fas fa-trash"></i></button>';
+
+            $data[$i]['acciones'] = '<div class="d-flex gap-1">'
+                . '<button class="btn btn-sm btn-success" type="button" onclick="restaurarMikrotik(' . $data[$i]['id'] . ')" title="Restaurar"><i class="fas fa-check-circle"></i></button>'
+                . $btnEliminar
+                . '</div>';
         }
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         die();

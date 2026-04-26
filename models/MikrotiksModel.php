@@ -69,6 +69,31 @@ class MikrotiksModel extends Query{
         $sql = "SELECT id, nombre, ip, usuario, clave, puerto FROM mikrotik WHERE estado = 1";
         return $this->selectAll($sql);
     }
+
+    /** Cuenta contratos activos asociados a este Mikrotik. */
+    public function contarContratosActivos($idMikrotik)
+    {
+        $sql = "SELECT COUNT(*) AS total
+                FROM contratos
+                WHERE id_mikrotik = ? AND estado = 1";
+        $r = $this->select($sql, [$idMikrotik]);
+        return isset($r['total']) ? (int)$r['total'] : 0;
+    }
+
+    /** Cuenta TODOS los contratos asociados (activos + inactivos). */
+    public function contarContratosTotales($idMikrotik)
+    {
+        $sql = "SELECT COUNT(*) AS total FROM contratos WHERE id_mikrotik = ?";
+        $r = $this->select($sql, [$idMikrotik]);
+        return isset($r['total']) ? (int)$r['total'] : 0;
+    }
+
+    /** DELETE definitivo (no recuperable). */
+    public function eliminarPermanente($id)
+    {
+        $sql = "DELETE FROM mikrotik WHERE id = ?";
+        return $this->save($sql, [$id]);
+    }
 }
 
 ?>
