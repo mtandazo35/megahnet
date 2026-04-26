@@ -690,8 +690,14 @@ document.addEventListener("click", function(e){
                     </div>
 
                     <?php if (isset($_SESSION['rol'])) {
+                        // Bugfix: la columna usuarios.perfil de la BD a veces guarda el rol
+                        // como string ("ADMINISTRADOR") en vez de un archivo de imagen.
+                        // Solo lo tratamos como URL de imagen si la extensión es válida —
+                        // de lo contrario el browser pedía /ADMINISTRADOR, eso 302-eaba a
+                        // /principal/errors (36 KB de HTML basura) en CADA page load.
                         $perfilFile = !empty($_SESSION['perfil_usuario']) ? $_SESSION['perfil_usuario'] : '';
-                        $perfilUrl  = $perfilFile !== '' ? (BASE_URL . ltrim($perfilFile, '/')) : '';
+                        $perfilEsImagen = $perfilFile !== '' && preg_match('/\.(jpe?g|png|gif|webp|svg)$/i', $perfilFile);
+                        $perfilUrl  = $perfilEsImagen ? (BASE_URL . ltrim($perfilFile, '/')) : '';
                         $inicial    = mb_strtoupper(mb_substr($nombre_full !== '' ? $nombre_full : 'U', 0, 1, 'UTF-8'), 'UTF-8');
                     ?>
                     <a href="<?php echo BASE_URL . 'usuarios/salir'; ?>" class="topbar-iconbtn" title="Cerrar sesion" aria-label="Cerrar sesion">
