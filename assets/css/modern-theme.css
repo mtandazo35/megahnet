@@ -411,19 +411,13 @@ th.DTCR_pointer { border-left: 3px solid #2563eb !important; }
     letter-spacing: .3px;
 }
 
+.filtros-fechas input[type="date"],
 input[type="date"]#desde,
 input[type="date"]#hasta {
     max-width: 180px;
     font-size: .875rem;
     padding: .35rem .6rem;
     border-radius: 8px;
-}
-
-/* Para el wrapper moderno (flex con col-sm-3) limitar igual el ancho */
-.col-sm-3:has(> input[type="date"]#desde),
-.col-sm-3:has(> input[type="date"]#hasta) {
-    flex: 0 0 auto;
-    width: auto;
 }
 
 /* ===========================================================

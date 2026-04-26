@@ -1,7 +1,18 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 
 <head>
+    <?php
+    // Cache busting: agrega ?v=<timestamp> a CSS/JS personalizados que se editan
+    // a menudo. Si filemtime falla, fallback al timestamp actual (siempre revalida).
+    if (!function_exists('asset_v')) {
+        function asset_v($relPath) {
+            $abs = ROOT_PATH . '/' . ltrim($relPath, '/');
+            $t = @filemtime($abs);
+            return $t !== false ? (int)$t : time();
+        }
+    }
+    ?>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -18,8 +29,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <link href="<?php echo BASE_URL; ?>assets/css/app.css" rel="stylesheet">
     <link href="<?php echo BASE_URL; ?>assets/css/icons.css" rel="stylesheet">
-    <link href="<?php echo BASE_URL; ?>assets/css/modern-theme.css" rel="stylesheet" />
-    <link href="<?php echo BASE_URL; ?>assets/css/form-sections.css" rel="stylesheet" />
+    <link href="<?php echo BASE_URL; ?>assets/css/modern-theme.css?v=<?php echo asset_v('assets/css/modern-theme.css'); ?>" rel="stylesheet" />
+    <link href="<?php echo BASE_URL; ?>assets/css/form-sections.css?v=<?php echo asset_v('assets/css/form-sections.css'); ?>" rel="stylesheet" />
     <!-- Theme Style CSS -->
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dark-theme.css" />
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/semi-dark.css" />
