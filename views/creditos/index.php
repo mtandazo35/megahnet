@@ -189,50 +189,6 @@
                         </div>
                     </div> --->
 
-                    <div class="col-md-6" style="margin: auto;">
-                        <div class=" form-group btn-group btn-group-toggle " data-toggle="buttons">
-                            <label class="btn btn-info text-white">
-                                <input type="radio" checked id="nombreTipoPago" name="buscarProducto"><i style="padding-left:5px;" class="fas fa-list"></i> Tipo Pago
-                            </label>
-                        </div>
-                    </div>
-
-
-                    <div class="col-md-6" style="margin: auto; display:none;">
-                        <div id="containerBuscador " class="btn-group btn-group-toggle mb-2" data-toggle="buttons">
-                            <label class="btn btn-primary">
-                                <input type="radio" id="renta" name="buscarProducto"><i style="padding-left: 5px;" class="fas fa-barcode"></i> Renta
-                            </label>
-
-                        </div>
-                    </div>
-                    <div class="input-group mb-2" id="containerRenta" style="margin: auto; display:none;">
-                        <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        <input class="form-control" type="text" id="buscarRenta" placeholder="Buscar Renta" autocomplete="off">
-                    </div>
-
-                    <div class="row mb-2">
-                        <div class="col-md-6">
-                            <div class="btn-group btn-group-toggle mb-2" style="display: none" data-toggle="buttons">
-                                <label class="btn btn-primary">
-                                    <input type="radio" id="barcode" name="buscarProducto"><i style="padding-left:5px;  " class="fas fa-barcode"></i> Productos
-                                </label>
-                                <label class="btn btn-info text-white">
-                                    <input type="radio" id="nombre" name="buscarProducto"><i style="padding-left:5px; " class="fas fa-list"></i> Servicios
-                                </label>
-                            </div>
-                        </div>
-
-                    </div>
-
-
-
-                    <!-- input para buscar nombre (oculto: lo reemplaza el select de abajo) -->
-                    <div class="input-group d-none mb-2" id="containerNombreTipoPago">
-                        <span class="input-group-text"><i class="bx bx-search"></i></span>
-                        <input class="form-control" type="text" id="buscarTipoPagoNombre" placeholder="Buscar Tipo Pagos" autocomplete="off">
-                    </div>
-
                     <!-- Select dropdown: tipos de pago disponibles cargados al abrir modal -->
                     <div class="col-12 mb-2">
                         <label class="form-label small mb-1" for="selectTipoPago">Tipo Pago <span class="text-danger">*</span></label>

@@ -24,64 +24,54 @@ const hasta = document.querySelector('#hasta')
 let listaCarrito, tblHistorial
 
 document.addEventListener('DOMContentLoaded', function () {
-  containerNombreTipoPago.classList.remove('d-none')
+  // Helpers null-safe (algunos modulos no tienen todos los toggles)
+  function showCont(el)  { if (el) el.classList.remove('d-none'); }
+  function hideCont(el)  { if (el) el.classList.add('d-none'); }
+  function clearAndFocus(el) { if (el) { el.value = ''; el.focus(); } }
+  function on(el, evt, fn) { if (el) el.addEventListener(evt, fn); }
+
+  showCont(containerNombreTipoPago);
 
   // comprobar productos en localStorage
   if (localStorage.getItem(nombreKey) != null) {
     listaCarrito = JSON.parse(localStorage.getItem(nombreKey))
   }
+
   // mostrar input para la busqueda por nombre
-  nombre.addEventListener('click', function () {
-    containerNombreTipoPago.classList.add('d-none')
-    containerCodigo.classList.add('d-none')
-    containerRenta.classList.add('d-none')
+  on(nombre, 'click', function () {
+    hideCont(containerNombreTipoPago);
+    hideCont(containerCodigo);
+    hideCont(containerRenta);
+    showCont(containerNombre);
+    clearAndFocus(inputBuscarNombre);
+  });
 
-    containerNombre.classList.remove('d-none')
-
-
-
-    inputBuscarNombre.value = ''
-    inputBuscarNombre.focus()
-  })
   // mostrar input para la busqueda por codigo
-  barcode.addEventListener('click', function () {
-    containerNombreTipoPago.classList.add('d-none')
-    containerNombre.classList.add('d-none')
-    containerCodigo.classList.remove('d-none')
-    containerRenta.classList.add('d-none')
+  on(barcode, 'click', function () {
+    hideCont(containerNombreTipoPago);
+    hideCont(containerNombre);
+    showCont(containerCodigo);
+    hideCont(containerRenta);
+    clearAndFocus(inputBuscarCodigo);
+  });
 
+  // mostrar input para la busqueda por tipo de pago
+  on(nombreTipoPago, 'click', function () {
+    hideCont(containerCodigo);
+    hideCont(containerNombre);
+    hideCont(containerRenta);
+    showCont(containerNombreTipoPago);
+    clearAndFocus(inputBuscarNombreTipoPago);
+  });
 
-    inputBuscarCodigo.value = ''
-    inputBuscarCodigo.focus()
-  })
-
-
-   // mostrar input para la busqueda por nombre
-   nombreTipoPago.addEventListener('click', function () {
-    containerCodigo.classList.add('d-none')
-    containerNombre.classList.add('d-none')
-    containerRenta.classList.add('d-none')
-
-
-    containerNombreTipoPago.classList.remove('d-none')
-
-
-    inputBuscarNombreTipoPago.value = ''
-    inputBuscarNombreTipoPago.focus()
-  })
-
-
-     // mostrar input para la busqueda por nombre
-     renta.addEventListener('click', function () {
-      containerCodigo.classList.add('d-none')
-      containerNombre.classList.add('d-none')
-      containerNombreTipoPago.classList.add('d-none')
-
-      containerRenta.classList.remove('d-none')
-
-      inputBuscarRenta.value = ''
-      inputBuscarRenta.focus()
-    })
+  // mostrar input para la busqueda de renta
+  on(renta, 'click', function () {
+    hideCont(containerCodigo);
+    hideCont(containerNombre);
+    hideCont(containerNombreTipoPago);
+    showCont(containerRenta);
+    clearAndFocus(inputBuscarRenta);
+  });
 
 
   /* inputBuscarCodigo.addEventListener('keyup', function (e) {
@@ -237,30 +227,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
   // filtro rango de fechas
-  desde.addEventListener('change', function () {
-    tblHistorial.draw()
-  })
-  hasta.addEventListener('change', function () {
-    tblHistorial.draw()
-  })
+  on(desde, 'change', function () { if (typeof tblHistorial !== 'undefined' && tblHistorial) tblHistorial.draw(); });
+  on(hasta, 'change', function () { if (typeof tblHistorial !== 'undefined' && tblHistorial) tblHistorial.draw(); });
 
-
-
-  $.fn.dataTable.ext.search.push(
-    function (settings, data, dataIndex) {
-      var FilterStart = desde.value
-      var FilterEnd = hasta.value
-      var DataTableStart = data[2].trim()
-      var DataTableEnd = data[2].trim()
-      if (FilterStart == '' || FilterEnd == '') {
-        return true
-      }
-      if (DataTableStart >= FilterStart && DataTableEnd <= FilterEnd) {
-        return true
-      } else {
-        return false
-      }
-    })
+  if (desde && hasta) {
+    $.fn.dataTable.ext.search.push(
+      function (settings, data, dataIndex) {
+        var FilterStart = desde.value
+        var FilterEnd = hasta.value
+        var DataTableStart = data[2].trim()
+        var DataTableEnd = data[2].trim()
+        if (FilterStart == '' || FilterEnd == '') {
+          return true
+        }
+        if (DataTableStart >= FilterStart && DataTableEnd <= FilterEnd) {
+          return true
+        } else {
+          return false
+        }
+      });
+  }
 })
 
 function buscarProducto(valor) {
