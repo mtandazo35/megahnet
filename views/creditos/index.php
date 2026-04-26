@@ -24,8 +24,7 @@
 
         <div class="tab-content" id="nav-tabContent">
             <div class="tab-pane fade show active mt-2" id="nav-creditos" role="tabpanel" aria-labelledby="nav-creditos-tab" tabindex="0">
-                <h5 class="card-title text-center"><i class="fas fa-credit-card"></i> Listado de Creditos</h5>
-                <hr>
+                <?php $tituloListado='Listado de Créditos'; $iconoListado='bx-credit-card'; include 'views/templates/listado_titulo.php'; ?>
 
                 <?php if ($_SESSION['rol'] == 3) { ?>
                     <div class="container" style="display: none;">
@@ -99,8 +98,7 @@
 
 
             <div class="tab-pane fade show mt-2" id="nav-completados" role="tabpanel" aria-labelledby="nav-creditos-tab" tabindex="0">
-                <h5 class="card-title text-center"><i class="fas fa-credit-card"></i> Listado de Creditos Completados</h5>
-                <hr>
+                <?php $tituloListado='Créditos completados'; $iconoListado='bx-check-circle'; include 'views/templates/listado_titulo.php'; ?>
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover align-middle nowrap" id="tblCompletados" style="width: 100%;">
                         <thead>

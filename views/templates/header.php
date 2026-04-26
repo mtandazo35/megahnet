@@ -342,6 +342,17 @@
 #menu > li.has-sub > ul.mm-show { display: block; }
 #menu > li.has-sub > ul.mm-collapsing { display: block; }
 
+/* ===== Header de listados (titulo encima de DataTable) ===== */
+.listado-header {
+    display: flex;
+    align-items: center;
+    padding-bottom: .55rem;
+    margin-bottom: .9rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+.listado-header h6 { color: #111827; font-size: 14px; letter-spacing: .2px; }
+.listado-header .bx { font-size: 18px; vertical-align: -3px; }
+
 /* ===== Topbar moderno ===== */
 .topbar { padding: 0 1rem; }
 .topbar .navbar { padding: 0; }

@@ -27,8 +27,7 @@
         <div class="tab-content" id="nav-tabContent">
             <div class="tab-pane fade show active mt-2" id="nav-zonas" role="tabpanel"
                 aria-labelledby="nav-zonas-tab" tabindex="0">
-                <h5 class="card-title text-center"><i class="fas fa-tags"></i> Listado de Zonas</h5>
-                <hr>
+                <?php $tituloListado='Listado de Zonas'; $iconoListado='bx-map'; include 'views/templates/listado_titulo.php'; ?>
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover nowrap" id="tblZonas"
                         style="width: 100%;">

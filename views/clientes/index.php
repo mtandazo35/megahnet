@@ -30,8 +30,7 @@
         <div class="tab-content" id="nav-tabContent">
             <div class="tab-pane fade show active mt-2" id="nav-clientes" role="tabpanel"
                 aria-labelledby="nav-clientes-tab" tabindex="0">
-                <h5 class="card-title text-center"><i class="fas fa-users"></i> Listado de Clientes</h5>
-                <hr>
+                <?php $tituloListado='Listado de Clientes'; $iconoListado='bx-user'; include 'views/templates/listado_titulo.php'; ?>
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover align-middle nowrap" id="tblClientes"
                         style="width: 100%;">

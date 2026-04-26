@@ -27,8 +27,7 @@
         <div class="tab-content" id="nav-tabContent">
             <div class="tab-pane fade show active mt-2" id="nav-categorias" role="tabpanel"
                 aria-labelledby="nav-categorias-tab" tabindex="0">
-                <h5 class="card-title text-center"><i class="fas fa-tags"></i> Listado de Categorias</h5>
-                <hr>
+                <?php $tituloListado='Listado de Categorías'; $iconoListado='bx-tag'; include 'views/templates/listado_titulo.php'; ?>
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover nowrap" id="tblCategorias"
                         style="width: 100%;">

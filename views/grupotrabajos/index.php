@@ -21,8 +21,7 @@
         </nav>
         <div class="tab-content" id="nav-tabContent">
             <div class="tab-pane fade show active mt-2" id="nav-grupotrabajos" role="tabpanel" aria-labelledby="nav-grupotrabajos-tab" tabindex="0">
-                <h5 class="card-title text-center"><i class="fas fa-users"></i> Listado de Grupos Trabajos</h5>
-                <hr>
+                <?php $tituloListado='Grupos de Trabajo'; $iconoListado='bx-group'; include 'views/templates/listado_titulo.php'; ?>
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover align-middle nowrap" id="tblGrupoTrabajos" style="width: 100%;">
                         <thead>

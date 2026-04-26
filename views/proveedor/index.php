@@ -21,8 +21,7 @@
         </nav>
         <div class="tab-content" id="nav-tabContent">
             <div class="tab-pane fade show active mt-2" id="nav-proveedores" role="tabpanel" aria-labelledby="nav-proveedores-tab" tabindex="0">
-                <h5 class="card-title text-center"><i class="fas fa-users"></i> Listado de Proveedores</h5>
-                <hr>
+                <?php $tituloListado='Listado de Proveedores'; $iconoListado='bx-store'; include 'views/templates/listado_titulo.php'; ?>
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover align-middle nowrap" id="tblProveedores" style="width: 100%;">
                         <thead>

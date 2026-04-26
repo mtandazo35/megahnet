@@ -24,8 +24,7 @@
         </nav>
         <div class="tab-content" id="nav-tabContent">
             <div class="tab-pane fade show active mt-2" id="nav-medidas" role="tabpanel" aria-labelledby="nav-medidas-tab" tabindex="0">
-                <h5 class="card-title text-center"><i class="fa fa-list"></i> Listado de Medidas</h5>
-                <hr>
+                <?php $tituloListado='Listado de Medidas'; $iconoListado='bx-ruler'; include 'views/templates/listado_titulo.php'; ?>
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-hover nowrap" id="tblMedidas" style="width: 100%;">
                         <thead class="thead-light">
