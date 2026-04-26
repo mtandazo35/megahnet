@@ -237,10 +237,15 @@ function restaurarRegistros(url, tbl) {
                         timer: 2000
                     })
                     if (res.type == 'success') {
-						  const whatsapp = res.whatsapp;
-                        window.open(whatsapp, '_blank');
-						location.reload();
-                        tbl.ajax.reload();
+                        // Solo abrir whatsapp si el backend lo devuelve (no todos los modulos lo hacen).
+                        if (res.whatsapp) {
+                            window.open(res.whatsapp, '_blank');
+                        }
+                        if (tbl) {
+                            tbl.ajax.reload();
+                        } else {
+                            location.reload();
+                        }
                     }
                 }
             }
