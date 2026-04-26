@@ -229,8 +229,13 @@
 
                     <!-- input para buscar nombre -->
                     <div class="input-group d-none mb-2" id="containerNombreTipoPago">
-                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <span class="input-group-text"><i class="bx bx-search"></i></span>
                         <input class="form-control" type="text" id="buscarTipoPagoNombre" placeholder="Buscar Tipo Pagos" autocomplete="off">
+                    </div>
+
+                    <!-- Chips clickeables: tipos de pago disponibles cargados al abrir modal -->
+                    <div class="col-12 mb-2">
+                        <div id="chipsTiposPago" class="d-flex flex-wrap gap-2"></div>
                     </div>
 
                     <!-- table productos -->
@@ -344,6 +349,81 @@
     content: 'Dirección';
     color: #adb5bd;
 }
+/* Chips de tipo de pago */
+#chipsTiposPago .chip-tipopago {
+    border-radius: 999px;
+    padding: .35rem .9rem;
+    font-size: .85rem;
+    font-weight: 500;
+}
+#chipsTiposPago .chip-tipopago.added {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+}
+#chipsTiposPago .chips-loading,
+#chipsTiposPago .chips-empty {
+    color: #6b7280;
+    font-size: .85rem;
+    padding: .25rem 0;
+}
 </style>
+
+<script>
+// Carga automatica de tipos de pago al abrir el modal "Agregar Abono".
+// El boton "Tipo Pago" antes solo abria un input de busqueda con autocomplete
+// (necesitaba escribir 2+ caracteres). Ahora muestra los tipos disponibles
+// como chips clickeables.
+document.addEventListener('DOMContentLoaded', function () {
+    var modalAbono = document.getElementById('modalAbono');
+    var chips      = document.getElementById('chipsTiposPago');
+    if (!modalAbono || !chips) return;
+
+    var loaded = false;
+
+    function renderChips(items) {
+        if (!items || items.length === 0) {
+            chips.innerHTML = '<span class="chips-empty"><i class="bx bx-info-circle me-1"></i>No hay tipos de pago configurados</span>';
+            return;
+        }
+        chips.innerHTML = items.map(function (t) {
+            return '<button type="button" class="btn btn-sm btn-outline-primary chip-tipopago" '
+                + 'data-id="' + t.id + '" '
+                + 'data-nombre="' + (t.label || '').replace(/"/g, '&quot;') + '" '
+                + 'data-precio="' + (t.precio || 0) + '">'
+                + '<i class="bx bx-credit-card-front me-1"></i>' + (t.label || '')
+                + '</button>';
+        }).join('');
+    }
+
+    function cargarTipos() {
+        chips.innerHTML = '<span class="chips-loading"><i class="bx bx-loader-alt bx-spin me-1"></i>Cargando tipos de pago…</span>';
+        fetch(base_url + 'productos/buscarPorNombreTipoPago?term=', { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(renderChips)
+            .catch(function () {
+                chips.innerHTML = '<span class="chips-empty text-danger"><i class="bx bx-error me-1"></i>Error al cargar tipos</span>';
+            });
+    }
+
+    // Cargar al primer abrir (cache para no repegar en cada apertura)
+    modalAbono.addEventListener('show.bs.modal', function () {
+        if (!loaded) { cargarTipos(); loaded = true; }
+    });
+
+    // Click en chip => agregar tipo de pago al carrito (funcion global de busqueda.js)
+    chips.addEventListener('click', function (e) {
+        var btn = e.target.closest('.chip-tipopago');
+        if (!btn) return;
+        var id     = btn.getAttribute('data-id');
+        var nombre = btn.getAttribute('data-nombre');
+        var precio = parseFloat(btn.getAttribute('data-precio')) || 0;
+        if (typeof agregarTipoPago === 'function') {
+            agregarTipoPago(id, nombre, precio, '');
+            btn.classList.add('added');
+        }
+    });
+});
+</script>
 
 <?php include_once 'views/templates/footer.php'; ?>
