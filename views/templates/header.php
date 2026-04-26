@@ -48,24 +48,13 @@
         .tab-pending .tab-content, .tab-pending .nav-tabs { visibility: hidden; }
     </style>
 
-    <!-- Sidebar scroll persist: oculta el contenido scrolleable mientras restauramos
-         el scrollTop (evita el flash "salta a top y vuelve"). Solo si hay valor guardado. -->
-    <script>
-        (function(){
-            try {
-                var t = sessionStorage.getItem('mhn_sidebar_scroll_v2');
-                if (t && parseInt(t, 10) > 0) {
-                    document.documentElement.classList.add('mhn-sidebar-restoring');
-                }
-            } catch(e){}
-        })();
-    </script>
-    <style>
-        /* Oculta toda la sidebar (incluido el logo) mientras restauramos el scroll.
-           visibility:hidden preserva el layout — el contenido principal no se mueve.
-           Evita estado intermedio "logo visible + menu invisible" que se ve como parpadeo. */
-        .mhn-sidebar-restoring .sidebar-wrapper { visibility: hidden; }
-    </style>
+    <!-- Nota: removido el truco de visibility:hidden en sidebar mientras se
+         restaura el scroll. Comparado con el sistema original (gobravcorp), ese
+         truco generaba ~100-300ms de "sidebar invisible" en cada navegación,
+         que se sentía como demora. El sistema original no oculta nada y eso
+         es por lo que se siente más rápido. Mantenemos el scroll persist
+         (abajo en el body) pero aceptamos un brevísimo salto de scroll al
+         cambiar de página — que es exactamente el comportamiento del original. -->
 </head>
 
 <body>
@@ -538,11 +527,6 @@ document.addEventListener("click", function(e){
         return true;
     }
 
-    function reveal(){
-        // Quita la clase que oculta el sidebar mientras restauramos.
-        document.documentElement.classList.remove('mhn-sidebar-restoring');
-    }
-
     function restore(){
         var s = getScroller();
         if (!s) return false;
@@ -550,7 +534,6 @@ document.addEventListener("click", function(e){
             var t = sessionStorage.getItem(KEY);
             if (t !== null) s.scrollTop = parseInt(t, 10) || 0;
         } catch(e){}
-        reveal();
         return true;
     }
 
@@ -562,10 +545,7 @@ document.addEventListener("click", function(e){
             return;
         }
         var sw = document.querySelector('.sidebar-wrapper');
-        if (!sw) {
-            reveal();
-            return;
-        }
+        if (!sw) return;
         var obs = new MutationObserver(function(){
             if (restore()) {
                 attachScrollListener();
@@ -573,8 +553,8 @@ document.addEventListener("click", function(e){
             }
         });
         obs.observe(sw, { childList: true, subtree: true });
-        // Failsafe: si SimpleBar no arrancó en 1.5s, mostramos igual (evita sidebar invisible para siempre)
-        setTimeout(function(){ obs.disconnect(); reveal(); }, 1500);
+        // Failsafe: 1.5s max para no observar para siempre
+        setTimeout(function(){ obs.disconnect(); }, 1500);
     }
 
     if (document.readyState === 'loading') {
