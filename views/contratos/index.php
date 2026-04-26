@@ -507,73 +507,22 @@
                         </div>
                     </div>
 
-                    <div class="row mb-2" id="containerMeses">
-
-                        <div class="col-md-4 mb-2" style="color: black; text-align: center; font-size: 15px;">
-                            <input type="checkbox" name="chEnero" id="chEnero" value="0"
-                                onclick="calcularEnero();">ENERO
-
+                    <div class="col-md-12 mb-2">
+                        <label class="form-label fw-semibold mb-2">Meses a facturar</label>
+                        <div class="meses-grid" id="containerMeses">
+                            <label class="mes-chip"><input type="checkbox" name="chEnero"      id="chEnero"      value="0" onclick="calcularEnero();"><span>ENERO</span></label>
+                            <label class="mes-chip"><input type="checkbox" name="chFebrero"    id="chFebrero"    value="0" onclick="calcularFebrero();"><span>FEBRERO</span></label>
+                            <label class="mes-chip"><input type="checkbox" name="chMarzo"      id="chMarzo"      value="0" onclick="calcularMarzo();"><span>MARZO</span></label>
+                            <label class="mes-chip"><input type="checkbox" name="chAbril"      id="chAbril"      value="0" onclick="calcularAbril();"><span>ABRIL</span></label>
+                            <label class="mes-chip"><input type="checkbox" name="chMayo"       id="chMayo"       value="0" onclick="calcularMayo();"><span>MAYO</span></label>
+                            <label class="mes-chip"><input type="checkbox" name="chJunio"      id="chJunio"      value="0" onclick="calcularJunio();"><span>JUNIO</span></label>
+                            <label class="mes-chip"><input type="checkbox" name="chJulio"      id="chJulio"      value="0" onclick="calcularJulio();"><span>JULIO</span></label>
+                            <label class="mes-chip"><input type="checkbox" name="chAgosto"     id="chAgosto"     value="0" onclick="calcularAgosto();"><span>AGOSTO</span></label>
+                            <label class="mes-chip"><input type="checkbox" name="chSeptiembre" id="chSeptiembre" value="0" onclick="calcularSeptiembre();"><span>SEPTIEMBRE</span></label>
+                            <label class="mes-chip"><input type="checkbox" name="chOctubre"    id="chOctubre"    value="0" onclick="calcularOctubre();"><span>OCTUBRE</span></label>
+                            <label class="mes-chip"><input type="checkbox" name="chNoviembre"  id="chNoviembre"  value="0" onclick="calcularNoviembre();"><span>NOVIEMBRE</span></label>
+                            <label class="mes-chip"><input type="checkbox" name="chDiciembre"  id="chDiciembre"  value="0" onclick="calcularDiciembre();"><span>DICIEMBRE</span></label>
                         </div>
-
-                        <div class="col-md-4 mb-2" style="color: black; text-align: center; font-size: 15px;">
-                            <input type="checkbox" name="chFebrero" id="chFebrero" value="0"
-                                onclick="calcularFebrero();">FEBRERO
-
-                        </div>
-                        <div class="col-md-4 mb-2" style="color: black; text-align: center; font-size: 15px;">
-                            <input type="checkbox" name="chMarzo" id="chMarzo" value="0"
-                                onclick="calcularMarzo();">MARZO
-
-                        </div>
-                        <div class="col-md-4 mb-2" style="color: black; text-align: center; font-size: 15px;">
-                            <input type="checkbox" name="chAbril" id="chAbril" value="0"
-                                onclick="calcularAbril();">ABRIL
-
-                        </div>
-                        <div class="col-md-4 mb-2" style="color: black; text-align: center; font-size: 15px;">
-                            <input type="checkbox" name="chMayo" id="chMayo" value="0" onclick="calcularMayo();">MAYO
-
-                        </div>
-                        <div class="col-md-4 mb-2" style="color: black; text-align: center; font-size: 15px;">
-                            <input type="checkbox" name="chJunio" id="chJunio" value="0"
-                                onclick="calcularJunio();">JUNIO
-
-                        </div>
-
-
-
-                        <div class="col-md-4 mb-2" style="color: black; text-align: center; font-size: 15px;">
-                            <input type="checkbox" name="chJulio" id="chJulio" value="0"
-                                onclick="calcularJulio();">JULIO
-
-                        </div>
-
-                        <div class="col-md-4 mb-2" style="color: black; text-align: center; font-size: 15px;">
-                            <input type="checkbox" name="chAgosto" id="chAgosto" value="0"
-                                onclick="calcularAgosto();">AGOSTO
-
-                        </div>
-                        <div class="col-md-4 mb-2" style="color: black; text-align: center; font-size: 15px;">
-                            <input type="checkbox" name="chSeptiembre" id="chSeptiembre"
-                                onclick="calcularSeptiembre();">SEPTIEMBRE
-
-                        </div>
-                        <div class="col-md-4 mb-2" style="color: black; text-align: center; font-size: 15px;">
-                            <input type="checkbox" name="chOctubre" id="chOctubre" value="0"
-                                onclick="calcularOctubre();">OCTUBRE
-
-                        </div>
-                        <div class="col-md-4 mb-2" style="color: black; text-align: center; font-size: 15px;">
-                            <input type="checkbox" name="chNoviembre" id="chNoviembre" value="0"
-                                onclick="calcularNoviembre();">NOVIEMBRE
-
-                        </div>
-                        <div class="col-md-4 mb-2" style="color: black; text-align: center; font-size: 15px;">
-                            <input type="checkbox" name="chDiciembre" id="chDiciembre" value="0"
-                                onclick="calcularDiciembre();">DICIEMBRE
-
-                        </div>
-
                     </div>
 
 
@@ -1088,6 +1037,49 @@
 .text-success { color: #16a34a !important; }
 .bg-warning-subtle { background: rgba(245,158,11,.15) !important; }
 .text-warning { color: #d97706 !important; }
+
+/* ===== Modal Facturar Contratos: grid de meses ===== */
+.meses-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #f9fafb;
+}
+.mes-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #111827;
+    user-select: none;
+    transition: all .12s;
+    margin: 0;
+}
+.mes-chip:hover { border-color: #2563eb; background: #eff6ff; }
+.mes-chip input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    cursor: pointer;
+    accent-color: #2563eb;
+    margin: 0;
+}
+.mes-chip input[type="checkbox"]:checked + span { color: #2563eb; font-weight: 600; }
+.mes-chip:has(input:checked) { border-color: #2563eb; background: #dbeafe; }
+.mes-chip span { line-height: 1; }
+
+@media (max-width: 480px) {
+    .meses-grid { grid-template-columns: repeat(2, 1fr); }
+}
 
 </style>
 
