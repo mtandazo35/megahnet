@@ -56,7 +56,7 @@
                                 <label class="form-label">Nombre del establecimiento <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fas fa-store"></i></span>
-                                    <input type="text" id="suc_nombre" name="nombre" class="form-control" placeholder="Ej. GRUPO MAAT - Sucursal Alborada">
+                                    <input type="text" id="suc_nombre" name="nombre" class="form-control" placeholder="Ej. Mi Empresa S.A. - Matriz">
                                 </div>
                                 <span id="errorSucNombre" class="text-danger small"></span>
                             </div>
@@ -64,7 +64,7 @@
                                 <label class="form-label">Dirección</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fas fa-home"></i></span>
-                                    <input type="text" id="suc_direccion" name="direccion" class="form-control" placeholder="Ej. Guayaquil, Alborada Mz662">
+                                    <input type="text" id="suc_direccion" name="direccion" class="form-control" placeholder="Ej. Av. Amazonas 123, Quito">
                                 </div>
                             </div>
                             <div class="col-md-3">
