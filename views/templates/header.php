@@ -629,9 +629,13 @@ document.addEventListener("click", function(e){
     if (window.__mhnNavInit) return;
     window.__mhnNavInit = true;
 
+    // NOTA: el prefetch on hover fue removido — PHP serializa requests de la
+    // misma sesión por bloqueo del archivo de sesión, así que prefetchear
+    // varios links del mismo submenú creaba una cola que ralentizaba el
+    // click real (caso reportado en Mantenimiento al hover'ear sus 7 items).
+    // Quedamos con feedback visual + progress bar, que NO tocan el server.
+
     var origin = location.origin;
-    var prefetched = new Set();
-    var hoverTimer = null;
 
     function isInternalLink(a) {
         if (!a || !a.href) return false;
@@ -640,55 +644,23 @@ document.addEventListener("click", function(e){
             var u = new URL(a.href, origin);
             if (u.origin !== origin) return false;
             if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
-            // Excluir endpoints AJAX/PDF/JSON
             if (/\.(pdf|xlsx|xls|zip|csv|json|jpg|png)$/i.test(u.pathname)) return false;
-            // Excluir URL exacta actual (no tiene sentido prefetch)
             if (u.pathname === location.pathname && u.search === location.search) return false;
             return true;
         } catch(e) { return false; }
     }
 
-    function prefetch(url) {
-        if (prefetched.has(url)) return;
-        prefetched.add(url);
-        // fetch con prioridad baja: warmea MySQL/OPcache sin saturar
-        try {
-            fetch(url, {
-                method: 'GET',
-                credentials: 'same-origin',
-                headers: { 'X-Mhn-Prefetch': '1' },
-                cache: 'no-store'
-            }).catch(function(){ prefetched.delete(url); });
-        } catch(e) { prefetched.delete(url); }
-    }
-
-    // Prefetch on hover (80ms debounce)
-    document.addEventListener('mouseover', function(e){
-        var a = e.target.closest('a[href]');
-        if (!isInternalLink(a)) return;
-        clearTimeout(hoverTimer);
-        hoverTimer = setTimeout(function(){ prefetch(a.href); }, 80);
-    });
-    document.addEventListener('mouseout', function(){
-        clearTimeout(hoverTimer);
-    });
-
     // Click handler: feedback visual + progress bar
     document.addEventListener('click', function(e){
-        // Solo click izquierdo, sin teclas modificadoras (que abren en tab nuevo)
         if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
         var a = e.target.closest('a[href]');
         if (!isInternalLink(a)) return;
 
-        // Feedback visual inmediato en el link/li
         var li = a.closest('li');
         (li || a).classList.add('mhn-clicked');
-
-        // Activar progress bar (la barra se va con el reload de pagina)
         document.documentElement.classList.add('mhn-navigating');
     }, true);
 
-    // Si el usuario regresa con back/forward, ocultar progress bar al mostrarse la pagina
     window.addEventListener('pageshow', function(){
         document.documentElement.classList.remove('mhn-navigating');
     });
