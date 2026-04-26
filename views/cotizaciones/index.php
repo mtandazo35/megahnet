@@ -10,136 +10,126 @@
         </nav>
         <div class="tab-content" id="nav-tabContent">
             <div class="tab-pane fade show active p-3" id="nav-cotizaciones" role="tabpanel" aria-labelledby="nav-cotizaciones-tab" tabindex="0">
-                <h5 class="card-title text-center"><i class="fas fa-list-alt"></i> Nueva Cotización</h5>
-                <hr>
-                <div class="row mb-2">
-                    <div class="col-md-6">
-                        <div class="btn-group btn-group-toggle mb-2" data-toggle="buttons">
+
+                <!-- ============ 1. DATOS DEL CLIENTE ============ -->
+                <div class="form-section">
+                    <div class="form-section-title"><i class="fas fa-user-circle"></i> Datos del Cliente</div>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="form-section-label">Buscar Cliente <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-sm">
+                                <input type="hidden" id="idCliente">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input class="form-control" type="text" id="buscarCliente" placeholder="Buscar Cliente">
+                            </div>
+                            <span class="text-danger fw-bold" id="errorCliente"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-section-label">Telefono</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input class="form-control" type="text" id="telefonoCliente" placeholder="Telefono" disabled>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-section-label">Direccion</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-home"></i></span>
+                                <div class="form-control form-display empty-placeholder" id="direccionCliente" data-placeholder="Direccion"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============ 2. SERVICIOS / PRODUCTOS ============ -->
+                <div class="form-section">
+                    <div class="form-section-title"><i class="fas fa-shopping-cart"></i> Servicios y Productos</div>
+
+                    <div class="btn-group btn-group-sm mb-2" data-toggle="buttons">
+                        <label class="btn btn-primary">
+                            <input type="radio" id="barcode" checked name="buscarProducto"><i style="padding-left:5px;" class="fas fa-barcode"></i> Servicios
+                        </label>
+                        <label class="btn btn-info text-white">
+                            <input type="radio" id="nombre" name="buscarProducto"><i style="padding-left:5px;" class="fas fa-list"></i> Productos
+                        </label>
+                    </div>
+
+                    <div class="col-md-6" style="margin: auto; display:none;">
+                        <div id="containerBuscador" class="btn-group btn-group-toggle mb-2" data-toggle="buttons">
                             <label class="btn btn-primary">
-                                <input type="radio" id="barcode" checked name="buscarProducto"><i style="padding-left:5px;" class="fas fa-barcode"></i> Servicios
-                            </label>
-                            <label class="btn btn-info text-white">
-                                <input type="radio" id="nombre" name="buscarProducto"><i style="padding-left:5px;" class="fas fa-list"></i> Productos
+                                <input type="radio" id="renta" name="buscarProducto"><i style="padding-left: 5px;" class="fas fa-barcode"></i> Renta
                             </label>
                         </div>
                     </div>
-
-                </div>
-                <div class="col-md-6" style="margin: auto; display:none;">
-                            <div id="containerBuscador " class="btn-group btn-group-toggle mb-2" data-toggle="buttons">
-                                <label class="btn btn-primary">
-                                    <input type="radio" id="renta"  name="buscarProducto"><i style="padding-left: 5px;" class="fas fa-barcode"></i> Renta
-                                </label>
-                               
-                            </div>
-                        </div>
-                        <div class="input-group mb-2" id="containerRenta" style="margin: auto; display:none;">
+                    <div class="input-group mb-2" id="containerRenta" style="margin: auto; display:none;">
                         <span class="input-group-text"><i class="fas fa-search"></i></span>
                         <input class="form-control" type="text" id="buscarRenta" placeholder="Buscar Renta" autocomplete="off">
                     </div>
-                <div class="col-md-6" style="margin: auto; display:none;">
-                        <div class=" form-group btn-group btn-group-toggle " data-toggle="buttons">                          
+                    <div class="col-md-6" style="margin: auto; display:none;">
+                        <div class="form-group btn-group btn-group-toggle" data-toggle="buttons">
                             <label class="btn btn-info text-white">
                                 <input type="radio" id="nombreTipoPago" name="buscarProducto"><i style="padding-left:5px;" class="fas fa-list"></i> Tipo Pago
                             </label>
                         </div>
                     </div>
-
-                   <!-- input para buscar nombre -->
-   <div class="input-group d-none mb-2" id="containerNombreTipoPago" style="display:none;">
-                    <span class="input-group-text"><i class="fas fa-search"></i></span>
-                    <input class="form-control" type="text" id="buscarTipoPagoNombre" placeholder="Buscar Tipo Pagos" autocomplete="off">
-                </div>
-                 <!-- input para buscar codigo -->
-                 <div class="input-group mb-2" id="containerCodigo">
-                    <span class="input-group-text"><i class="fas fa-search"></i></span>
-                    <input class="form-control" type="text" id="buscarProductoNombre" placeholder="Buscar Servicio" autocomplete="off">
-                </div>
-
-                <!-- input para buscar nombre -->
-                <div class="input-group d-none mb-2" id="containerNombre">
-                    <span class="input-group-text"><i class="fas fa-search"></i></span>
-                    <input class="form-control" type="text" id="buscarProductoCodigo" placeholder="Buscar Producto" autocomplete="off">
-                </div>
-                <div class="input-group mb-2" id="containerRenta" style="display:none;">
+                    <div class="input-group d-none mb-2" id="containerNombreTipoPago" style="display:none;">
                         <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        <input class="form-control" type="text" id="buscarRenta" placeholder="Buscar Renta" autocomplete="off">
+                        <input class="form-control" type="text" id="buscarTipoPagoNombre" placeholder="Buscar Tipo Pagos" autocomplete="off">
                     </div>
-                <!-- table productos -->
 
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover align-middle" id="tblNuevaCotizacion" style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th>Producto</th>
-                                <th>Precio</th>
-                                <th>Cantidad</th>
-                                <th>SubTotal</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
+                    <div class="input-group mb-2" id="containerCodigo">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input class="form-control" type="text" id="buscarProductoNombre" placeholder="Buscar Servicio" autocomplete="off">
+                    </div>
+                    <div class="input-group d-none mb-2" id="containerNombre">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input class="form-control" type="text" id="buscarProductoCodigo" placeholder="Buscar Producto" autocomplete="off">
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover align-middle" id="tblNuevaCotizacion" style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Precio</th>
+                                    <th>Cantidad</th>
+                                    <th>SubTotal</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
                 </div>
 
-                <hr>
-
-                <div class="row justify-content-between">
-                    <div class="col-md-4">
-                       <div>
-                       <label>Buscar Cliente</label>
-                        <div class="input-group mb-2">
-                            <input type="hidden" id="idCliente">
-                            <span class="input-group-text"><i class="fas fa-search"></i></span>
-                            <input class="form-control" type="text" id="buscarCliente" placeholder="Buscar Cliente">
+                <!-- ============ 3. RESUMEN Y CONFIRMACION ============ -->
+                <div class="form-section form-section-resumen">
+                    <div class="form-section-title"><i class="fas fa-file-invoice-dollar"></i> Resumen de la Cotización</div>
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <label class="form-section-label">Vendedor</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input class="form-control" type="text" value="<?php echo $_SESSION['nombre_usuario']; ?>" disabled>
+                            </div>
                         </div>
-                        <span class="text-danger fw-bold mb-2" id="errorCliente"></span>
-                       </div>
-
-                        <label>Telefono</label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                            <input class="form-control" type="text" id="telefonoCliente" placeholder="Telefono" disabled>
+                        <div class="col-md-3">
+                            <label class="form-section-label">Descuento</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-percentage"></i></span>
+                                <input class="form-control" type="text" id="descuento" placeholder="0">
+                            </div>
                         </div>
-
-                        <label>Dirección</label>
-                        <ul class="list-group">
-                            <li class="list-group-item" id="direccionCliente"><i class="fas fa-home"></i></li>
-                        </ul>
-                    </div>
-
-                    <div class="col-md-4">
-                        <label>Vendedor</label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text"><i class="fas fa-user"></i></span>
-                            <input class="form-control" type="text" value="<?php echo $_SESSION['nombre_usuario']; ?>" placeholder="Vendedor" disabled>
-                        </div>
-                        <label>Descuento</label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
-                            <input class="form-control" type="text" id="descuento" placeholder="Descuento">
-                        </div>
-
-                        <label>Total a Pagar</label>
-                        <div class="input-group mb-2">
-                            <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
-                            <input class="form-control" type="text" id="totalPagar" placeholder="Total Pagar" disabled>
-                        </div>
-                    </div>
-
-                    <div class="col-md-4">
-                        <div class="form-group mb-2">
-                            <label for="metodo">Metodo</label>
-                            <select id="metodo" class="form-control">
+                        <div class="col-md-2">
+                            <label class="form-section-label">Metodo</label>
+                            <select id="metodo" class="form-select form-select-sm">
                                 <option value="CONTADO">CONTADO</option>
                                 <option value="CREDITO">CREDITO</option>
                             </select>
                         </div>
-
-                        <div class="form-group mb-2">
-                            <label for="validez">Validez Oferta</label>
-                            <select id="validez" class="form-control">
+                        <div class="col-md-2">
+                            <label class="form-section-label">Validez</label>
+                            <select id="validez" class="form-select form-select-sm">
                                 <option value="5 DIAS">5 DIAS</option>
                                 <option value="10 DIAS">10 DIAS</option>
                                 <option value="15 DIAS">15 DIAS</option>
@@ -147,9 +137,15 @@
                                 <option value="30 DIAS">30 DIAS</option>
                             </select>
                         </div>
-
-                        <div class="d-grid">
-                            <button class="btn btn-primary" type="button" id="btnAccion">Completar</button>
+                        <div class="col-md-2">
+                            <label class="form-section-label">Total a Pagar</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
+                                <input class="form-control fw-bold" type="text" id="totalPagar" placeholder="0.00" disabled>
+                            </div>
+                        </div>
+                        <div class="col-12 mt-2">
+                            <button class="btn btn-primary w-100" type="button" id="btnAccion"><i class="fas fa-check-circle me-1"></i>Completar Cotización</button>
                         </div>
                     </div>
                 </div>

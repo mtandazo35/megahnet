@@ -19,6 +19,7 @@
     <link href="<?php echo BASE_URL; ?>assets/css/app.css" rel="stylesheet">
     <link href="<?php echo BASE_URL; ?>assets/css/icons.css" rel="stylesheet">
     <link href="<?php echo BASE_URL; ?>assets/css/modern-theme.css" rel="stylesheet" />
+    <link href="<?php echo BASE_URL; ?>assets/css/form-sections.css" rel="stylesheet" />
     <!-- Theme Style CSS -->
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dark-theme.css" />
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/semi-dark.css" />

@@ -1,0 +1,54 @@
+/* ===== Secciones reutilizables para formularios largos =====
+   Usado en Nuevo Contrato, Nueva Cotizacion, Nueva Venta, etc. */
+
+.form-section {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+}
+
+.form-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: #2563eb;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #eff6ff;
+}
+
+.form-section-title i {
+    margin-right: 6px;
+}
+
+.form-section-resumen {
+    background: #f0f9ff;
+    border-color: #bae6fd;
+}
+
+.form-section-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
+
+/* Campo display-only que se setea via innerHTML desde JS */
+.form-display {
+    background-color: #e9ecef;
+    color: #495057;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    cursor: default;
+}
+
+.form-display.empty-placeholder:empty::before {
+    content: attr(data-placeholder);
+    color: #adb5bd;
+}
