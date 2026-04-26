@@ -1,328 +1,118 @@
+<?php
+// Reporte PDF: Credito (factura fisica) con detalle de productos y abonos.
+$pdfTitulo    = 'CRÉDITO';
+$pdfSubtitulo = 'N° ' . ($data['credito']['id'] ?? '');
+$pdfMeta = [
+    ['label' => 'Fecha', 'value' => $data['credito']['fecha'] ?? ''],
+    ['label' => 'Hora',  'value' => $data['credito']['hora']  ?? ''],
+];
 
-    <!DOCTYPE html>
-    <html lang="en">
+$_e = function ($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); };
+$cli = $data['credito'] ?? [];
+$productos = !empty($cli['productos']) ? json_decode($cli['productos'], true) : [];
+$abonos = $data['abonos'] ?? [];
 
-    <head>
-        <meta charset="UTF-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title><?php echo $data['title']; ?></title>
-        <style>
-        @import url('fonts/BrixSansRegular.css');
-        @import url('fonts/BrixSansBlack.css');
+$abonado = 0;
+foreach ($abonos as $a) { $abonado += (float)($a['abono'] ?? 0); }
+$monto = (float)($cli['monto'] ?? 0);
+$restante = $monto - $abonado;
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+ob_start();
+?>
+<h2 class="section">Datos del cliente</h2>
+<table class="dt" style="margin-top:6px">
+    <tr>
+        <td style="width:25%; background:#f9fafb"><strong><?php echo $_e($cli['identidad'] ?? 'CI/RUC'); ?>:</strong></td>
+        <td style="width:25%"><?php echo $_e($cli['num_identidad'] ?? ''); ?></td>
+        <td style="width:25%; background:#f9fafb"><strong>Razón social:</strong></td>
+        <td style="width:25%"><?php echo $_e($cli['nombre'] ?? ''); ?></td>
+    </tr>
+    <tr>
+        <td style="background:#f9fafb"><strong>Teléfono:</strong></td>
+        <td><?php echo $_e($cli['telefono'] ?? ''); ?></td>
+        <td style="background:#f9fafb"><strong>Dirección:</strong></td>
+        <td><?php echo $_e($cli['direccion'] ?? ''); ?></td>
+    </tr>
+</table>
 
-        p,
-        label,
-        span,
-        table {
-            font-family: 'BrixSansRegular';
-            font-size: 9pt;
-        }
-        .title{
-    text-align: center;
-    font-size: 16px;
-}
-        .h2 {
-            font-family: 'BrixSansBlack';
-            font-size: 16pt;
-        }
+<h2 class="section">Detalle de productos</h2>
+<?php if (empty($productos)) { ?>
+    <div class="empty">Sin productos.</div>
+<?php } else { ?>
+<table class="dt">
+    <thead>
+        <tr>
+            <th style="width:8%">Cant.</th>
+            <th>Descripción</th>
+            <th style="width:18%">P. Unit.</th>
+            <th style="width:18%">Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php foreach ($productos as $p) {
+            $cant = (float)($p['cantidad'] ?? 0);
+            $pre  = (float)($p['precio'] ?? 0);
+        ?>
+        <tr>
+            <td class="ctr"><?php echo $cant; ?></td>
+            <td><?php echo $_e($p['nombre'] ?? ''); ?></td>
+            <td class="num">$ <?php echo number_format($pre, 2); ?></td>
+            <td class="num">$ <?php echo number_format($cant * $pre, 2); ?></td>
+        </tr>
+        <?php } ?>
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="3" style="text-align:right">MONTO TOTAL</td>
+            <td class="num">$ <?php echo number_format($monto, 2); ?></td>
+        </tr>
+    </tfoot>
+</table>
+<?php } ?>
 
-        .h3 {
-            font-family: 'BrixSansBlack';
-            font-size: 12pt;
-            display: block;
-            background: #0a4661;
-            color: #FFF;
-            text-align: center;
-            padding: 3px;
-            margin-bottom: 5px;
+<h2 class="section">Detalle de abonos</h2>
+<?php if (empty($abonos)) { ?>
+    <div class="empty">Sin abonos registrados.</div>
+<?php } else { ?>
+<table class="dt">
+    <thead>
+        <tr>
+            <th style="width:18%">Fecha</th>
+            <th style="width:22%">N° Comprobante</th>
+            <th style="width:20%">Tipo de pago</th>
+            <th style="width:20%">Abono</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php foreach ($abonos as $a) { ?>
+        <tr>
+            <td class="ctr"><?php echo $_e($a['fecha'] ?? ''); ?></td>
+            <td><?php echo $_e($a['codigo_pago'] ?? ''); ?></td>
+            <td><?php echo $_e($a['tipo_pago'] ?? ''); ?></td>
+            <td class="num">$ <?php echo number_format((float)($a['abono'] ?? 0), 2); ?></td>
+        </tr>
+        <?php } ?>
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="3" style="text-align:right">ABONADO</td>
+            <td class="num">$ <?php echo number_format($abonado, 2); ?></td>
+        </tr>
+        <tr>
+            <td colspan="3" style="text-align:right">RESTANTE</td>
+            <td class="num"><?php echo $restante > 0 ? '$ ' . number_format($restante, 2) : '$ 0.00'; ?></td>
+        </tr>
+    </tfoot>
+</table>
+<?php } ?>
 
-        }
-
-        #page_pdf {
-            width: 95%;
-            margin: 15px 10px 10px auto;
-        }
-        .mensaje{
-    margin-top: 10px;
-    font-size: 13px;
-    text-align: center;
-}
-        #factura_head,
-        #factura_cliente,
-        #factura_detalle {
-            width: 95%;
-            margin-bottom: 10px;
-        }
-
-        .info_empresa {
-            width: 50%;
-            text-align: center;
-        }
-
-        .info_factura {
-            width: 25%;
-        }
-
-        .info_cliente {
-            width: 95%;
-        }
-
-        .datos_cliente {
-            width: 95%;
-        }
-
-        .datos_cliente tr td {
-            width: 50%;
-        }
-
-        .datos_cliente {
-            padding: 10px 10px 0 10px;
-        }
-
-        .datos_cliente label {
-            width: 75px;
-            display: inline-block;
-        }
-
-        .datos_cliente p {
-            display: inline-block;
-        }
-
-        .textright {
-            text-align: right;
-        }
-
-        .textleft {
-            text-align: left;
-        }
-
-        .textcenter {
-            text-align: center;
-        }
-
-        .round {
-            border-radius: 10px;
-            border: 1px solid #0a4661;
-            overflow: hidden;
-            padding-bottom: 15px;
-        }
-
-        .round p {
-            padding: 0 15px;
-        }
-
-        #factura_detalle {
-            border-collapse: collapse;
-        }
-
-        #factura_detalle thead th {
-            background: #058167;
-            color: #FFF;
-            padding: 5px;
-        }
-
-        #detalle_productos tr:nth-child(even) {
-            background: #ededed;
-        }
-
-        #detalle_totales span {
-            font-family: 'BrixSansBlack';
-        }
-
-        .nota {
-            font-size: 8pt;
-        }
-
-        .label_gracias {
-            font-family: verdana;
-            font-weight: bold;
-            font-style: italic;
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .anulada {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translateX(-50%) translateY(-50%);
-        }
-
-        b {
-            font-weight: bold !important;
-
-        }
-
-        .enc {
-            font-weight: bold !important;
-            font-style: italic;
-        }
-
-        img {
-            margin: 15px 10px 10px auto;
-            width: 200px;
-            height: 130px;
-            position: fixed;
-            z-index: -150;
-            padding-left: 25px;
-        }
-        </style>
-    </head>
-
-    <body>
-
-        <div id="page_pdf">
-            <table id="factura_head">
-                <tr>
-                    <div>
-                        <img src="<?php echo BASE_URL . 'assets/images/Logo.jpg'; ?>" alt="">
-                    </div>
-                    <td class="logo_factura">
-
-                    </td>
-                    <td class="info_empresa">
-                        <?php
-                        if ($data['empresa'] > 0) {
-                            $iva = $data['empresa']['impuesto'];
-                        ?>
-                        <div>
-                            <span class="h2"><?php echo strtoupper($data['empresa']['nombre']); ?></span>
-                            <p><?php echo $data['empresa']['razon_social']; ?></p>
-                            <p><?php echo $data['empresa']['direccion']; ?></p>
-                            <p>Ruc: <?php echo $data['empresa']['ruc']; ?></p>
-                            <p>Teléfono: <?php echo $data['empresa']['telefono']; ?></p>
-                            <p>Email: <?php echo $data['empresa']['correo']; ?></p>
-                        </div>
-                        <?php
-                        }
-                        ?>
-                    </td>
-                    <td class="info_factura">
-                        <div class="round">
-                            <span class="h3 enc"> Credito </span>
-                            <p>N°: <strong><?php echo $data['credito']['id']; ?></strong></p>
-                            <p>Fecha: <?php echo $data['credito']['fecha']; ?></p>
-                            <p>Hora: <?php echo $data['credito']['hora']; ?></p>
-                        </div>
-                    </td>
-                </tr>
-            </table>
-            <table id="factura_cliente">
-                <tr>
-                    <td class="info_cliente">
-                        <div class="round">
-                            <span class="h3 enc">Datos del Cliente </span>
-                            <table class="datos_cliente">
-                                <tr>
-                                    <td>
-                                        <strong><?php echo $data['credito']['identidad'] ?>: </strong>
-                                        <p><?php echo $data['credito']['num_identidad'] ?></p>
-                                    </td>
-                                    <td>
-                                        <strong>Razon Social: </strong>
-                                        <p><?php echo $data['credito']['nombre'] ?></p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <strong>Teléfono: </strong>
-                                        <p><?php echo $data['credito']['telefono'] ?></p>
-                                    </td>
-                                    <td>
-                                        <strong>Dirección: </strong>
-                                        <p><?php echo $data['credito']['direccion'] ?></p>
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
-                    </td>
-
-                </tr>
-            </table>
-            <h5 class="title">Detalle de los Productos</h5>
-
-            <table id="factura_detalle">
-                <thead>
-                    <tr>
-                        <th width="50px">Cant.</th>
-                        <th class="textleft">Descripción</th>
-                        <th class="textright" width="150px">Precio Unitario.</th>
-                        <th class="textright" width="150px"> Precio Total</th>
-                    </tr>
-                </thead>
-                <tbody id="detalle_productos">
-
-                    <?php
-                    $productos = json_decode($data['credito']['productos'], true);
-
-
-                    foreach ($productos as $producto) {
-                    ?>
-                    <tr>
-                        <td class="textcenter"><?php echo $producto['cantidad']; ?></td>
-                        <td><?php echo $producto['nombre']; ?></td>
-                        <td class="textright"><?php echo number_format($producto['precio'], 2); ?></td>
-                        <td class="textright"><?php echo number_format($producto['cantidad'] * $producto['precio'], 2); ?></td>
-                    </tr>
-
-                    <?php  }  ?>
-                    <tr class="total">
-                        <td class="textright" colspan="3">Monto</td>
-                        <td class="textright"><?php echo number_format($data['credito']['monto'], 2); ?></td>
-                    </tr>
-                </tbody>
-
-            </table>
-            <h5 class="title">Detalle de los Abonos</h5>
-
-            <table id="factura_detalle">
-                <thead>
-                    <tr>
-                        <th >Fecha</th>
-                        <th>Abono</th>
-                    </tr>
-                </thead>
-                <tbody id="detalle_productos">
-
-                    <?php
-                    $abonado = 0;
-                    foreach ($data['abonos'] as $abono) {
-                        $abonado += $abono['abono'];
-                    ?>
-                    <tr>
-                    <td class="textleft"><?php echo $abono['fecha'].' <strong>NUMERO COMPROBANTE </strong> '.$abono['codigo_pago'].' <strong> TIPO DE PAGO </strong>'.$abono['tipo_pago']; ?></td>
-                        <td class="textright"><?php echo number_format($abono['abono'], 2); ?></td>
-                    </tr>
-                    <?php } ?>
-                    <tr class="total">
-                        <td class="textright">Abonado</td>
-                        <td class="textright"><?php echo number_format($abonado, 2); ?></td>
-                    </tr>
-                    <tr class="total">
-                        <td class="textright">Restante</td>
-                        <td class="textright"><?php echo number_format($data['credito']['monto'] -  $abonado, 2); ?>
-                        </td>
-                    </tr>
-                </tbody>
-
-            </table>
-            <div class="mensaje">
-                <?php echo $data['empresa']['mensaje']; ?>
-                <?php if ($data['credito']['estado'] == 0) { ?>
-                <h1>CREDITO FINALIZADO</h1>
-                <?php } else { ?>
-                <h1>CREDITO PENDIENTE</h1>
-                <?php } ?>
-            </div>
-
-        </div>
-    </body>
-
-    </html>
+<div style="margin-top:18px; padding:10px; text-align:center; border-radius:6px;
+    background:<?php echo (int)($cli['estado'] ?? 1) === 0 ? '#d1fae5' : '#fef3c7'; ?>;
+    color:<?php echo (int)($cli['estado'] ?? 1) === 0 ? '#065f46' : '#92400e'; ?>;
+    font-size:14px; font-weight:bold; letter-spacing:1px;">
+    <?php echo (int)($cli['estado'] ?? 1) === 0 ? 'CRÉDITO FINALIZADO' : 'CRÉDITO PENDIENTE'; ?>
+</div>
+<?php
+$pdfContenido = ob_get_clean();
+$empresa = $data['empresa'] ?? [];
+include __DIR__ . '/../templates/_pdf_layout.php';
