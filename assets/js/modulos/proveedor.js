@@ -103,15 +103,15 @@ function eliminarProveedor(idProveedor){
 
 function editarProveedor(idProveedor) {
     limpiarCampos();
-    editorDireccion.setData('');
+    if (typeof editorDireccion !== 'undefined' && editorDireccion) {
+        editorDireccion.setData('');
+    } else if (direccion) {
+        direccion.value = '';
+    }
     const url = base_url + 'proveedor/editar/' + idProveedor;
-    //hacer una instancia del objeto XMLHttpRequest 
     const http = new XMLHttpRequest();
-    //Abrir una Conexion - POST - GET
     http.open('GET', url, true);
-    //Enviar Datos
     http.send();
-    //verificar estados
     http.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
             const res = JSON.parse(this.responseText);
@@ -120,9 +120,18 @@ function editarProveedor(idProveedor) {
             nombre.value = res.nombre;
             telefono.value = res.telefono;
             correo.value = res.correo;
-            editorDireccion.setData(res.direccion);
+            if (typeof editorDireccion !== 'undefined' && editorDireccion) {
+                editorDireccion.setData(res.direccion);
+            } else if (direccion) {
+                direccion.value = res.direccion || '';
+            }
             btnAccion.textContent = 'Actualizar';
-            firstTab.show()
+            // Abrir modal (la vista define window.abrirModalProveedor)
+            if (typeof window.abrirModalProveedor === 'function') {
+                window.abrirModalProveedor();
+            } else {
+                firstTab.show();
+            }
         }
     }
 }

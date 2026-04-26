@@ -1,98 +1,139 @@
 <?php include_once 'views/templates/header.php'; ?>
 
-<div class="card">
+<div class="page-header d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2" id="page-header-modern">
+    <div>
+        <h4 class="mb-0 fw-semibold"><i class="bx bx-store text-primary me-1"></i>Proveedores</h4>
+        <small class="text-muted">Listado y registro de proveedores</small>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalProveedor" id="btnAbrirNuevoProveedor">
+            <i class="bx bx-plus me-1"></i>Nuevo proveedor
+        </button>
+        <a href="<?php echo BASE_URL . 'proveedor/inactivos'; ?>" class="btn btn-outline-secondary">
+            <i class="bx bx-trash me-1"></i>Inactivos
+        </a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
     <div class="card-body">
-    <div class="d-flex align-items-center">
-            <div></div>
-            <div class="dropdown ms-auto">
-                <a class="dropdown-toggle dropdown-toggle-nocaret" href="#" data-bs-toggle="dropdown"><i class='bx bx-dots-horizontal-rounded font-22 text-option'></i>
-                </a>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="<?php echo BASE_URL . 'proveedor/inactivos'; ?>"><i class="fas fa-trash text-danger"></i> Inactivos</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-        <nav>
-            <div class="nav nav-tabs" id="nav-tab" role="tablist">
-                <button class="nav-link active" id="nav-proveedores-tab" data-bs-toggle="tab" data-bs-target="#nav-proveedores" type="button" role="tab" aria-controls="nav-proveedores" aria-selected="true">Proveedores</button>
-                <button class="nav-link" id="nav-nuevo-tab" data-bs-toggle="tab" data-bs-target="#nav-nuevo" type="button" role="tab" aria-controls="nav-nuevo" aria-selected="false">Nuevo</button>
-            </div>
-        </nav>
-        <div class="tab-content" id="nav-tabContent">
-            <div class="tab-pane fade show active mt-2" id="nav-proveedores" role="tabpanel" aria-labelledby="nav-proveedores-tab" tabindex="0">
-                <?php $tituloListado='Listado de Proveedores'; $iconoListado='bx-store'; include 'views/templates/listado_titulo.php'; ?>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover align-middle nowrap" id="tblProveedores" style="width: 100%;">
-                        <thead>
-                            <tr>
-                            <th>Nombre</th>
-
-                                <th>Ruc</th>
-                                <th>Telefono</th>
-                                <th>Correo</th>
-                                <th>Dirección</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="tab-pane fade p-3" id="nav-nuevo" role="tabpanel" aria-labelledby="nav-nuevo-tab" tabindex="0">
-                <form id="formulario" autocomplete="off">
-                    <input type="hidden" id="id" name="id">
-                    <div class="row mb-3">
-                        <div class="col-md-4 mb-3">
-                            <label for="num_identidad">Ruc <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-list"></i></span>
-                                <input class="form-control" type="number" name="ruc" id="ruc" placeholder="N° Identidad" onkeypress="validarNumero(event)">
-                            </div>
-                            <span id="errorRuc" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-8 mb-3">
-                            <label for="nombre">Nombre <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-list"></i></span>
-                                <input class="form-control" type="text" name="nombre" id="nombre" placeholder="Nombre" onkeypress="validarLetras(event)">
-                            </div>
-                            <span id="errorNombre" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="telefono">Teléfono</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                                <input class="form-control" type="number" name="telefono" id="telefono" placeholder="Telefono" onkeypress="validarNumero(event)">
-                            </div>
-                            <span id="errorTelefono" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="correo">Correo Electrónico</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                                <input class="form-control" type="email" name="correo" id="correo" placeholder="Correo Electrónico">
-                            </div>
-                            <span id="errorCorreo" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <div class="form-group">
-                                <label for="direccion">Dirreción <span class="text-danger">*</span></label>
-                                <textarea id="direccion" class="form-control" name="direccion" rows="3" placeholder="Dirección"></textarea>
-                            </div>
-                            <span id="errorDireccion" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="text-end">
-                        <button class="btn btn-danger" type="button" id="btnNuevo">Nuevo</button>
-                        <button class="btn btn-primary" type="submit" id="btnAccion">Registrar</button>
-                    </div>
-                </form>
-            </div>
+        <?php $tituloListado='Listado de Proveedores'; $iconoListado='bx-store'; include 'views/templates/listado_titulo.php'; ?>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle nowrap" id="tblProveedores" style="width: 100%;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>RUC</th>
+                        <th>Teléfono</th>
+                        <th>Correo</th>
+                        <th>Dirección</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </div>
 </div>
+
+<!-- ============ MODAL: NUEVO / EDITAR PROVEEDOR ============ -->
+<div class="modal fade" id="modalProveedor" tabindex="-1" aria-labelledby="modalProveedorLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="modalProveedorLabel"><i class="bx bx-store text-primary me-1"></i>Datos del proveedor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form id="formulario" autocomplete="off">
+                <div class="modal-body">
+                    <input type="hidden" id="id" name="id">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label small mb-1" for="ruc">RUC <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bx bx-id-card"></i></span>
+                                <input class="form-control" type="number" name="ruc" id="ruc"
+                                       placeholder="N° RUC" onkeypress="validarNumero(event)">
+                            </div>
+                            <span id="errorRuc" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label small mb-1" for="nombre">Nombre <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bx bx-building"></i></span>
+                                <input class="form-control" type="text" name="nombre" id="nombre"
+                                       placeholder="Nombre del proveedor" onkeypress="validarLetras(event)">
+                            </div>
+                            <span id="errorNombre" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small mb-1" for="telefono">Teléfono</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bx bx-phone"></i></span>
+                                <input class="form-control" type="number" name="telefono" id="telefono"
+                                       placeholder="Teléfono" onkeypress="validarNumero(event)">
+                            </div>
+                            <span id="errorTelefono" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small mb-1" for="correo">Correo electrónico</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bx bx-envelope"></i></span>
+                                <input class="form-control" type="email" name="correo" id="correo"
+                                       placeholder="proveedor@correo.com">
+                            </div>
+                            <span id="errorCorreo" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label small mb-1" for="direccion">Dirección <span class="text-danger">*</span></label>
+                            <textarea id="direccion" class="form-control" name="direccion" rows="3" placeholder="Dirección"></textarea>
+                            <span id="errorDireccion" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" id="btnNuevo">
+                        <i class="bx bx-eraser me-1"></i>Limpiar
+                    </button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnAccion">
+                        <i class="bx bx-save me-1"></i>Registrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Cerrar modal tras registro exitoso (evento mhn:registroOk emitido por insertarRegistros).
+document.addEventListener('DOMContentLoaded', function () {
+    var modalProveedor = document.getElementById('modalProveedor');
+    var formulario     = document.getElementById('formulario');
+    var btnAccion      = document.getElementById('btnAccion');
+
+    if (formulario && modalProveedor) {
+        formulario.addEventListener('mhn:registroOk', function () {
+            bootstrap.Modal.getOrCreateInstance(modalProveedor).hide();
+        });
+    }
+    var btnAbrir = document.getElementById('btnAbrirNuevoProveedor');
+    if (btnAbrir && formulario && btnAccion) {
+        btnAbrir.addEventListener('click', function () {
+            formulario.reset();
+            document.getElementById('id').value = '';
+            btnAccion.textContent = 'Registrar';
+            ['errorRuc','errorNombre','errorTelefono','errorCorreo','errorDireccion']
+                .forEach(function(id){ var el = document.getElementById(id); if (el) el.textContent = ''; });
+        });
+    }
+});
+window.abrirModalProveedor = function () {
+    var el = document.getElementById('modalProveedor');
+    if (el) bootstrap.Modal.getOrCreateInstance(el).show();
+};
+</script>
 
 <?php include_once 'views/templates/footer.php'; ?>
