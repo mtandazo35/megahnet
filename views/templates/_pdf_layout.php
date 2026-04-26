@@ -37,80 +37,98 @@ $_emp          = isset($empresa) && is_array($empresa) ? $empresa : [];
 <meta charset="UTF-8">
 <title><?php echo $_e($_pdfTitulo); ?></title>
 <style>
-    @page { margin: 22mm 14mm; }
+    /* A4: 210x297mm. Margenes amplios para respiracion + espaciado aireado. */
+    @page { size: A4; margin: 28mm 18mm; }
     * { box-sizing: border-box; }
-    body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #1f2937; margin: 0; }
+    body {
+        font-family: DejaVu Sans, sans-serif;
+        font-size: 11px;
+        line-height: 1.5;
+        color: #1f2937;
+        margin: 0;
+    }
 
-    .header { width: 100%; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 14px; }
+    .header {
+        width: 100%;
+        border-bottom: 2px solid #2563eb;
+        padding-bottom: 14px;
+        margin-bottom: 22px;
+    }
     .header table { width: 100%; border-collapse: collapse; }
     .header td { vertical-align: top; padding: 0; }
-    .header .logo-cell { width: 90px; }
-    .header .logo-cell img { max-width: 80px; max-height: 60px; }
-    .header .empresa-cell { padding-left: 8px; }
-    .header .empresa-cell .nombre { font-size: 14px; font-weight: bold; color: #111827; margin: 0 0 3px 0; }
-    .header .empresa-cell p { margin: 1px 0; font-size: 10px; color: #4b5563; }
+    .header .logo-cell { width: 110px; padding-right: 10px; }
+    .header .logo-cell img { max-width: 100px; max-height: 70px; }
+    .header .empresa-cell { padding-left: 4px; padding-right: 12px; }
+    .header .empresa-cell .nombre { font-size: 16px; font-weight: bold; color: #111827; margin: 0 0 6px 0; }
+    .header .empresa-cell p { margin: 2px 0; font-size: 11px; color: #4b5563; line-height: 1.4; }
     .header .doc-cell { width: 200px; text-align: right; }
     .header .doc-cell .badge {
         display: inline-block;
         background: #2563eb;
         color: #fff;
-        padding: 4px 12px;
-        font-size: 11px;
+        padding: 6px 14px;
+        font-size: 12px;
         font-weight: bold;
-        border-radius: 4px;
+        border-radius: 5px;
         letter-spacing: .5px;
     }
-    .header .doc-cell .doc-meta { font-size: 9px; color: #6b7280; margin: 5px 0 0 0; }
+    .header .doc-cell .doc-meta { font-size: 10px; color: #6b7280; margin: 6px 0 0 0; line-height: 1.4; }
     .header .doc-cell .doc-meta strong { color: #111827; }
-    .header .doc-cell .doc-sub { font-size: 11px; font-weight: bold; color: #111827; margin: 5px 0 2px 0; }
+    .header .doc-cell .doc-sub { font-size: 12px; font-weight: bold; color: #111827; margin: 8px 0 4px 0; }
 
     h2.section {
         background: #f3f4f6;
         color: #111827;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: bold;
-        padding: 6px 10px;
-        margin: 14px 0 0 0;
-        border-left: 3px solid #2563eb;
+        padding: 9px 12px;
+        margin: 22px 0 10px 0;
+        border-left: 4px solid #2563eb;
         text-transform: uppercase;
-        letter-spacing: .5px;
+        letter-spacing: .8px;
     }
 
     table.dt {
         width: 100%;
         border-collapse: collapse;
         margin: 0;
-        font-size: 10px;
+        font-size: 11px;
     }
     table.dt thead th {
         background: #2563eb;
         color: #fff;
         font-weight: bold;
-        padding: 6px 8px;
+        padding: 9px 10px;
         border: 1px solid #1d4ed8;
         text-align: center;
+        line-height: 1.3;
     }
-    table.dt tbody td { border: 1px solid #e5e7eb; padding: 5px 8px; }
+    table.dt tbody td {
+        border: 1px solid #e5e7eb;
+        padding: 8px 10px;
+        line-height: 1.4;
+    }
     table.dt tbody tr:nth-child(odd) td { background: #f9fafb; }
-    table.dt .num { text-align: right; font-family: DejaVu Sans Mono, monospace; }
+    table.dt .num { text-align: right; font-family: DejaVu Sans Mono, monospace; white-space: nowrap; }
     table.dt .ctr { text-align: center; }
     table.dt tfoot td {
         background: #ecfdf5; color: #065f46; font-weight: bold;
-        padding: 6px 8px; border: 1px solid #a7f3d0;
+        padding: 9px 10px; border: 1px solid #a7f3d0;
     }
     table.dt .col-saldo { background: #ecfdf5 !important; color: #065f46; font-weight: bold; }
 
     .empty {
         background: #f9fafb; color: #9ca3af;
-        text-align: center; padding: 14px;
+        text-align: center; padding: 18px;
         border: 1px dashed #d1d5db; font-style: italic;
+        margin: 4px 0;
     }
     .footer-msg {
-        margin-top: 18px; padding: 10px;
-        background: #fffbeb; border-left: 3px solid #f59e0b;
-        font-size: 10px; color: #92400e;
+        margin-top: 22px; padding: 12px 14px;
+        background: #fffbeb; border-left: 4px solid #f59e0b;
+        font-size: 11px; color: #92400e; line-height: 1.5;
     }
-    .gen-meta { margin-top: 14px; text-align: right; font-size: 9px; color: #9ca3af; }
+    .gen-meta { margin-top: 18px; text-align: right; font-size: 9px; color: #9ca3af; }
 </style>
 </head>
 <body>

@@ -28,66 +28,68 @@ $_e = function ($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); 
 <meta charset="UTF-8">
 <title><?php echo $_e($tituloDoc); ?></title>
 <style>
-    @page { margin: 22mm 16mm; }
+    @page { size: A4; margin: 28mm 18mm; }
     * { box-sizing: border-box; }
     body {
         font-family: DejaVu Sans, sans-serif;
         font-size: 11px;
+        line-height: 1.5;
         color: #1f2937;
         margin: 0;
     }
     .header {
         width: 100%;
         border-bottom: 2px solid #2563eb;
-        padding-bottom: 10px;
-        margin-bottom: 14px;
+        padding-bottom: 14px;
+        margin-bottom: 22px;
     }
     .header table { width: 100%; border-collapse: collapse; }
     .header td { vertical-align: top; padding: 0; }
-    .header .logo-cell { width: 90px; }
-    .header .logo-cell img { max-width: 80px; max-height: 60px; }
-    .header .empresa-cell { padding-left: 8px; }
-    .header .empresa-cell .nombre { font-size: 14px; font-weight: bold; color: #111827; margin: 0 0 3px 0; }
-    .header .empresa-cell p { margin: 1px 0; font-size: 10px; color: #4b5563; }
-    .header .doc-cell { width: 180px; text-align: right; }
+    .header .logo-cell { width: 110px; padding-right: 10px; }
+    .header .logo-cell img { max-width: 100px; max-height: 70px; }
+    .header .empresa-cell { padding-left: 4px; padding-right: 12px; }
+    .header .empresa-cell .nombre { font-size: 16px; font-weight: bold; color: #111827; margin: 0 0 6px 0; }
+    .header .empresa-cell p { margin: 2px 0; font-size: 11px; color: #4b5563; line-height: 1.4; }
+    .header .doc-cell { width: 200px; text-align: right; }
     .header .doc-cell .badge {
         display: inline-block;
         background: #2563eb;
         color: #fff;
-        padding: 4px 12px;
+        padding: 6px 14px;
         font-size: 12px;
         font-weight: bold;
-        border-radius: 4px;
+        border-radius: 5px;
         letter-spacing: .5px;
     }
     .header .doc-cell .doc-num {
-        font-size: 16px;
+        font-size: 18px;
         font-weight: bold;
         color: #111827;
-        margin: 6px 0 0 0;
+        margin: 8px 0 0 0;
     }
-    .header .doc-cell .doc-meta { font-size: 10px; color: #6b7280; margin: 2px 0 0 0; }
+    .header .doc-cell .doc-meta { font-size: 10px; color: #6b7280; margin: 4px 0 0 0; line-height: 1.4; }
     .header .doc-cell .actual-pill {
         display: inline-block;
         background: #16a34a;
         color: #fff;
-        padding: 2px 8px;
-        font-size: 9px;
+        padding: 3px 10px;
+        font-size: 10px;
         font-weight: bold;
-        border-radius: 10px;
+        border-radius: 12px;
         text-transform: uppercase;
+        letter-spacing: .3px;
     }
 
     h2.section {
         background: #f3f4f6;
         color: #111827;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: bold;
-        padding: 6px 10px;
-        margin: 16px 0 0 0;
-        border-left: 3px solid #2563eb;
+        padding: 9px 12px;
+        margin: 22px 0 10px 0;
+        border-left: 4px solid #2563eb;
         text-transform: uppercase;
-        letter-spacing: .5px;
+        letter-spacing: .8px;
     }
 
     table.dt {
@@ -101,18 +103,21 @@ $_e = function ($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); 
         color: #fff;
         font-weight: bold;
         text-align: center;
-        padding: 6px 8px;
+        padding: 9px 10px;
         border: 1px solid #1d4ed8;
+        line-height: 1.3;
     }
     table.dt tbody td {
         border: 1px solid #e5e7eb;
-        padding: 6px 8px;
+        padding: 8px 10px;
         text-align: center;
+        line-height: 1.4;
     }
     table.dt tbody tr:nth-child(odd) td { background: #f9fafb; }
     table.dt .num {
         font-family: DejaVu Sans Mono, monospace;
         text-align: right;
+        white-space: nowrap;
     }
     table.dt .col-saldo {
         background: #ecfdf5 !important;
@@ -123,21 +128,23 @@ $_e = function ($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); 
         background: #f9fafb;
         color: #9ca3af;
         text-align: center;
-        padding: 12px;
+        padding: 18px;
         border: 1px dashed #d1d5db;
         font-style: italic;
-        font-size: 10px;
+        font-size: 11px;
+        margin: 4px 0;
     }
     .footer-msg {
-        margin-top: 18px;
-        padding: 10px;
+        margin-top: 22px;
+        padding: 12px 14px;
         background: #fffbeb;
-        border-left: 3px solid #f59e0b;
-        font-size: 10px;
+        border-left: 4px solid #f59e0b;
+        font-size: 11px;
         color: #92400e;
+        line-height: 1.5;
     }
     .gen-meta {
-        margin-top: 14px;
+        margin-top: 18px;
         text-align: right;
         font-size: 9px;
         color: #9ca3af;
