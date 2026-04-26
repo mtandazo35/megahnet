@@ -91,6 +91,35 @@
             ::view-transition-old(mhn-content),
             ::view-transition-new(mhn-content) { animation: none; }
         }
+
+        /* === Fade-out manual al hacer click en un link de navegacion ===
+           Funciona en TODOS los browsers (no requiere View Transitions).
+           Mientras el browser navega, el contenido viejo se va con fade
+           => no se ve el flash blanco/oscuro entre paginas. */
+        .page-content {
+            transition: opacity 120ms ease-out;
+        }
+        body.mhn-navigating .page-content {
+            opacity: 0;
+            pointer-events: none;
+        }
+        /* Loader bar superior durante navegacion */
+        body.mhn-navigating::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #2563eb, #7c3aed, #2563eb);
+            background-size: 200% 100%;
+            z-index: 9999;
+            animation: mhn-loader-fill 600ms ease-out forwards;
+            box-shadow: 0 0 8px rgba(37,99,235,.5);
+        }
+        @keyframes mhn-loader-fill {
+            0%   { width: 0%;  background-position: 0%   50%; }
+            60%  { width: 70%; background-position: 100% 50%; }
+            100% { width: 100%; background-position: 100% 50%; }
+        }
     </style>
     <!-- Tab persist: oculta tab-content hasta que tab-persist.js active el tab correcto -->
     <script>
@@ -576,6 +605,44 @@ document.addEventListener("click", function(e){
         if (href === '' || href === '#' || href.indexOf('javascript:') === 0) return;
         saveScroll();
     }, true);
+})();
+
+// Fade-out manual del contenido al hacer click en navegacion: elimina el
+// flash blanco entre paginas. Funciona en TODOS los browsers (no depende
+// de View Transitions). El sidebar/topbar quedan estables visualmente.
+(function(){
+    function isNavigationLink(a){
+        if (!a) return false;
+        var href = a.getAttribute('href') || '';
+        if (!href || href === '#' || href.charAt(0) === '#') return false;
+        if (href.indexOf('javascript:') === 0) return false;
+        if (href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return false;
+        if (a.target === '_blank') return false;
+        if (a.hasAttribute('download')) return false;
+        // Solo mismo origen
+        try {
+            var u = new URL(href, location.href);
+            if (u.origin !== location.origin) return false;
+            if (u.href === location.href) return false;
+        } catch(e) { return false; }
+        // Saltar links que abren modales/dropdowns BS5
+        if (a.hasAttribute('data-bs-toggle')) return false;
+        return true;
+    }
+
+    document.addEventListener('click', function(e){
+        // Ignorar si el usuario aprieta Ctrl/Cmd/Shift (abre nueva pestana)
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+        var a = e.target.closest('a[href]');
+        if (!isNavigationLink(a)) return;
+        document.body.classList.add('mhn-navigating');
+    }, true);
+
+    // Si el browser cancela la navegacion (volver atras dentro de la cache),
+    // o pageshow desde bfcache, quitar la clase
+    window.addEventListener('pageshow', function(){
+        document.body.classList.remove('mhn-navigating');
+    });
 })();
 
 // Prefetch on hover: cuando el usuario pasa el mouse sobre un link
