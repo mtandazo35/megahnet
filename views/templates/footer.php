@@ -76,7 +76,10 @@
 <script src="<?php echo BASE_URL; ?>assets/js/sweetalert2.all.min.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/ckeditor.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/funciones.js?v=<?php echo function_exists('asset_v') ? asset_v('assets/js/funciones.js') : ''; ?>"></script>
+<?php /* PJAX deshabilitado: rompia modales/botones tras navegar.
+       Si quieres reactivarlo: descomentar la linea de abajo y testear modales.
 <script src="<?php echo BASE_URL; ?>assets/js/mhn-pjax.js?v=<?php echo function_exists('asset_v') ? asset_v('assets/js/mhn-pjax.js') : ''; ?>"></script>
+*/ ?>
 <script src="<?php echo BASE_URL; ?>assets/js/tab-persist.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/jquery-ui.min.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/plugins/fullcalendar/js/main.min.js"></script>
