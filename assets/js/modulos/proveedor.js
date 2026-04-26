@@ -103,10 +103,12 @@ function editarProveedor(idProveedor) {
             nombre.value = res.nombre;
             telefono.value = res.telefono;
             correo.value = res.correo;
+            // Direccion: limpiar HTML legacy (CKEditor guardaba <p>texto</p>)
+            var dirTxt = (res.direccion || '').replace(/<\/?[^>]+(>|$)/g, '').trim();
             if (typeof editorDireccion !== 'undefined' && editorDireccion) {
-                editorDireccion.setData(res.direccion);
+                editorDireccion.setData(dirTxt);
             } else if (direccion) {
-                direccion.value = res.direccion || '';
+                direccion.value = dirTxt;
             }
             btnAccion.textContent = 'Actualizar';
             // Abrir modal (la vista define window.abrirModalProveedor)
@@ -120,9 +122,9 @@ function editarProveedor(idProveedor) {
 }
 
 function limpiarCampos() {
-    errorRuc.textContent = '';
-        errorNombre.textContent = '';
-        errorTelefono.textContent = '';
-        errorCorreo.textContent = '';
-        errorDireccion.textContent = '';
+    if (errorRuc) errorRuc.textContent = '';
+    if (errorNombre) errorNombre.textContent = '';
+    if (errorTelefono) errorTelefono.textContent = '';
+    if (errorCorreo) errorCorreo.textContent = '';
+    if (errorDireccion) errorDireccion.textContent = '';
 }
