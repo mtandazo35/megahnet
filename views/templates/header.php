@@ -40,6 +40,12 @@
 
     <title><?php echo TITLE . ' - ' . $data['title']; ?></title>
 
+    <!-- Background base aplicado ANTES de cualquier CSS externo: evita el
+         flash negro durante navegacion (cuando app.css aun no ha cargado el
+         background del body). Mismo color #f7f7ff que aplica app.css despues. -->
+    <style>
+        html, body { background: #f7f7ff; }
+    </style>
     <!-- Tab persist: oculta tab-content hasta que tab-persist.js active el tab correcto -->
     <script>
         if (window.location.hash) document.documentElement.classList.add('tab-pending');
