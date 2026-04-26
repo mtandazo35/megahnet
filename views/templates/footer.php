@@ -72,10 +72,10 @@
 })();
 </script>
 
-<script src="<?php echo BASE_URL; ?>assets/js/botones-perzonalizados.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/botones-perzonalizados.js?v=<?php echo function_exists('asset_v') ? asset_v('assets/js/botones-perzonalizados.js') : ''; ?>"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/sweetalert2.all.min.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/ckeditor.js"></script>
-<script src="<?php echo BASE_URL; ?>assets/js/funciones.js"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/funciones.js?v=<?php echo function_exists('asset_v') ? asset_v('assets/js/funciones.js') : ''; ?>"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/tab-persist.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/jquery-ui.min.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/plugins/fullcalendar/js/main.min.js"></script>
@@ -90,13 +90,13 @@
     <script>
         const nombreKey = '<?php echo $data['carrito']; ?>';
     </script>
-    <script src="<?php echo BASE_URL . 'assets/js/' . $data['busqueda']; ?>"></script>
+    <script src="<?php echo BASE_URL . 'assets/js/' . $data['busqueda']; ?>?v=<?php echo function_exists('asset_v') ? asset_v('assets/js/' . $data['busqueda']) : ''; ?>"></script>
 <?php } ?>
 <?php if (!empty($data['script'])) { ?>
-    <script src="<?php echo BASE_URL . 'assets/js/modulos/' . $data['script']; ?>"></script>
+    <script src="<?php echo BASE_URL . 'assets/js/modulos/' . $data['script']; ?>?v=<?php echo function_exists('asset_v') ? asset_v('assets/js/modulos/' . $data['script']) : ''; ?>"></script>
 <?php } ?>
 <?php if (!empty($data['validacion'])) { ?>
-    <script src="<?php echo BASE_URL . 'assets/js/' . $data['validacion']; ?>"></script>
+    <script src="<?php echo BASE_URL . 'assets/js/' . $data['validacion']; ?>?v=<?php echo function_exists('asset_v') ? asset_v('assets/js/' . $data['validacion']) : ''; ?>"></script>
 <?php } ?>
 </body>
 
