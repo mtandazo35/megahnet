@@ -138,10 +138,13 @@ function editarMikrotik(idMikrotik) {
             usuario.value = res.usuario;
             puerto.value = res.puerto;
             clave.value = res.clave;
-            // editorDireccion.setData(res.direccion);
             btnAccion.textContent = 'Actualizar';
-            firstTab.show()
-
+            // Abrir modal (la vista define window.abrirModalMikrotik)
+            if (typeof window.abrirModalMikrotik === 'function') {
+                window.abrirModalMikrotik();
+            } else {
+                firstTab.show();
+            }
         }
     }
 }

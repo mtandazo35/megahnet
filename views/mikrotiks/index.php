@@ -1,114 +1,158 @@
 <?php include_once 'views/templates/header.php'; ?>
 
-<div class="card">
+<div class="page-header d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2" id="page-header-modern">
+    <div>
+        <h4 class="mb-0 fw-semibold"><i class="bx bx-server text-primary me-1"></i>Mikrotiks</h4>
+        <small class="text-muted">Routers MikroTik registrados en el sistema</small>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalMikrotik" id="btnAbrirNuevoMikrotik">
+            <i class="bx bx-plus me-1"></i>Nuevo Mikrotik
+        </button>
+        <a href="<?php echo BASE_URL . 'mikrotiks/inactivos'; ?>" class="btn btn-outline-secondary">
+            <i class="bx bx-trash me-1"></i>Inactivos
+        </a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
     <div class="card-body">
-        <div class="d-flex align-items-center">
-            <div></div>
-            <div class="dropdown ms-auto">
-                <a class="dropdown-toggle dropdown-toggle-nocaret" href="#" data-bs-toggle="dropdown"><i
-                        class='bx bx-dots-horizontal-rounded font-22 text-option'></i>
-                </a>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="<?php echo BASE_URL . 'mikrotiks/inactivos'; ?>"><i
-                                class="fas fa-trash text-danger"></i> Inactivos</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-        <nav>
-            <div class="nav nav-tabs" id="nav-tab" role="tablist">
-                <button class="nav-link active" id="nav-mikrotiks-tab" data-bs-toggle="tab"
-                    data-bs-target="#nav-mikrotiks" type="button" role="tab" aria-controls="nav-mikrotiks"
-                    aria-selected="true">Mikrotiks</button>
-                <button class="nav-link" id="nav-nuevo-tab" data-bs-toggle="tab" data-bs-target="#nav-nuevo"
-                    type="button" role="tab" aria-controls="nav-nuevo" aria-selected="false">Nuevo</button>
-
-            </div>
-        </nav>
-        <div class="tab-content" id="nav-tabContent">
-            <div class="tab-pane fade show active mt-2" id="nav-mikrotiks" role="tabpanel"
-                aria-labelledby="nav-mikrotiks-tab" tabindex="0">
-                <?php $tituloListado='Listado de Mikrotiks'; $iconoListado='bx-server'; include 'views/templates/listado_titulo.php'; ?>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover align-middle nowrap" id="tblMikrotiks"
-                        style="width: 100%;">
-                        <thead>
-                            <tr>
-							 <th></th>
-                                <th>Nombre</th>
-                                <th>Ip Publica</th>
-                                <th>Usuario</th>
-                                <th>Clave</th>
-                                <th>Puerto</th>
-                               
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="tab-pane fade p-3" id="nav-nuevo" role="tabpanel" aria-labelledby="nav-nuevo-tab" tabindex="0">
-                <form id="formulario" autocomplete="off">
-                    <input type="hidden" id="id" name="id">
-                    <div class="row mb-3">
-                        <div class="col-md-6 mb-3">
-                            <label for="nombre">Nombre Mikrotik <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-list"></i></span>
-                                <input class="form-control" type="text" name="nombre" id="nombre"
-                                    placeholder="Nombre Mikrotik">
-                            </div>
-                            <span id="errorNombre" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="ip">Ip Publica <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-list"></i></span>
-                                <input class="form-control" type="text" name="ip" id="ip"
-                                    placeholder="Ip Publica - Mikrotik">
-                            </div>
-                            <span id="errorIp" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="usuario">Usuario Mikrotik</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fa fa-user" aria-hidden="true"></i></span>
-                                <input class="form-control" type="text" name="usuario" id="usuario"
-                                    placeholder="Usuario Mikrotik">
-                            </div>
-                            <span id="errorUsuario" class="text-danger"></span>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="clave">Clave Mikrotik</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                <input class="form-control" type="password" name="clave" id="clave"
-                                    placeholder="Clave Mikrotik">
-                            </div>
-                            <span id="errorClave" class="text-danger"></span>
-                        </div>
-                         <div class="col-md-4 mb-3">
-                            <label for="puerto">Puerto Mikrotik</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fa fa-external-link-square" aria-hidden="true"></i></span>
-                                <input class="form-control" type="text" name="puerto" id="puerto"
-                                    placeholder="Puerto Mikrotik">
-                            </div>
-                            <span id="errorPuerto" class="text-danger"></span>
-                        </div>
-                       
-
-                    </div>
-                    <div class="text-end">
-                        <button class="btn btn-danger" type="button" id="btnNuevo">Nuevo</button>
-                        <button class="btn btn-primary" type="submit" id="btnAccion">Registrar</button>
-                    </div>
-                </form>
-            </div>
+        <?php $tituloListado='Listado de Mikrotiks'; $iconoListado='bx-server'; include 'views/templates/listado_titulo.php'; ?>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle nowrap" id="tblMikrotiks" style="width: 100%;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Acciones</th>
+                        <th>Nombre</th>
+                        <th>IP Pública</th>
+                        <th>Usuario</th>
+                        <th>Clave</th>
+                        <th>Puerto</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </div>
 </div>
+
+<!-- ============ MODAL: NUEVO / EDITAR MIKROTIK ============ -->
+<div class="modal fade" id="modalMikrotik" tabindex="-1" aria-labelledby="modalMikrotikLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="modalMikrotikLabel"><i class="bx bx-server text-primary me-1"></i>Datos del Mikrotik</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form id="formulario" autocomplete="off">
+                <div class="modal-body">
+                    <input type="hidden" id="id" name="id">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small mb-1" for="nombre">Nombre <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bx bx-purchase-tag-alt"></i></span>
+                                <input class="form-control" type="text" name="nombre" id="nombre" placeholder="Nombre del Mikrotik">
+                            </div>
+                            <span id="errorNombre" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small mb-1" for="ip">IP Pública <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bx bx-globe"></i></span>
+                                <input class="form-control" type="text" name="ip" id="ip" placeholder="ej. 200.1.1.10">
+                            </div>
+                            <span id="errorIp" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small mb-1" for="usuario">Usuario</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bx bx-user"></i></span>
+                                <input class="form-control" type="text" name="usuario" id="usuario" placeholder="Usuario admin">
+                            </div>
+                            <span id="errorUsuario" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small mb-1" for="clave">Clave</label>
+                            <div class="input-group" id="show_hide_clave">
+                                <span class="input-group-text"><i class="bx bx-lock"></i></span>
+                                <input class="form-control" type="password" name="clave" id="clave" placeholder="Contraseña" autocomplete="new-password">
+                                <a href="javascript:;" class="input-group-text" aria-label="Mostrar/ocultar contraseña" style="cursor:pointer;"><i class="bx bx-hide"></i></a>
+                            </div>
+                            <span id="errorClave" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small mb-1" for="puerto">Puerto API</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bx bx-broadcast"></i></span>
+                                <input class="form-control" type="number" name="puerto" id="puerto" placeholder="8728">
+                            </div>
+                            <span id="errorPuerto" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" id="btnNuevo">
+                        <i class="bx bx-eraser me-1"></i>Limpiar
+                    </button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnAccion">
+                        <i class="bx bx-save me-1"></i>Registrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Cerrar modal tras registro exitoso (evento mhn:registroOk emitido por insertarRegistros).
+document.addEventListener('DOMContentLoaded', function () {
+    var modalMikrotik = document.getElementById('modalMikrotik');
+    var formulario    = document.getElementById('formulario');
+    var btnAccion     = document.getElementById('btnAccion');
+
+    if (formulario && modalMikrotik) {
+        formulario.addEventListener('mhn:registroOk', function () {
+            bootstrap.Modal.getOrCreateInstance(modalMikrotik).hide();
+        });
+    }
+    var btnAbrir = document.getElementById('btnAbrirNuevoMikrotik');
+    if (btnAbrir && formulario && btnAccion) {
+        btnAbrir.addEventListener('click', function () {
+            formulario.reset();
+            document.getElementById('id').value = '';
+            btnAccion.textContent = 'Registrar';
+            ['errorNombre','errorIp','errorUsuario','errorClave','errorPuerto']
+                .forEach(function(id){ var el = document.getElementById(id); if (el) el.textContent = ''; });
+        });
+    }
+
+    // Show/hide para el campo Clave del Mikrotik
+    var trigger = document.querySelector('#show_hide_clave a');
+    if (trigger) {
+        trigger.addEventListener('click', function (e) {
+            e.preventDefault();
+            var input = document.querySelector('#show_hide_clave input');
+            var icon  = document.querySelector('#show_hide_clave a i');
+            if (!input || !icon) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('bx-hide');
+                icon.classList.add('bx-show');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('bx-show');
+                icon.classList.add('bx-hide');
+            }
+        });
+    }
+});
+window.abrirModalMikrotik = function () {
+    var el = document.getElementById('modalMikrotik');
+    if (el) bootstrap.Modal.getOrCreateInstance(el).show();
+};
+</script>
 
 <?php include_once 'views/templates/footer.php'; ?>
