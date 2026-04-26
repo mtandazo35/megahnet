@@ -146,20 +146,12 @@
                     </div>
                 </form>
             </div>
-            <div class="tab-pane fade p-3" id="nav-cargar" role="tabpanel"  >
-                <form id="cargarDatosExcel" action="" method="post" enctype="multipart/form-data">
-                    <div class="row mb-3">
-                        <div class="col-md-12 mb-3">
-                           <input class="form-control" type="file" name="excel" id="excel">
-                        </div>
-                        <span id="errorExcel" class="text-danger"></span>
-
-
-                    </div>
-                    <div class="text-end">
-                        <button class="btn btn-primary" type="submit" id="btnCargar">Registrar</button>
-                    </div>
-                </form>
+            <div class="tab-pane fade p-3" id="nav-cargar" role="tabpanel">
+                <?php
+                $tituloCarga      = 'Cargar productos desde Excel';
+                $descripcionCarga = 'Sube un archivo <strong>.xlsx</strong> con los productos a registrar.';
+                include 'views/templates/cargar_excel.php';
+                ?>
             </div>
         </div>
     </div>

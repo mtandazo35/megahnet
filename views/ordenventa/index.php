@@ -193,29 +193,11 @@
 
             <!-- ============ CARGAR EXCEL ============ -->
             <div class="tab-pane fade" id="nav-cargar" role="tabpanel" aria-labelledby="nav-cargar-tab" tabindex="0">
-                <div class="row justify-content-center">
-                    <div class="col-md-8 col-lg-6">
-                        <div class="card border-0 bg-light-subtle">
-                            <div class="card-body text-center p-4">
-                                <i class="bx bx-cloud-upload text-primary" style="font-size:60px;"></i>
-                                <h5 class="fw-semibold mt-2 mb-1">Cargar órdenes desde Excel</h5>
-                                <p class="text-muted small mb-3">Sube un archivo <strong>.xlsx</strong> con las órdenes a registrar.</p>
-                                <form id="cargarDatosExcel" action="" method="post" enctype="multipart/form-data">
-                                    <div class="mb-3 text-start">
-                                        <label class="form-label small mb-1" for="excel">Archivo Excel</label>
-                                        <input class="form-control" type="file" name="excel" id="excel" accept=".xlsx">
-                                        <span id="errorExcel" class="text-danger small"></span>
-                                    </div>
-                                    <div class="d-grid">
-                                        <button class="btn btn-primary" type="submit" id="btnCargar">
-                                            <i class="bx bx-upload me-1"></i>Registrar
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <?php
+                $tituloCarga      = 'Cargar órdenes desde Excel';
+                $descripcionCarga = 'Sube un archivo <strong>.xlsx</strong> con las órdenes a registrar.';
+                include 'views/templates/cargar_excel.php';
+                ?>
             </div>
 
         </div>
