@@ -53,6 +53,21 @@ class ClientesModel extends Query{
         $like = '%' . $valor . '%';
         return $this->selectAll($sql, [$like, $like]);
     }
+
+    /** Cuenta TODOS los contratos asociados (activos + inactivos) — bloquea DELETE definitivo. */
+    public function contarContratosTotales($idCliente)
+    {
+        $sql = "SELECT COUNT(*) AS total FROM contratos WHERE id_cliente = ?";
+        $r = $this->select($sql, [$idCliente]);
+        return isset($r['total']) ? (int)$r['total'] : 0;
+    }
+
+    /** DELETE definitivo (no recuperable). Usar solo si no tiene contratos. */
+    public function eliminarPermanente($id)
+    {
+        $sql = "DELETE FROM clientes WHERE id = ?";
+        return $this->save($sql, [$id]);
+    }
 }
 
 ?>

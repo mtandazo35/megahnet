@@ -188,11 +188,40 @@ class Clientes extends Controller
     {
         $data = $this->model->getClientes(0);
         for ($i = 0; $i < count($data); $i++) {
-            $data[$i]['acciones'] = '<div>
-            <button class="btn btn-success" type="button" onclick="restaurarCliente(' . $data[$i]['id'] . ')"><i class="fas fa-check-circle"></i></button>
-            </div>';
+            $id = (int)$data[$i]['id'];
+            $data[$i]['acciones'] = '<div class="d-flex gap-1">'
+                . '<button class="btn btn-success btn-sm" type="button" title="Restaurar" onclick="restaurarCliente(' . $id . ')"><i class="fas fa-check-circle"></i></button>'
+                . '<button class="btn btn-danger btn-sm" type="button" title="Eliminar permanentemente" onclick="eliminarClientePermanente(' . $id . ')"><i class="fas fa-trash"></i></button>'
+                . '</div>';
         }
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        die();
+    }
+
+    /** DELETE definitivo del cliente — solo si no tiene contratos. */
+    public function eliminarPermanente($idCliente)
+    {
+        if (empty($_SESSION['id_usuario'])) {
+            echo json_encode(['msg' => 'NO AUTENTICADO', 'type' => 'error']);
+            die();
+        }
+        if (!is_numeric($idCliente)) {
+            echo json_encode(['msg' => 'ID INVALIDO', 'type' => 'error']);
+            die();
+        }
+        $idCliente = (int)$idCliente;
+
+        $totalContratos = $this->model->contarContratosTotales($idCliente);
+        if ($totalContratos > 0) {
+            $res = ['msg' => 'NO SE PUEDE ELIMINAR: el cliente tiene ' . $totalContratos . ' contrato(s) asociado(s).', 'type' => 'warning'];
+            echo json_encode($res, JSON_UNESCAPED_UNICODE);
+            die();
+        }
+        $r = $this->model->eliminarPermanente($idCliente);
+        $res = $r >= 0
+            ? ['msg' => 'CLIENTE ELIMINADO PERMANENTEMENTE', 'type' => 'success']
+            : ['msg' => 'ERROR AL ELIMINAR', 'type' => 'error'];
+        echo json_encode($res, JSON_UNESCAPED_UNICODE);
         die();
     }
     public function restaurar($idCliente)
