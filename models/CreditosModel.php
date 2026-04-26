@@ -348,7 +348,7 @@ INNER JOIN datos_cabecera_electronica dce ON dce.id=cr.id_electronica";
                   LEFT JOIN orden_venta ov ON cr.id_orden_venta = ov.id
                   LEFT JOIN clientes cl ON ov.id_cliente = cl.id
                 ) u";
-        $sql .= buildSearchClause($search, ["LOWER(COALESCE(u.nombre, ''))", 'CAST(u.id AS CHAR)'], $params, ' WHERE ');
+        $sql .= buildSearchClause($search, ["LOWER(u.cliente)", 'CAST(u.id AS CHAR)'], $params, ' WHERE ');
         $sql .= " ORDER BY u.fecha DESC, u.id DESC LIMIT $start, $length";
         return $this->select2($sql, $params);
     }
