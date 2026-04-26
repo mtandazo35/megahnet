@@ -61,8 +61,10 @@
         })();
     </script>
     <style>
-        .mhn-sidebar-restoring .sidebar-wrapper .simplebar-content-wrapper,
-        .mhn-sidebar-restoring .sidebar-wrapper .metismenu { visibility: hidden; }
+        /* Oculta toda la sidebar (incluido el logo) mientras restauramos el scroll.
+           visibility:hidden preserva el layout — el contenido principal no se mueve.
+           Evita estado intermedio "logo visible + menu invisible" que se ve como parpadeo. */
+        .mhn-sidebar-restoring .sidebar-wrapper { visibility: hidden; }
     </style>
 </head>
 
