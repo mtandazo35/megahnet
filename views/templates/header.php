@@ -284,13 +284,13 @@
 }
 #menu .menu-label:first-child { padding-top: 8px; border-top: 0; margin-top: 0; }
 
-.sidebar-wrapper .sidebar-search { padding: 10px 16px !important; }
+.sidebar-wrapper .sidebar-search { padding: 6px 12px !important; }
 .sidebar-wrapper .sidebar-search input {
     background-color: #f3f5f9;
-    border: 1px solid #e2e6ee;
+    border: 1px solid #d1d5db;
     color: #333;
     font-size: 13px;
-    height: 34px;
+    height: 32px;
 }
 .sidebar-wrapper .sidebar-search input:focus {
     background-color: #fff;
@@ -299,6 +299,7 @@
     color: #222;
 }
 .sidebar-wrapper .sidebar-search input::placeholder { color: #9aa1b1; }
+.sidebar-wrapper .sidebar-search .bx-search { font-size: 14px; }
 #menu li.hidden-by-search { display: none !important; }
 
 #menu > li > a {
