@@ -44,8 +44,19 @@
     <script>
         if (window.location.hash) document.documentElement.classList.add('tab-pending');
     </script>
+    <!-- Sidebar scroll persist: oculta el sidebar hasta restaurar la posicion (evita flicker) -->
+    <script>
+        try {
+            var __t = sessionStorage.getItem('mhn_sidebar_scroll');
+            if (__t && parseInt(__t, 10) > 0) {
+                document.documentElement.classList.add('sb-restoring');
+            }
+        } catch(e){}
+    </script>
     <style>
         .tab-pending .tab-content, .tab-pending .nav-tabs { visibility: hidden; }
+        /* Mientras restauramos el scroll, ocultamos el sidebar para que no se vea el "salto" */
+        html.sb-restoring .sidebar-wrapper { visibility: hidden; }
     </style>
 </head>
 
@@ -454,37 +465,51 @@ document.addEventListener("click", function(e){
 </script>
 
 <script>
-// Persistir el scroll del sidebar entre navegaciones (localStorage).
+// Persistir el scroll del sidebar entre navegaciones (sessionStorage).
+// El sidebar esta oculto via .sb-restoring (CSS en <head>) hasta que terminemos
+// de restaurar; asi el usuario no ve el "flicker" de scroll en 0 saltando.
 (function(){
     var KEY = 'mhn_sidebar_scroll';
 
     function getScroller(){
-        // SimpleBar inyecta .simplebar-content-wrapper dentro de .sidebar-wrapper.
-        // Si SimpleBar no esta inicializado todavia, fallback al wrapper directo.
-        return document.querySelector('.sidebar-wrapper .simplebar-content-wrapper')
-            || document.querySelector('.sidebar-wrapper');
+        return document.querySelector('.sidebar-wrapper .simplebar-content-wrapper');
     }
 
     function saveScroll(){
         try {
-            var s = getScroller();
+            var s = getScroller() || document.querySelector('.sidebar-wrapper');
             if (s) sessionStorage.setItem(KEY, String(s.scrollTop));
         } catch(e) { /* noop */ }
     }
 
-    function restoreScroll(){
-        try {
-            var s = getScroller();
-            var t = sessionStorage.getItem(KEY);
-            if (s && t !== null) s.scrollTop = parseInt(t, 10) || 0;
-        } catch(e) { /* noop */ }
+    function reveal(){ document.documentElement.classList.remove('sb-restoring'); }
+
+    function tryRestore(){
+        var s = getScroller();
+        if (!s) return false;
+        var t = sessionStorage.getItem(KEY);
+        if (t !== null) s.scrollTop = parseInt(t, 10) || 0;
+        reveal();
+        return true;
     }
 
-    // Restaurar al cargar (con pequeno delay para que SimpleBar inicialice)
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function(){ setTimeout(restoreScroll, 50); });
-    } else {
-        setTimeout(restoreScroll, 50);
+    // 1) Intento inmediato si SimpleBar ya inicializo
+    if (!tryRestore()) {
+        // 2) MutationObserver: detecta el momento exacto en que SimpleBar inyecta
+        //    .simplebar-content-wrapper, y restaura sin pausa visible.
+        var sw = document.querySelector('.sidebar-wrapper');
+        if (sw) {
+            var obs = new MutationObserver(function(){
+                if (tryRestore()) obs.disconnect();
+            });
+            obs.observe(sw, { childList: true, subtree: true });
+        }
+        // 3) Failsafe: a los 600ms, revelar el sidebar de todos modos
+        //    (evita dejarlo invisible si algo falla con SimpleBar).
+        setTimeout(function(){
+            tryRestore();
+            reveal();
+        }, 600);
     }
 
     // Guardar antes de salir de la pagina
