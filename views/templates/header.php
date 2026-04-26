@@ -54,37 +54,47 @@
         .sidebar-wrapper { background-color: #ffffff; }
 
         /* === View Transitions API: navegacion estilo SPA (browsers modernos) ===
-           - sidebar y topbar tienen nombres propios => NO animan,
-             se mantienen visualmente estables entre paginas
-           - solo el main-content hace fade => efecto "solo cambia el contenido"
-           - browsers viejos: estas reglas se ignoran sin problema */
+           Importante: el overlay/group/snapshot deben tener bg explicito
+           para evitar el "flash negro" cuando el browser pinta el snapshot
+           sobre un fondo transparente. */
         @view-transition { navigation: auto; }
 
-        .sidebar-wrapper { view-transition-name: mhn-sidebar; }
-        header           { view-transition-name: mhn-topbar; }
-        .page-content    { view-transition-name: mhn-content; }
-
-        /* sidebar y topbar: sin animacion (estables) */
-        ::view-transition-old(mhn-sidebar),
-        ::view-transition-new(mhn-sidebar),
-        ::view-transition-old(mhn-topbar),
-        ::view-transition-new(mhn-topbar) {
-            animation: none !important;
-            mix-blend-mode: normal;
+        /* Fondos forzados a TODOS los pseudo-elementos de view-transition */
+        ::view-transition,
+        ::view-transition-group(root),
+        ::view-transition-image-pair(root),
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+            background-color: #f4f6fb;
         }
 
-        /* main-content: fade rapido entre paginas */
+        .sidebar-wrapper { view-transition-name: mhn-sidebar; background: #fff; }
+        header           { view-transition-name: mhn-topbar;  background: #fff; }
+        .page-content    { view-transition-name: mhn-content; background: #f4f6fb; }
+
+        ::view-transition-group(mhn-sidebar),
+        ::view-transition-image-pair(mhn-sidebar),
+        ::view-transition-old(mhn-sidebar),
+        ::view-transition-new(mhn-sidebar) { background: #fff; animation: none !important; }
+
+        ::view-transition-group(mhn-topbar),
+        ::view-transition-image-pair(mhn-topbar),
+        ::view-transition-old(mhn-topbar),
+        ::view-transition-new(mhn-topbar) { background: #fff; animation: none !important; }
+
+        ::view-transition-group(mhn-content),
+        ::view-transition-image-pair(mhn-content) { background: #f4f6fb; }
         ::view-transition-old(mhn-content) {
-            animation: 120ms cubic-bezier(.4,0,1,1) both vt-fade-out;
+            background: #f4f6fb;
+            animation: 100ms ease-out both vt-fade-out;
         }
         ::view-transition-new(mhn-content) {
-            animation: 220ms cubic-bezier(0,0,.2,1) both vt-fade-in;
+            background: #f4f6fb;
+            animation: 180ms ease-in both vt-fade-in;
         }
-        ::view-transition-old(root) { animation: none; }
-        ::view-transition-new(root) { animation: none; }
 
         @keyframes vt-fade-out { to { opacity: 0; } }
-        @keyframes vt-fade-in  { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+        @keyframes vt-fade-in  { from { opacity: 0; } to { opacity: 1; } }
 
         /* Respetar prefer-reduced-motion: sin animacion */
         @media (prefers-reduced-motion: reduce) {
