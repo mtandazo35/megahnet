@@ -2,19 +2,19 @@
 
 <style>
     /* ===== Configuración: estilos locales del módulo ===== */
-    #foto { display: none; }
+    .file-input-hidden { display: none !important; }
 
-    /* Card-uploader: zona de arrastre/clic para el logo */
+    /* Card-uploader: zona de arrastre/clic para los logos */
     .logo-uploader {
         position: relative;
         border: 2px dashed #cbd5e1;
         border-radius: 10px;
         background: #f8fafc;
-        padding: 18px 12px;
+        padding: 16px 12px;
         text-align: center;
         cursor: pointer;
         transition: border-color .15s ease, background .15s ease;
-        min-height: 220px;
+        min-height: 180px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -22,41 +22,40 @@
     }
     .logo-uploader:hover { border-color: #2563eb; background: #eff6ff; }
     .logo-uploader .lu-icon {
-        font-size: 38px;
+        font-size: 34px;
         color: #2563eb;
         line-height: 1;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
     }
-    .logo-uploader .lu-title {
-        font-weight: 600;
-        color: #111827;
-        font-size: 14px;
-    }
-    .logo-uploader .lu-hint {
-        color: #6b7280;
-        font-size: 12px;
-        margin-top: 2px;
-    }
-    .logo-uploader.has-image {
-        padding: 12px;
-        background: #fff;
-        border-style: solid;
-        border-color: #e5e7eb;
-    }
+    .logo-uploader .lu-title { font-weight: 600; color: #111827; font-size: 14px; }
+    .logo-uploader .lu-hint  { color: #6b7280; font-size: 11.5px; margin-top: 2px; }
+    .logo-uploader.has-image { padding: 10px; background: #fff; border-style: solid; border-color: #e5e7eb; }
     .logo-uploader.has-image .logo-preview-img {
         max-width: 100%;
-        max-height: 160px;
+        max-height: 130px;
         object-fit: contain;
         border-radius: 6px;
     }
     .logo-actions {
-        margin-top: 10px;
+        margin-top: 8px;
         display: flex;
-        gap: 8px;
+        gap: 6px;
         justify-content: center;
         width: 100%;
     }
-    .logo-actions .btn { font-size: 12px; padding: 4px 10px; }
+    .logo-actions .btn { font-size: 11.5px; padding: 3px 9px; }
+
+    .logo-spec {
+        background: #f9fafb;
+        border-left: 3px solid #2563eb;
+        padding: 8px 10px;
+        font-size: 11.5px;
+        color: #4b5563;
+        border-radius: 4px;
+        margin-top: 8px;
+        line-height: 1.5;
+    }
+    .logo-spec strong { color: #111827; }
 
     /* Switch grande */
     .config-switch {
@@ -68,34 +67,29 @@
         align-items: center;
         gap: 12px;
     }
-    .config-switch .form-check-input {
-        width: 42px;
-        height: 22px;
-        margin-top: 0;
-        cursor: pointer;
-    }
+    .config-switch .form-check-input { width: 42px; height: 22px; margin-top: 0; cursor: pointer; }
     .config-switch label { cursor: pointer; margin: 0; font-weight: 500; }
 
     /* Estado de firma SRI */
-    #firmaEstadoBox {
-        font-size: 12.5px;
-        border-radius: 6px;
-        padding: 10px 12px;
-    }
+    #firmaEstadoBox { font-size: 12.5px; border-radius: 6px; padding: 10px 12px; }
     #firmaEstadoBox.border-success { background: #f0fdf4; }
     #firmaEstadoBox.border-danger  { background: #fef2f2; }
 
-    /* CKEditor del mensaje: que no exceda alto del card */
+    /* CKEditor */
     .ck.ck-editor__main > .ck-editor__editable { min-height: 120px; }
 </style>
 
+<!-- ============= PAGE HEADER ============= -->
 <div class="page-header d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div>
         <h4 class="mb-0 fw-semibold"><i class="bx bx-cog text-primary me-1"></i>Configuración del Sistema</h4>
-        <small class="text-muted">Datos de la empresa, factura electrónica y firma SRI</small>
+        <small class="text-muted">Datos de la empresa y firma electrónica</small>
     </div>
     <div class="d-flex flex-wrap gap-2">
-        <button type="button" class="btn btn-primary" id="btnGuardarTop" form="formulario">
+        <a href="<?php echo BASE_URL; ?>sucursales" class="btn btn-outline-primary">
+            <i class="bx bx-store-alt me-1"></i>Sucursales
+        </a>
+        <button type="button" class="btn btn-primary" form="formulario" id="btnGuardarTop">
             <i class="bx bx-save me-1"></i>Guardar cambios
         </button>
     </div>
@@ -104,19 +98,30 @@
 <form id="formulario" autocomplete="off" enctype="multipart/form-data">
     <input type="hidden" id="id" name="id" value="<?php echo htmlspecialchars($data['empresa']['id'] ?? '', ENT_QUOTES); ?>">
 
-    <!-- ===== SECCION 1: DATOS DE LA EMPRESA ===== -->
+    <!-- ===== Hidden fields: datos legacy de facturación que ahora se manejan en Sucursales.
+                Se mantienen aquí para no romper /admin/modificar mientras se migra a la
+                nueva tabla sucursales. ===== -->
+    <input type="hidden" name="totalitems"        value="<?php echo htmlspecialchars($data['empresa']['totalitems']        ?? '', ENT_QUOTES); ?>">
+    <input type="hidden" name="establecimiento"   value="<?php echo htmlspecialchars($data['empresa']['establecimiento']   ?? '', ENT_QUOTES); ?>">
+    <input type="hidden" name="emision"           value="<?php echo htmlspecialchars($data['empresa']['puntoemi']          ?? '', ENT_QUOTES); ?>">
+    <input type="hidden" name="contabilidad"      value="<?php echo htmlspecialchars($data['empresa']['contabilidad']      ?? '', ENT_QUOTES); ?>">
+    <input type="hidden" name="cantidaddocumento" value="<?php echo htmlspecialchars($data['empresa']['cantidaddocumento'] ?? '', ENT_QUOTES); ?>">
+
+    <!-- ============================================================== -->
+    <!-- ===== SECCION 1: DATOS DE LA EMPRESA + LOGOS ================== -->
+    <!-- ============================================================== -->
     <div class="form-section">
         <div class="form-section-title"><i class="bx bx-buildings"></i>Datos de la Empresa</div>
 
         <div class="row g-3">
             <!-- Columna izquierda: campos -->
-            <div class="col-lg-9">
+            <div class="col-lg-8">
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label">Ruc <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-id-card"></i></span>
-                            <input type="text" id="ruc" name="ruc" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['ruc'] ?? '', ENT_QUOTES); ?>" placeholder="Ruc">
+                            <input type="text" id="ruc" name="ruc" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['ruc'] ?? '', ENT_QUOTES); ?>" placeholder="13 dígitos">
                         </div>
                         <span id="errorRuc" class="text-danger small"></span>
                     </div>
@@ -149,17 +154,18 @@
                         <label class="form-label">Correo Electrónico <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                            <input type="email" id="correo" name="correo" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['correo'] ?? '', ENT_QUOTES); ?>" placeholder="Correo Electrónico">
+                            <input type="email" id="correo" name="correo" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['correo'] ?? '', ENT_QUOTES); ?>" placeholder="Correo">
                         </div>
                         <span id="errorCorreo" class="text-danger small"></span>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Impuesto IVA <span class="text-danger">*</span></label>
+                        <label class="form-label">Impuesto IVA % <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-percent"></i></span>
-                            <input type="number" id="impuesto" name="impuesto" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['impuesto'] ?? '', ENT_QUOTES); ?>" placeholder="Impuesto">
+                            <input type="number" id="impuesto" name="impuesto" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['impuesto'] ?? '', ENT_QUOTES); ?>" placeholder="15">
                         </div>
-                        <span id="errorImpuesto" class="text-danger small"></span>
+                        <small class="text-muted">Vigente desde abril/2024: 15%.</small>
+                        <span id="errorImpuesto" class="text-danger small d-block"></span>
                     </div>
 
                     <div class="col-md-12">
@@ -178,104 +184,71 @@
                 </div>
             </div>
 
-            <!-- Columna derecha: uploader del logo -->
-            <div class="col-lg-3">
-                <label class="form-label d-block">Logo de la Empresa</label>
-                <label for="foto" class="logo-uploader<?php
-                    $file = 'assets/images/Logo.jpg';
-                    echo is_file($file) ? ' has-image' : '';
-                ?>" id="logoUploader">
-                    <div id="containerPreview">
-                        <?php
-                        $file = 'assets/images/Logo.jpg';
-                        if (is_file($file)) { ?>
-                            <img class="logo-preview-img" src="<?php echo BASE_URL . 'assets/images/Logo.jpg'; ?>" alt="Logo">
-                        <?php } else { ?>
-                            <div class="lu-icon"><i class="bx bx-cloud-upload"></i></div>
-                            <div class="lu-title">Subir logo</div>
-                            <div class="lu-hint">JPG/JPEG · Click o arrastra aquí</div>
-                        <?php } ?>
+            <!-- Columna derecha: DOS uploaders -->
+            <div class="col-lg-4">
+                <div class="row g-3">
+                    <!-- LOGO DEL SISTEMA -->
+                    <div class="col-12">
+                        <label class="form-label d-block fw-semibold">Logo del Sistema</label>
+                        <label for="foto" class="logo-uploader<?php echo is_file('assets/images/Logo.jpg') ? ' has-image' : ''; ?>" id="logoUploaderSistema">
+                            <div id="containerPreview">
+                                <?php if (is_file('assets/images/Logo.jpg')) { ?>
+                                    <img class="logo-preview-img" src="<?php echo BASE_URL . 'assets/images/Logo.jpg?v=' . time(); ?>" alt="Logo Sistema">
+                                <?php } else { ?>
+                                    <div class="lu-icon"><i class="bx bx-cloud-upload"></i></div>
+                                    <div class="lu-title">Subir logo del sistema</div>
+                                    <div class="lu-hint">Click o arrastra una imagen</div>
+                                <?php } ?>
+                            </div>
+                        </label>
+                        <div class="logo-actions">
+                            <label for="foto" class="btn btn-sm btn-outline-primary"><i class="bx bx-image-add me-1"></i>Cambiar</label>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteImg()"><i class="bx bx-trash"></i></button>
+                        </div>
+                        <input id="foto" class="form-control file-input-hidden" type="file" name="foto" accept=".jpg,.jpeg,image/jpeg">
+                        <input type="hidden" name="foto_actual" id="foto_actual" value="<?php echo htmlspecialchars($data['empresa']['img'] ?? '', ENT_QUOTES); ?>">
+                        <input type="hidden" name="foto_remove" id="foto_remove" value="<?php echo htmlspecialchars($data['empresa']['img'] ?? '', ENT_QUOTES); ?>">
+                        <div class="logo-spec">
+                            <strong>Recomendado:</strong> 200×60 px (horizontal) o 200×200 px (cuadrado)<br>
+                            <strong>Formato:</strong> JPG/JPEG · <strong>Peso máx:</strong> 200 KB<br>
+                            <em>Aparece en la barra lateral y en el inicio.</em>
+                        </div>
                     </div>
-                </label>
-                <div class="logo-actions">
-                    <label for="foto" class="btn btn-sm btn-outline-primary"><i class="bx bx-image-add me-1"></i>Cambiar</label>
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteImg()"><i class="bx bx-trash me-1"></i>Quitar</button>
+
+                    <!-- LOGO DE FACTURACIÓN -->
+                    <div class="col-12">
+                        <label class="form-label d-block fw-semibold">Logo de Facturación</label>
+                        <label for="foto_factura" class="logo-uploader<?php echo is_file('assets/images/LogoFactura.jpg') ? ' has-image' : ''; ?>" id="logoUploaderFactura">
+                            <div id="containerPreviewFactura">
+                                <?php if (is_file('assets/images/LogoFactura.jpg')) { ?>
+                                    <img class="logo-preview-img" src="<?php echo BASE_URL . 'assets/images/LogoFactura.jpg?v=' . time(); ?>" alt="Logo Factura">
+                                <?php } else { ?>
+                                    <div class="lu-icon"><i class="bx bx-receipt"></i></div>
+                                    <div class="lu-title">Subir logo de facturación</div>
+                                    <div class="lu-hint">Click o arrastra una imagen</div>
+                                <?php } ?>
+                            </div>
+                        </label>
+                        <div class="logo-actions">
+                            <label for="foto_factura" class="btn btn-sm btn-outline-primary"><i class="bx bx-image-add me-1"></i>Cambiar</label>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteImgFactura()"><i class="bx bx-trash"></i></button>
+                        </div>
+                        <input id="foto_factura" class="form-control file-input-hidden" type="file" name="foto_factura" accept=".jpg,.jpeg,image/jpeg">
+                        <input type="hidden" name="foto_factura_remove" id="foto_factura_remove" value="0">
+                        <div class="logo-spec">
+                            <strong>Recomendado:</strong> 600×200 px (horizontal)<br>
+                            <strong>Formato:</strong> JPG/JPEG · <strong>Peso máx:</strong> 500 KB<br>
+                            <em>Aparece en el RIDE/PDF de facturas, notas de crédito y recibos.</em>
+                        </div>
+                    </div>
                 </div>
-                <input id="foto" class="form-control" type="file" name="foto" accept=".jpg,.jpeg,image/jpeg">
-                <input type="hidden" name="foto_actual" id="foto_actual" value="<?php echo htmlspecialchars($data['empresa']['img'] ?? '', ENT_QUOTES); ?>">
-                <input type="hidden" name="foto_remove" id="foto_remove" value="<?php echo htmlspecialchars($data['empresa']['img'] ?? '', ENT_QUOTES); ?>">
             </div>
         </div>
     </div>
 
-    <!-- ===== SECCION 2: DATOS FACTURA ELECTRONICA ===== -->
-    <div class="form-section">
-        <div class="form-section-title"><i class="bx bx-receipt"></i>Datos de Factura Electrónica</div>
-
-        <div class="row g-3">
-            <div class="col-md-3">
-                <label class="form-label">Total Items <span class="text-danger">*</span></label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-list-ol"></i></span>
-                    <input type="text" id="totalitems" name="totalitems" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['totalitems'] ?? '', ENT_QUOTES); ?>" placeholder="Total Items Factura">
-                </div>
-                <span id="erroritems" class="text-danger small"></span>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Establecimiento <span class="text-danger">*</span></label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-store"></i></span>
-                    <input type="text" id="establecimiento" name="establecimiento" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['establecimiento'] ?? '', ENT_QUOTES); ?>" placeholder="Establecimiento">
-                </div>
-                <span id="errorEstablecimiento" class="text-danger small"></span>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Punto Emisión <span class="text-danger">*</span></label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-paper-plane"></i></span>
-                    <input type="text" id="emision" name="emision" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['puntoemi'] ?? '', ENT_QUOTES); ?>" placeholder="Punto Emisión">
-                </div>
-                <span id="errorEmision" class="text-danger small"></span>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Contabilidad <span class="text-danger">*</span></label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-calculator"></i></span>
-                    <input type="text" id="contabilidad" name="contabilidad" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['contabilidad'] ?? '', ENT_QUOTES); ?>" placeholder="Contabilidad">
-                </div>
-                <span id="errorContabilidad" class="text-danger small"></span>
-            </div>
-
-            <?php if (($data['id_usuario'] ?? 0) == 1) { ?>
-                <div class="col-md-4">
-                    <label class="form-label">Firma Inicio <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-signature"></i></span>
-                        <input type="text" id="firmainicio" name="firmainicio" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['firmainicio'] ?? '', ENT_QUOTES); ?>" placeholder="Ej. 2023-01-01">
-                    </div>
-                    <span id="errorFirmainicio" class="text-danger small"></span>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Firma Final <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-signature"></i></span>
-                        <input type="text" id="firmafinal" name="firmafinal" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['firmafinal'] ?? '', ENT_QUOTES); ?>" placeholder="Ej. 2023-01-01">
-                    </div>
-                    <span id="errorFirmafinal" class="text-danger small"></span>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Documento <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-file-invoice"></i></span>
-                        <input type="text" id="cantidaddocumento" name="cantidaddocumento" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['cantidaddocumento'] ?? '', ENT_QUOTES); ?>" placeholder="Cantidad Documento">
-                    </div>
-                    <span id="errorCantidaddocumento" class="text-danger small"></span>
-                </div>
-            <?php } ?>
-        </div>
-    </div>
-
-    <!-- ===== SECCION 3: FIRMA ELECTRONICA SRI ===== -->
+    <!-- ============================================================== -->
+    <!-- ===== SECCION 2: FIRMA ELECTRONICA SRI ======================== -->
+    <!-- ============================================================== -->
     <div class="form-section">
         <div class="form-section-title"><i class="bx bx-shield-alt-2"></i>Firma Electrónica (SRI)</div>
 
@@ -296,6 +269,7 @@
                     <?php } ?>
                 </div>
             </div>
+
             <div class="col-lg-6">
                 <label class="form-label">Contraseña de la firma <span class="text-muted small">(dejar vacío para no cambiar)</span></label>
                 <div class="input-group">
@@ -305,6 +279,30 @@
                 </div>
                 <small class="text-muted">Pulsa Verificar para confirmar que la clave es correcta y ver la vigencia del certificado.</small>
                 <span id="errorFirmaPassword" class="text-danger small d-block"></span>
+
+                <?php if (($data['id_usuario'] ?? 0) == 1) { ?>
+                <div class="row g-3 mt-1">
+                    <div class="col-md-6">
+                        <label class="form-label">Vigencia desde</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                            <input type="text" id="firmainicio" name="firmainicio" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['firmainicio'] ?? '', ENT_QUOTES); ?>" placeholder="2024-01-01">
+                        </div>
+                        <span id="errorFirmainicio" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Vigencia hasta</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-calendar-check"></i></span>
+                            <input type="text" id="firmafinal" name="firmafinal" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['firmafinal'] ?? '', ENT_QUOTES); ?>" placeholder="2026-01-01">
+                        </div>
+                        <span id="errorFirmafinal" class="text-danger small"></span>
+                    </div>
+                </div>
+                <?php } else { ?>
+                    <input type="hidden" name="firmainicio" value="<?php echo htmlspecialchars($data['empresa']['firmainicio'] ?? '', ENT_QUOTES); ?>">
+                    <input type="hidden" name="firmafinal"  value="<?php echo htmlspecialchars($data['empresa']['firmafinal']  ?? '', ENT_QUOTES); ?>">
+                <?php } ?>
 
                 <div class="config-switch mt-3">
                     <?php $isOn = (($data['empresa']['facturaelectronica'] ?? 0) == 1); ?>
@@ -318,13 +316,14 @@
         </div>
     </div>
 
-    <!-- ===== FOOTER: Guardar ===== -->
+    <!-- ============================================================== -->
+    <!-- ===== FOOTER: Guardar ========================================= -->
+    <!-- ============================================================== -->
     <div class="d-flex justify-content-end mb-4">
         <button class="btn btn-primary px-4" type="submit" id="btnAccion">
             <i class="bx bx-save me-1"></i>Actualizar
         </button>
     </div>
 </form>
-
 
 <?php include_once 'views/templates/footer.php'; ?>

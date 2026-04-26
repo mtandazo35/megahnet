@@ -23,6 +23,7 @@ backup_*/
 # Pero SI versionar el schema base + seed (necesarios para install.sh)
 !db/schema.sql
 !db/seed-admin.sql
+!db/migrations/*.sql
 
 # Variables locales (NO subir credenciales)
 config/local.php

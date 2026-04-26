@@ -57,23 +57,54 @@ document.addEventListener('DOMContentLoaded', function () {
       })
   }
 
-  // vista Previa
-  const logoUploader = document.querySelector('#logoUploader')
+  // ============ Uploader: Logo del Sistema ============
+  const logoUploaderSistema = document.querySelector('#logoUploaderSistema')
+  const MAX_LOGO_SISTEMA = 200 * 1024  // 200 KB
   foto.addEventListener('change', function (e) {
-    if (!e.target.files[0]) return
-    if (e.target.files[0].type == 'image/jpg' ||
-      e.target.files[0].type == 'image/jpeg') {
-      const url = e.target.files[0]
-      const tmpUrl = URL.createObjectURL(url)
-      foto_remove.value = 'Logo.jpg'
-      containerPreview.innerHTML = `<img class="logo-preview-img" src="${tmpUrl}" alt="Logo">`
-      if (logoUploader) logoUploader.classList.add('has-image')
-    } else {
-      foto_remove.value = 'sinfoto.jpg'
+    const f = e.target.files[0]
+    if (!f) return
+    if (f.type !== 'image/jpg' && f.type !== 'image/jpeg') {
       foto.value = ''
-      alertaPersonalizada('warning', 'SOLO SE PERMITEN IMG DE TIPO JPG-JPEG')
+      alertaPersonalizada('warning', 'SOLO SE PERMITEN IMG DE TIPO JPG/JPEG')
+      return
     }
+    if (f.size > MAX_LOGO_SISTEMA) {
+      foto.value = ''
+      alertaPersonalizada('warning', 'EL LOGO DEL SISTEMA NO DEBE PESAR MÁS DE 200 KB')
+      return
+    }
+    const tmpUrl = URL.createObjectURL(f)
+    foto_remove.value = 'Logo.jpg'
+    containerPreview.innerHTML = `<img class="logo-preview-img" src="${tmpUrl}" alt="Logo Sistema">`
+    if (logoUploaderSistema) logoUploaderSistema.classList.add('has-image')
   })
+
+  // ============ Uploader: Logo de Facturación ============
+  const fotoFactura = document.querySelector('#foto_factura')
+  const fotoFacturaRemove = document.querySelector('#foto_factura_remove')
+  const containerPreviewFactura = document.querySelector('#containerPreviewFactura')
+  const logoUploaderFactura = document.querySelector('#logoUploaderFactura')
+  const MAX_LOGO_FACTURA = 500 * 1024  // 500 KB
+  if (fotoFactura) {
+    fotoFactura.addEventListener('change', function (e) {
+      const f = e.target.files[0]
+      if (!f) return
+      if (f.type !== 'image/jpg' && f.type !== 'image/jpeg') {
+        fotoFactura.value = ''
+        alertaPersonalizada('warning', 'SOLO SE PERMITEN IMG DE TIPO JPG/JPEG')
+        return
+      }
+      if (f.size > MAX_LOGO_FACTURA) {
+        fotoFactura.value = ''
+        alertaPersonalizada('warning', 'EL LOGO DE FACTURACIÓN NO DEBE PESAR MÁS DE 500 KB')
+        return
+      }
+      const tmpUrl = URL.createObjectURL(f)
+      if (fotoFacturaRemove) fotoFacturaRemove.value = '0'
+      if (containerPreviewFactura) containerPreviewFactura.innerHTML = `<img class="logo-preview-img" src="${tmpUrl}" alt="Logo Factura">`
+      if (logoUploaderFactura) logoUploaderFactura.classList.add('has-image')
+    })
+  }
   // Actualizar Datos
   formulario.addEventListener('submit', function (e) {
     e.preventDefault()
@@ -234,8 +265,21 @@ function deleteImg() {
   foto_remove.value = 'sinfoto.jpg'
   foto.value = ''
   containerPreview.innerHTML = '<div class="lu-icon"><i class="bx bx-cloud-upload"></i></div>'
-    + '<div class="lu-title">Subir logo</div>'
-    + '<div class="lu-hint">JPG/JPEG · Click o arrastra aquí</div>'
-  const lu = document.querySelector('#logoUploader')
+    + '<div class="lu-title">Subir logo del sistema</div>'
+    + '<div class="lu-hint">Click o arrastra una imagen</div>'
+  const lu = document.querySelector('#logoUploaderSistema')
+  if (lu) lu.classList.remove('has-image')
+}
+
+function deleteImgFactura() {
+  const ff = document.querySelector('#foto_factura')
+  const ffr = document.querySelector('#foto_factura_remove')
+  const cpf = document.querySelector('#containerPreviewFactura')
+  const lu = document.querySelector('#logoUploaderFactura')
+  if (ff) ff.value = ''
+  if (ffr) ffr.value = '1'
+  if (cpf) cpf.innerHTML = '<div class="lu-icon"><i class="bx bx-receipt"></i></div>'
+    + '<div class="lu-title">Subir logo de facturación</div>'
+    + '<div class="lu-hint">Click o arrastra una imagen</div>'
   if (lu) lu.classList.remove('has-image')
 }

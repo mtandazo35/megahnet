@@ -211,6 +211,7 @@
                     <ul>
                         <li data-url="usuarios"><a href="<?php echo BASE_URL . 'usuarios'; ?>"><i class="bx bx-user"></i>Usuarios</a></li>
                         <li data-url="admin/datos"><a href="<?php echo BASE_URL . 'admin/datos'; ?>"><i class="bx bx-buildings"></i>Configuración</a></li>
+                        <li data-url="sucursales"><a href="<?php echo BASE_URL . 'sucursales'; ?>"><i class="bx bx-store-alt"></i>Sucursales</a></li>
                         <li data-url="admin/logs"><a href="<?php echo BASE_URL . 'admin/logs'; ?>"><i class="bx bx-history"></i>Log de Acceso</a></li>
                     </ul>
                 </li>

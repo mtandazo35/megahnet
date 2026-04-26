@@ -138,6 +138,22 @@ class Admin extends Controller
                     $imgLogo = 'Logo2.jpg';
             }
 
+            // Logo de Facturación (segundo uploader): se guarda separado en LogoFactura.jpg.
+            // No bloquea la persistencia de la empresa: si falla, solo emite warning.
+            $logoFacturaWarning = null;
+            $logoFacturaUploadOk = false;
+            $logoFacturaRemove = isset($_POST['foto_factura_remove']) && $_POST['foto_factura_remove'] === '1';
+            if (!empty($_FILES['foto_factura']['tmp_name']) && is_uploaded_file($_FILES['foto_factura']['tmp_name'])) {
+                $ff = $_FILES['foto_factura'];
+                if ($ff['size'] > 500 * 1024) {
+                    $logoFacturaWarning = 'EL LOGO DE FACTURACIÓN EXCEDE 500 KB';
+                } else if (!in_array($ff['type'], ['image/jpg','image/jpeg'])) {
+                    $logoFacturaWarning = 'LOGO DE FACTURACIÓN: SOLO JPG/JPEG';
+                } else {
+                    $logoFacturaUploadOk = true;
+                }
+            }
+
 
 
             /*  if (!empty($logo['name'])) {
@@ -266,6 +282,16 @@ class Admin extends Controller
                     }
                 }
 
+                // Persistencia del Logo de Facturación (independiente del UPDATE de la BD)
+                $logoFacturaPath = 'assets/images/LogoFactura.jpg';
+                if ($logoFacturaUploadOk) {
+                    @move_uploaded_file($_FILES['foto_factura']['tmp_name'], $logoFacturaPath);
+                    @chmod($logoFacturaPath, 0644);
+                }
+                if ($logoFacturaRemove && file_exists($logoFacturaPath)) {
+                    @unlink($logoFacturaPath);
+                }
+
                 if ($data == 1) {
                     $imgDelete = 'assets/images/Logo.jpg';
                     if (file_exists($imgDelete) && $imgRemove !='Logo.jpg') {
@@ -276,6 +302,8 @@ class Admin extends Controller
                     }
                     if ($firmaWarning !== null) {
                         $res = array('msg' => 'DATOS ACTUALIZADOS pero ' . $firmaWarning, 'type' => 'warning');
+                    } else if ($logoFacturaWarning !== null) {
+                        $res = array('msg' => 'DATOS ACTUALIZADOS pero ' . $logoFacturaWarning, 'type' => 'warning');
                     } else {
                         $res = array('msg' => 'DATOS ACTUALIZADO EXITOSAMENTE', 'type' => 'success');
                     }
@@ -284,6 +312,11 @@ class Admin extends Controller
                     $res = array('msg' => 'FIRMA ACTUALIZADA EXITOSAMENTE', 'type' => 'success');
                 } else if ($firmaWarning !== null) {
                     $res = array('msg' => $firmaWarning, 'type' => 'warning');
+                } else if ($logoFacturaUploadOk || $logoFacturaRemove) {
+                    // Solo se actualizó el logo de facturación
+                    $res = array('msg' => 'LOGO DE FACTURACIÓN ACTUALIZADO', 'type' => 'success');
+                } else if ($logoFacturaWarning !== null) {
+                    $res = array('msg' => $logoFacturaWarning, 'type' => 'warning');
                 } else {
                     $res = array('msg' => 'ERROR AL ACTUALIZAR', 'type' => 'error');
                 }
