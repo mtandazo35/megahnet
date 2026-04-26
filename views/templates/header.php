@@ -218,26 +218,27 @@
 .sidebar-header {
     display: flex !important;
     align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px;
+    padding: 12px 14px;
     background: #fff;
     border-bottom: 1px solid rgba(0,0,0,0.08);
     min-height: 68px;
+    gap: 10px;
 }
 .sidebar-header .logo-wrap {
-    flex: 1;
+    flex: 1 1 auto !important;
+    min-width: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
     border-radius: 10px;
-    padding: 6px 10px;
-    min-height: 44px;
+    padding: 8px 12px;
+    min-height: 48px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 .sidebar-header .logo-wrap img {
     max-width: 100%;
-    max-height: 36px;
+    max-height: 42px;
     height: auto;
     object-fit: contain;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
