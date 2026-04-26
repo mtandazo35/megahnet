@@ -342,6 +342,82 @@
 #menu > li.has-sub > ul.mm-show { display: block; }
 #menu > li.has-sub > ul.mm-collapsing { display: block; }
 
+/* ===== Topbar moderno ===== */
+.topbar { padding: 0 1rem; }
+.topbar .navbar { padding: 0; }
+.topbar-greet-text {
+    font-size: 14px;
+    color: #4b5563;
+    letter-spacing: .2px;
+}
+.topbar-greet-text strong { color: #111827; font-weight: 600; }
+
+.topbar-iconbtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    color: #4b5563;
+    background: transparent;
+    border: 1px solid transparent;
+    text-decoration: none;
+    transition: background .15s, color .15s, border-color .15s;
+}
+.topbar-iconbtn:hover {
+    background: #fee2e2;
+    color: #dc2626;
+    border-color: #fecaca;
+}
+.topbar-iconbtn i { font-size: 20px; line-height: 1; }
+
+/* Avatar con fallback a iniciales */
+.avatar-circle {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(79,70,229,.25);
+}
+.avatar-circle .avatar-img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.avatar-circle .avatar-initials {
+    align-items: center;
+    justify-content: center;
+    width: 100%; height: 100%;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: .5px;
+}
+
+/* User info al lado del avatar */
+.user-box .user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+    line-height: 1.2;
+}
+.user-box .designattion {
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.2;
+}
+.user-box .nav-link { padding: 4px 6px; border-radius: 10px; }
+.user-box .nav-link:hover { background: #f3f4f6; }
+.user-box .dropdown-menu { border: 0; min-width: 220px; padding: .35rem; }
+.user-box .dropdown-item { border-radius: 8px; padding: .5rem .75rem; }
+.user-box .dropdown-item:active { background: #2563eb; color: #fff; }
+.user-box .dropdown-item:hover { background: #f3f4f6; }
+.user-box .dropdown-item.text-danger:hover { background: #fee2e2; }
+
 </style>
 <script>
 // Boton toggle del sidebar
@@ -383,38 +459,64 @@ document.addEventListener("click", function(e){
         <!--start header -->
         <header>
             <div class="topbar d-flex align-items-center">
-                <nav class="navbar navbar-expand">
-                    <div class="mobile-toggle-menu"><i class='bx bx-menu'></i>
+                <nav class="navbar navbar-expand w-100">
+                    <div class="mobile-toggle-menu" role="button" aria-label="Abrir menu">
+                        <i class='bx bx-menu'></i>
                     </div>
-                    <div class="search-bar flex-grow-1">
-                        <div class="position-relative">
-                            <h6><?php echo TITLE; ?></h6>
-                        </div>
+
+                    <div class="topbar-greet flex-grow-1 ps-2">
+                        <?php
+                        $h = (int)date('H');
+                        $saludo = ($h < 12) ? 'Buenos dias' : (($h < 19) ? 'Buenas tardes' : 'Buenas noches');
+                        $nombre_full = trim((string)($_SESSION['nombre_usuario'] ?? ''));
+                        $primer_nombre = $nombre_full !== '' ? preg_split('/\s+/', $nombre_full)[0] : '';
+                        ?>
+                        <span class="topbar-greet-text">
+                            <?php echo $saludo; ?><?php if ($primer_nombre !== '') { ?>, <strong><?php echo htmlspecialchars($primer_nombre, ENT_QUOTES, 'UTF-8'); ?></strong><?php } ?>
+                        </span>
                     </div>
-                    <?php if (isset($_SESSION['rol'])) { ?>
-                    <div class="user-box dropdown">
-                        <a class="d-flex align-items-center nav-link dropdown-toggle dropdown-toggle-nocaret" href="#"
+
+                    <?php if (isset($_SESSION['rol'])) {
+                        $perfilFile = !empty($_SESSION['perfil_usuario']) ? $_SESSION['perfil_usuario'] : '';
+                        $perfilUrl  = $perfilFile !== '' ? (BASE_URL . ltrim($perfilFile, '/')) : '';
+                        $inicial    = mb_strtoupper(mb_substr($nombre_full !== '' ? $nombre_full : 'U', 0, 1, 'UTF-8'), 'UTF-8');
+                    ?>
+                    <a href="<?php echo BASE_URL . 'usuarios/salir'; ?>" class="topbar-iconbtn" title="Cerrar sesion" aria-label="Cerrar sesion">
+                        <i class='bx bx-log-out-circle'></i>
+                    </a>
+                    <div class="user-box dropdown ms-2">
+                        <a class="d-flex align-items-center nav-link dropdown-toggle dropdown-toggle-nocaret px-1" href="#"
                             role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <?php if ($_SESSION['perfil_usuario'] == null) {
-                                    $perfil = BASE_URL . 'assets/images/logo.png';
-                                } else {
-                                    $perfil = BASE_URL . $_SESSION['perfil_usuario'];
-                                } ?>
-                            <img src="<?php echo $perfil; ?>" class="user-img" alt="user avatar">
-                            <div class="user-info ps-3">
-                                <p class="user-name mb-0"><?php echo $_SESSION['nombre_usuario']; ?></p>
-                                <p class="designattion mb-0"><?php echo $_SESSION['correo_usuario']; ?></p>
+                            <span class="avatar-circle">
+                                <?php if ($perfilUrl !== '') { ?>
+                                    <img src="<?php echo $perfilUrl; ?>" class="avatar-img" alt=""
+                                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                    <span class="avatar-initials" style="display:none;"><?php echo htmlspecialchars($inicial, ENT_QUOTES, 'UTF-8'); ?></span>
+                                <?php } else { ?>
+                                    <span class="avatar-initials" style="display:flex;"><?php echo htmlspecialchars($inicial, ENT_QUOTES, 'UTF-8'); ?></span>
+                                <?php } ?>
+                            </span>
+                            <div class="user-info ps-2 d-none d-md-block">
+                                <p class="user-name mb-0"><?php echo htmlspecialchars($nombre_full, ENT_QUOTES, 'UTF-8'); ?></p>
+                                <p class="designattion mb-0"><?php echo htmlspecialchars($_SESSION['correo_usuario'] ?? '', ENT_QUOTES, 'UTF-8'); ?></p>
                             </div>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="<?php echo BASE_URL . 'usuarios/profile'; ?>"><i
-                                        class="bx bx-user"></i><span>Profile</span></a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li class="px-3 py-2 d-md-none">
+                                <div class="fw-semibold small"><?php echo htmlspecialchars($nombre_full, ENT_QUOTES, 'UTF-8'); ?></div>
+                                <div class="text-muted small"><?php echo htmlspecialchars($_SESSION['correo_usuario'] ?? '', ENT_QUOTES, 'UTF-8'); ?></div>
                             </li>
+                            <li class="d-md-none"><hr class="dropdown-divider"></li>
                             <li>
-                                <div class="dropdown-divider mb-0"></div>
+                                <a class="dropdown-item" href="<?php echo BASE_URL . 'usuarios/profile'; ?>">
+                                    <i class="bx bx-user me-2"></i>Mi perfil
+                                </a>
                             </li>
-                            <li><a class="dropdown-item" href="<?php echo BASE_URL . 'usuarios/salir'; ?>"><i
-                                        class='bx bx-log-out-circle'></i><span>Logout</span></a>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="<?php echo BASE_URL . 'usuarios/salir'; ?>">
+                                    <i class='bx bx-log-out-circle me-2'></i>Cerrar sesion
+                                </a>
                             </li>
                         </ul>
                     </div>
