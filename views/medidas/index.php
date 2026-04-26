@@ -9,9 +9,9 @@
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalMedida" id="btnAbrirNuevoMedida">
             <i class="bx bx-plus me-1"></i>Nueva medida
         </button>
-        <a href="<?php echo BASE_URL . 'medidas/inactivos'; ?>" class="btn btn-outline-secondary">
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalInactivos">
             <i class="bx bx-trash me-1"></i>Inactivos
-        </a>
+        </button>
     </div>
 </div>
 
@@ -71,6 +71,54 @@
         </div>
     </div>
 </div>
+
+<!-- ============ MODAL: MEDIDAS INACTIVAS ============ -->
+<div class="modal fade" id="modalInactivos" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold"><i class="bx bx-trash text-danger me-1"></i>Medidas inactivas</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover nowrap" id="tblMedidasInactivos" style="width: 100%;">
+                        <thead class="table-light"><tr><th>Nombre</th><th>Nombre Corto</th><th>Acciones</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var modalEl = document.getElementById('modalInactivos');
+    if (!modalEl) return;
+    var dtInactivos, initialized = false;
+    modalEl.addEventListener('show.bs.modal', function () {
+        if (initialized) { if (dtInactivos) dtInactivos.ajax.reload(null, false); return; }
+        initialized = true;
+        dtInactivos = $('#tblMedidasInactivos').DataTable({
+            deferRender: true, pageLength: 10,
+            ajax: { url: base_url + 'medidas/listarInactivos', dataSrc: '' },
+            columns: [{ data: 'medida' }, { data: 'nombre_corto' }, { data: 'acciones' }],
+            language: { url: base_url + 'assets/js/espanol.json' },
+            responsive: true, order: [[0, 'asc']]
+        });
+    });
+    window.restaurarMedida = function (id) {
+        if (!dtInactivos) return;
+        restaurarRegistros(base_url + 'medidas/restaurar/' + id, dtInactivos);
+    };
+    document.addEventListener('mhn:restauradoOk', function () {
+        if (typeof tblMedidas !== 'undefined' && tblMedidas) {
+            tblMedidas.ajax.reload(null, false);
+        }
+    });
+})();
+</script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {

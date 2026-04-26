@@ -9,9 +9,9 @@
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalGrupoTrabajo" id="btnAbrirNuevoGrupoTrabajo">
             <i class="bx bx-plus me-1"></i>Nuevo grupo
         </button>
-        <a href="<?php echo BASE_URL . 'grupotrabajos/inactivos'; ?>" class="btn btn-outline-secondary">
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalInactivos">
             <i class="bx bx-trash me-1"></i>Inactivos
-        </a>
+        </button>
     </div>
 </div>
 
@@ -82,6 +82,59 @@
         </div>
     </div>
 </div>
+
+<!-- ============ MODAL: GRUPOS INACTIVOS ============ -->
+<div class="modal fade" id="modalInactivos" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold"><i class="bx bx-trash text-danger me-1"></i>Grupos de Trabajo inactivos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle nowrap" id="tblGrupoTrabajosInactivos" style="width: 100%;">
+                        <thead class="table-light"><tr>
+                            <th>Responsable</th><th>Descripción</th><th>Observación</th><th>Empleados</th><th>Acciones</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var modalEl = document.getElementById('modalInactivos');
+    if (!modalEl) return;
+    var dtInactivos, initialized = false;
+    modalEl.addEventListener('show.bs.modal', function () {
+        if (initialized) { if (dtInactivos) dtInactivos.ajax.reload(null, false); return; }
+        initialized = true;
+        dtInactivos = $('#tblGrupoTrabajosInactivos').DataTable({
+            deferRender: true, pageLength: 10,
+            ajax: { url: base_url + 'grupotrabajos/listarInactivos', dataSrc: '' },
+            columns: [
+                { data: 'responsable' }, { data: 'descripcion' }, { data: 'observacion' },
+                { data: 'empleados' }, { data: 'acciones' }
+            ],
+            language: { url: base_url + 'assets/js/espanol.json' },
+            responsive: true, order: [[0, 'asc']]
+        });
+    });
+    window.restaurarGrupoTrabajo = function (id) {
+        if (!dtInactivos) return;
+        restaurarRegistros(base_url + 'grupotrabajos/restaurar/' + id, dtInactivos);
+    };
+    document.addEventListener('mhn:restauradoOk', function () {
+        if (typeof tblGrupoTrabajos !== 'undefined' && tblGrupoTrabajos) {
+            tblGrupoTrabajos.ajax.reload(null, false);
+        }
+    });
+})();
+</script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {

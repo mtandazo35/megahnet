@@ -15,9 +15,9 @@
         <a href="<?php echo BASE_URL . 'productos/reportePdf'; ?>" target="_blank" class="btn btn-outline-secondary">
             <i class="bx bxs-file-pdf me-1"></i>Reporte PDF
         </a>
-        <a href="<?php echo BASE_URL . 'productos/inactivos'; ?>" class="btn btn-outline-secondary">
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalInactivos">
             <i class="bx bx-trash me-1"></i>Inactivos
-        </a>
+        </button>
     </div>
 </div>
 
@@ -148,6 +148,61 @@
         </div>
     </div>
 </div>
+
+<!-- ============ MODAL: PRODUCTOS INACTIVOS ============ -->
+<div class="modal fade" id="modalInactivos" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold"><i class="bx bx-trash text-danger me-1"></i>Productos inactivos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover nowrap" id="tblProductosInactivos" style="width: 100%;">
+                        <thead class="table-light"><tr>
+                            <th>Descripción</th><th>Código</th><th>P. Compra</th><th>P. Venta</th>
+                            <th>Stock</th><th>Categoría</th><th>Foto</th><th>Acciones</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var modalEl = document.getElementById('modalInactivos');
+    if (!modalEl) return;
+    var dtInactivos, initialized = false;
+    modalEl.addEventListener('show.bs.modal', function () {
+        if (initialized) { if (dtInactivos) dtInactivos.ajax.reload(null, false); return; }
+        initialized = true;
+        dtInactivos = $('#tblProductosInactivos').DataTable({
+            deferRender: true, pageLength: 10,
+            ajax: { url: base_url + 'productos/listarInactivos', dataSrc: '' },
+            columns: [
+                { data: 'descripcion' }, { data: 'codigo' }, { data: 'precio_compra' },
+                { data: 'precio_venta' }, { data: 'cantidad' }, { data: 'categoria' },
+                { data: 'foto' }, { data: 'acciones' }
+            ],
+            language: { url: base_url + 'assets/js/espanol.json' },
+            responsive: true, order: [[0, 'asc']]
+        });
+    });
+    window.restaurarProducto = function (id) {
+        if (!dtInactivos) return;
+        restaurarRegistros(base_url + 'productos/restaurar/' + id, dtInactivos);
+    };
+    document.addEventListener('mhn:restauradoOk', function () {
+        if (typeof tblProductos !== 'undefined' && tblProductos) {
+            tblProductos.ajax.reload(null, false);
+        }
+    });
+})();
+</script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {

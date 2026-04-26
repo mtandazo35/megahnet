@@ -9,9 +9,9 @@
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalProveedor" id="btnAbrirNuevoProveedor">
             <i class="bx bx-plus me-1"></i>Nuevo proveedor
         </button>
-        <a href="<?php echo BASE_URL . 'proveedor/inactivos'; ?>" class="btn btn-outline-secondary">
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalInactivos">
             <i class="bx bx-trash me-1"></i>Inactivos
-        </a>
+        </button>
     </div>
 </div>
 
@@ -106,6 +106,61 @@
         </div>
     </div>
 </div>
+
+<!-- ============ MODAL: PROVEEDORES INACTIVOS ============ -->
+<div class="modal fade" id="modalInactivos" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold"><i class="bx bx-trash text-danger me-1"></i>Proveedores inactivos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle nowrap" id="tblProveedoresInactivos" style="width: 100%;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nombre</th><th>RUC</th><th>Teléfono</th><th>Correo</th><th>Dirección</th><th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var modalEl = document.getElementById('modalInactivos');
+    if (!modalEl) return;
+    var dtInactivos, initialized = false;
+    modalEl.addEventListener('show.bs.modal', function () {
+        if (initialized) { if (dtInactivos) dtInactivos.ajax.reload(null, false); return; }
+        initialized = true;
+        dtInactivos = $('#tblProveedoresInactivos').DataTable({
+            deferRender: true, pageLength: 10,
+            ajax: { url: base_url + 'proveedor/listarInactivos', dataSrc: '' },
+            columns: [
+                { data: 'nombre' }, { data: 'ruc' }, { data: 'telefono' },
+                { data: 'correo' }, { data: 'direccion' }, { data: 'acciones' }
+            ],
+            language: { url: base_url + 'assets/js/espanol.json' },
+            responsive: true, order: [[0, 'asc']]
+        });
+    });
+    window.restaurarProveedor = function (id) {
+        if (!dtInactivos) return;
+        restaurarRegistros(base_url + 'proveedor/restaurar/' + id, dtInactivos);
+    };
+    document.addEventListener('mhn:restauradoOk', function () {
+        if (typeof tblProveedores !== 'undefined' && tblProveedores) {
+            tblProveedores.ajax.reload(null, false);
+        }
+    });
+})();
+</script>
 
 <script>
 // Cerrar modal tras registro exitoso (evento mhn:registroOk emitido por insertarRegistros).

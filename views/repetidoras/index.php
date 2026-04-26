@@ -9,9 +9,6 @@
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalRepetidora" id="btnAbrirNuevoRepetidora">
             <i class="bx bx-plus me-1"></i>Nueva repetidora
         </button>
-        <a href="<?php echo BASE_URL . 'clientes/inactivos'; ?>" class="btn btn-outline-secondary">
-            <i class="bx bx-trash me-1"></i>Inactivos
-        </a>
     </div>
 </div>
 

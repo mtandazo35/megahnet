@@ -9,9 +9,9 @@
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalMikrotik" id="btnAbrirNuevoMikrotik">
             <i class="bx bx-plus me-1"></i>Nuevo Mikrotik
         </button>
-        <a href="<?php echo BASE_URL . 'mikrotiks/inactivos'; ?>" class="btn btn-outline-secondary">
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalInactivos">
             <i class="bx bx-trash me-1"></i>Inactivos
-        </a>
+        </button>
     </div>
 </div>
 
@@ -105,6 +105,59 @@
         </div>
     </div>
 </div>
+
+<!-- ============ MODAL: MIKROTIKS INACTIVOS ============ -->
+<div class="modal fade" id="modalInactivos" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold"><i class="bx bx-trash text-danger me-1"></i>Mikrotiks inactivos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle nowrap" id="tblMikrotiksInactivos" style="width: 100%;">
+                        <thead class="table-light"><tr>
+                            <th>Nombre</th><th>IP Pública</th><th>Usuario</th><th>Clave</th><th>Puerto</th><th>Acciones</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var modalEl = document.getElementById('modalInactivos');
+    if (!modalEl) return;
+    var dtInactivos, initialized = false;
+    modalEl.addEventListener('show.bs.modal', function () {
+        if (initialized) { if (dtInactivos) dtInactivos.ajax.reload(null, false); return; }
+        initialized = true;
+        dtInactivos = $('#tblMikrotiksInactivos').DataTable({
+            deferRender: true, pageLength: 10,
+            ajax: { url: base_url + 'mikrotiks/listarInactivos', dataSrc: '' },
+            columns: [
+                { data: 'nombre' }, { data: 'ip' }, { data: 'usuario' },
+                { data: 'clave' }, { data: 'puerto' }, { data: 'acciones' }
+            ],
+            language: { url: base_url + 'assets/js/espanol.json' },
+            responsive: true, order: [[0, 'asc']]
+        });
+    });
+    window.restaurarMikrotik = function (id) {
+        if (!dtInactivos) return;
+        restaurarRegistros(base_url + 'mikrotiks/restaurar/' + id, dtInactivos);
+    };
+    document.addEventListener('mhn:restauradoOk', function () {
+        if (typeof tblMikrotiks !== 'undefined' && tblMikrotiks) {
+            tblMikrotiks.ajax.reload(null, false);
+        }
+    });
+})();
+</script>
 
 <script>
 // Cerrar modal tras registro exitoso (evento mhn:registroOk emitido por insertarRegistros).

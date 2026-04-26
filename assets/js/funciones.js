@@ -243,7 +243,16 @@ function restaurarRegistros(url, tbl) {
                         }
                         if (tbl) {
                             tbl.ajax.reload();
-                        } else {
+                        }
+                        // Evento para que la vista principal (con modal de inactivos)
+                        // recargue tambien su tabla de activos. Si no hay listener
+                        // y tampoco tabla pasada, recarga la pagina como fallback.
+                        try {
+                            document.dispatchEvent(new CustomEvent('mhn:restauradoOk', {
+                                detail: { url: url, res: res }
+                            }));
+                        } catch (e) { /* ignore */ }
+                        if (!tbl) {
                             location.reload();
                         }
                     }

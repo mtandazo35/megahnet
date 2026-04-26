@@ -12,9 +12,9 @@
         <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalCargarClientes">
             <i class="bx bx-cloud-upload me-1"></i>Cargar plantilla
         </button>
-        <a href="<?php echo BASE_URL . 'clientes/inactivos'; ?>" class="btn btn-outline-secondary">
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalInactivos">
             <i class="bx bx-trash me-1"></i>Inactivos
-        </a>
+        </button>
     </div>
 </div>
 
@@ -141,6 +141,68 @@
         </div>
     </div>
 </div>
+
+<!-- ============ MODAL: CLIENTES INACTIVOS ============ -->
+<div class="modal fade" id="modalInactivos" tabindex="-1" aria-labelledby="modalInactivosLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="modalInactivosLabel"><i class="bx bx-trash text-danger me-1"></i>Clientes inactivos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle nowrap" id="tblClientesInactivos" style="width: 100%;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Razón Social</th>
+                                <th>N° Identidad</th>
+                                <th>Identidad</th>
+                                <th>Teléfono</th>
+                                <th>Correo</th>
+                                <th>Dirección</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal de inactivos: lazy init de DataTable + restaurarCliente expuesto + listener para refrescar tabla principal.
+(function () {
+    var modalEl = document.getElementById('modalInactivos');
+    if (!modalEl) return;
+    var dtInactivos, initialized = false;
+    modalEl.addEventListener('show.bs.modal', function () {
+        if (initialized) { if (dtInactivos) dtInactivos.ajax.reload(null, false); return; }
+        initialized = true;
+        dtInactivos = $('#tblClientesInactivos').DataTable({
+            deferRender: true, pageLength: 10,
+            ajax: { url: base_url + 'clientes/listarInactivos', dataSrc: '' },
+            columns: [
+                { data: 'nombre' }, { data: 'num_identidad' }, { data: 'identidad' },
+                { data: 'telefono' }, { data: 'correo' }, { data: 'direccion' }, { data: 'acciones' }
+            ],
+            language: { url: base_url + 'assets/js/espanol.json' },
+            responsive: true, order: [[0, 'asc']]
+        });
+    });
+    window.restaurarCliente = function (id) {
+        if (!dtInactivos) return;
+        restaurarRegistros(base_url + 'clientes/restaurar/' + id, dtInactivos);
+    };
+    document.addEventListener('mhn:restauradoOk', function () {
+        if (typeof tblClientes !== 'undefined' && tblClientes) {
+            tblClientes.ajax.reload(null, false);
+        }
+    });
+})();
+</script>
 
 <script>
 // Cerrar modales tras registro exitoso (evento mhn:registroOk emitido por insertarRegistros).
