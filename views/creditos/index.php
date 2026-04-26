@@ -188,6 +188,11 @@
                         <label class="form-label mb-1" for="selectTipoPago">Tipo Pago <span class="text-danger">*</span></label>
                         <select class="form-select" id="selectTipoPago">
                             <option value="">Seleccionar</option>
+                            <option value="EFECTIVO">EFECTIVO</option>
+                            <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                            <option value="DEPOSITOS">DEPOSITOS</option>
+                            <option value="CHEQUE">CHEQUE</option>
+                            <option value="RETENCIONES">RETENCIONES</option>
                         </select>
                     </div>
 
@@ -305,61 +310,22 @@
 </style>
 
 <script>
-// Carga automatica de tipos de pago al abrir el modal "Agregar Abono".
-// Se inyectan en el <select id="selectTipoPago">. Al seleccionar uno
-// se llama agregarTipoPago(...) (helper global de busqueda.js) que lo
-// agrega al carrito y refresca la tabla #tblNuevaTipoPago.
+// Modal "Agregar Abono": al seleccionar un tipo de pago en el dropdown
+// (opciones EFECTIVO/TRANSFERENCIA/DEPOSITOS/CHEQUE/RETENCIONES hardcodeadas
+// igual que en el modal "Varios Abono"), se agrega al carrito via la
+// funcion global agregarTipoPago() y se refresca la tabla #tblNuevaTipoPago.
 document.addEventListener('DOMContentLoaded', function () {
-    var modalAbono = document.getElementById('modalAbono');
-    var sel        = document.getElementById('selectTipoPago');
-    if (!modalAbono || !sel) return;
+    var sel = document.getElementById('selectTipoPago');
+    if (!sel) return;
 
-    var loaded = false;
-
-    function renderOptions(items) {
-        var html = '<option value="">Seleccionar</option>';
-        if (items && items.length) {
-            html += items.map(function (t) {
-                var nombre = (t.label || '').replace(/"/g, '&quot;');
-                var precio = t.precio || 0;
-                return '<option value="' + t.id + '" data-nombre="' + nombre + '" data-precio="' + precio + '">'
-                    + (t.label || '') + '</option>';
-            }).join('');
-        }
-        sel.innerHTML = html;
-    }
-
-    function cargarTipos() {
-        sel.innerHTML = '<option value="">Cargando…</option>';
-        sel.disabled = true;
-        fetch(base_url + 'productos/buscarPorNombreTipoPago?term=', { credentials: 'same-origin' })
-            .then(function (r) { return r.json(); })
-            .then(function (items) {
-                renderOptions(items);
-                sel.disabled = false;
-            })
-            .catch(function () {
-                sel.innerHTML = '<option value="">Error al cargar</option>';
-                sel.disabled = false;
-            });
-    }
-
-    // Cargar al primer abrir (cache para no repegar en cada apertura)
-    modalAbono.addEventListener('show.bs.modal', function () {
-        if (!loaded) { cargarTipos(); loaded = true; }
-    });
-
-    // Al seleccionar un tipo => agregar al carrito y resetear el select
     sel.addEventListener('change', function () {
-        var opt = sel.options[sel.selectedIndex];
-        if (!opt || !opt.value) return;
-        var id     = opt.value;
-        var nombre = opt.getAttribute('data-nombre') || opt.textContent;
-        var precio = parseFloat(opt.getAttribute('data-precio')) || 0;
+        var nombre = sel.value;
+        if (!nombre) return;
         if (typeof agregarTipoPago === 'function') {
-            agregarTipoPago(id, nombre, precio, '');
+            // id = nombre (string) — el backend usa el nombre, no un id numerico
+            agregarTipoPago(nombre, nombre, 0, '');
         }
-        sel.value = ''; // vuelve a "Seleccionar"
+        sel.value = ''; // vuelve a "Seleccionar" para permitir agregar otro
     });
 });
 </script>
