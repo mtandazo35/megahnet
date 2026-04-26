@@ -92,14 +92,22 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light" id="btnNuevo">
-                        <i class="bx bx-eraser me-1"></i>Limpiar
-                    </button>
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" id="btnAccion">
-                        <i class="bx bx-save me-1"></i>Registrar
-                    </button>
+                <div class="modal-footer flex-wrap gap-2 justify-content-between">
+                    <div>
+                        <button type="button" class="btn btn-outline-info" id="btnProbarMikrotik">
+                            <i class="bx bx-plug me-1"></i>Probar conexión
+                        </button>
+                        <span id="resultadoProbar" class="ms-2 small"></span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-light" id="btnNuevo">
+                            <i class="bx bx-eraser me-1"></i>Limpiar
+                        </button>
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btnAccion">
+                            <i class="bx bx-save me-1"></i>Registrar
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -206,6 +214,85 @@ window.abrirModalMikrotik = function () {
     var el = document.getElementById('modalMikrotik');
     if (el) bootstrap.Modal.getOrCreateInstance(el).show();
 };
+
+// Boton "Probar conexion": valida contra el MikroTik real sin guardar.
+document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('btnProbarMikrotik');
+    var out = document.getElementById('resultadoProbar');
+    if (!btn) return;
+
+    btn.addEventListener('click', function () {
+        var ip      = (document.getElementById('ip')      || {}).value || '';
+        var usuario = (document.getElementById('usuario') || {}).value || '';
+        var clave   = (document.getElementById('clave')   || {}).value || '';
+        var puerto  = (document.getElementById('puerto')  || {}).value || '';
+        var idH     = (document.getElementById('id')      || {}).value || '';
+
+        if (!ip.trim() || !usuario.trim()) {
+            if (out) {
+                out.className = 'ms-2 small text-warning';
+                out.textContent = 'Ingresa IP y Usuario primero';
+            }
+            return;
+        }
+
+        // Estado: probando
+        var origHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Probando…';
+        if (out) {
+            out.className = 'ms-2 small text-muted';
+            out.textContent = 'Conectando al MikroTik…';
+        }
+
+        var fd = new FormData();
+        fd.append('ip', ip);
+        fd.append('usuario', usuario);
+        fd.append('clave', clave);
+        fd.append('puerto', puerto);
+        if (idH) fd.append('id', idH);
+
+        fetch(base_url + 'mikrotiks/probarConexion', {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: fd
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+            btn.disabled = false;
+            btn.innerHTML = origHTML;
+            if (out) {
+                if (res.type === 'success') {
+                    out.className = 'ms-2 small text-success fw-semibold';
+                    out.innerHTML = '<i class="bx bx-check-circle"></i> ' + (res.msg || 'OK');
+                } else if (res.type === 'warning') {
+                    out.className = 'ms-2 small text-warning';
+                    out.innerHTML = '<i class="bx bx-error-circle"></i> ' + (res.msg || 'Aviso');
+                } else {
+                    out.className = 'ms-2 small text-danger';
+                    out.innerHTML = '<i class="bx bx-x-circle"></i> ' + (res.msg || 'Error');
+                }
+            }
+        })
+        .catch(function () {
+            btn.disabled = false;
+            btn.innerHTML = origHTML;
+            if (out) {
+                out.className = 'ms-2 small text-danger';
+                out.textContent = 'Error de red al probar la conexión';
+            }
+        });
+    });
+
+    // Limpiar el resultado cuando se cierra/abre el modal
+    var modal = document.getElementById('modalMikrotik');
+    if (modal && out) {
+        modal.addEventListener('hidden.bs.modal', function () {
+            out.textContent = '';
+            out.className = 'ms-2 small';
+        });
+    }
+});
 </script>
 
 <?php include_once 'views/templates/footer.php'; ?>

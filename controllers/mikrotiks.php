@@ -141,6 +141,94 @@ class Mikrotiks extends Controller
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         die();
     }
+    /**
+     * Probar conexion al MikroTik con credenciales del form (sin guardar).
+     * Usado por el boton "Probar conexion" del modal Nuevo/Editar Mikrotik.
+     * Recibe POST: ip, usuario, clave, puerto.
+     */
+    public function probarConexion()
+    {
+        if ($_SESSION['rol'] == 2) {
+            echo json_encode(['msg' => 'SIN PERMISOS', 'type' => 'warning'], JSON_UNESCAPED_UNICODE);
+            die();
+        }
+        $ip       = trim((string)($_POST['ip']      ?? ''));
+        $usuario  = trim((string)($_POST['usuario'] ?? ''));
+        $clave    = (string)($_POST['clave']   ?? '');
+        $puerto   = (int)   ($_POST['puerto']  ?? 8728);
+        if ($puerto <= 0) $puerto = 8728;
+
+        // Si la clave viene vacia (modo edicion sin cambiar pass), recuperar de BD
+        if ($clave === '' && !empty($_POST['id'])) {
+            $row = $this->model->editar((int)$_POST['id']);
+            if (!empty($row['clave'])) {
+                $bin   = base64_decode($row['clave']);
+                $ivLen = openssl_cipher_iv_length(METODOASIC);
+                $iv    = substr($bin, 0, $ivLen);
+                $enc   = substr($bin, $ivLen);
+                $clave = (string)openssl_decrypt($enc, METODOASIC, KEY, 0, $iv);
+            }
+        }
+
+        if ($ip === '' || $usuario === '') {
+            echo json_encode(['msg' => 'IP Y USUARIO SON REQUERIDOS', 'type' => 'warning'], JSON_UNESCAPED_UNICODE);
+            die();
+        }
+
+        require_once 'libraries/mikrotik/routeros_api.class.php';
+        $API = new RouterosAPI();
+        $API->port    = $puerto;
+        $API->timeout = 4; // 4s para no colgar el browser
+
+        $t0 = microtime(true);
+        $ok = @$API->connect($ip, $usuario, $clave);
+        $latency = (int)round((microtime(true) - $t0) * 1000);
+
+        if (!$ok || !$API->connected) {
+            echo json_encode([
+                'msg'  => 'NO SE PUDO CONECTAR. Revisa IP/usuario/clave/puerto y que la API este habilitada en el MikroTik.',
+                'type' => 'error',
+                'latency' => $latency,
+            ], JSON_UNESCAPED_UNICODE);
+            die();
+        }
+
+        // Conexion OK: obtener identidad y version del router
+        $identidad = '';
+        $version   = '';
+        $boardName = '';
+        try {
+            $idRes = $API->comm('/system/identity/print');
+            if (is_array($idRes) && isset($idRes[0]['name'])) $identidad = $idRes[0]['name'];
+
+            $rRes = $API->comm('/system/resource/print');
+            if (is_array($rRes) && isset($rRes[0])) {
+                $version   = $rRes[0]['version']    ?? '';
+                $boardName = $rRes[0]['board-name'] ?? '';
+            }
+        } catch (\Throwable $e) { /* ignore */ }
+
+        $API->disconnect();
+
+        $info = [];
+        if ($identidad !== '') $info[] = 'Identidad: ' . $identidad;
+        if ($boardName !== '') $info[] = 'Board: '     . $boardName;
+        if ($version   !== '') $info[] = 'RouterOS: '  . $version;
+        $info[] = 'Latencia: ' . $latency . ' ms';
+
+        echo json_encode([
+            'msg'     => 'CONEXIÓN EXITOSA — ' . implode(' · ', $info),
+            'type'    => 'success',
+            'info'    => [
+                'identidad' => $identidad,
+                'version'   => $version,
+                'board'     => $boardName,
+                'latency'   => $latency,
+            ],
+        ], JSON_UNESCAPED_UNICODE);
+        die();
+    }
+
     public function habilitarConexion($idMikrotik)
     {
 
