@@ -52,16 +52,45 @@
         body.bg-login { background-color: #f4f6fb; }
         .wrapper, .page-wrapper, .page-content { background-color: #f4f6fb; }
         .sidebar-wrapper { background-color: #ffffff; }
-        /* === View Transitions API: fade rapido entre paginas (browsers modernos) === */
+
+        /* === View Transitions API: navegacion estilo SPA (browsers modernos) ===
+           - sidebar y topbar tienen nombres propios => NO animan,
+             se mantienen visualmente estables entre paginas
+           - solo el main-content hace fade => efecto "solo cambia el contenido"
+           - browsers viejos: estas reglas se ignoran sin problema */
         @view-transition { navigation: auto; }
-        ::view-transition-old(root) {
-            animation: 90ms cubic-bezier(.4,0,1,1) both vt-fade-out;
+
+        .sidebar-wrapper { view-transition-name: mhn-sidebar; }
+        header           { view-transition-name: mhn-topbar; }
+        .page-content    { view-transition-name: mhn-content; }
+
+        /* sidebar y topbar: sin animacion (estables) */
+        ::view-transition-old(mhn-sidebar),
+        ::view-transition-new(mhn-sidebar),
+        ::view-transition-old(mhn-topbar),
+        ::view-transition-new(mhn-topbar) {
+            animation: none !important;
+            mix-blend-mode: normal;
         }
-        ::view-transition-new(root) {
-            animation: 180ms cubic-bezier(0,0,.2,1) both vt-fade-in;
+
+        /* main-content: fade rapido entre paginas */
+        ::view-transition-old(mhn-content) {
+            animation: 120ms cubic-bezier(.4,0,1,1) both vt-fade-out;
         }
+        ::view-transition-new(mhn-content) {
+            animation: 220ms cubic-bezier(0,0,.2,1) both vt-fade-in;
+        }
+        ::view-transition-old(root) { animation: none; }
+        ::view-transition-new(root) { animation: none; }
+
         @keyframes vt-fade-out { to { opacity: 0; } }
-        @keyframes vt-fade-in  { from { opacity: 0; } }
+        @keyframes vt-fade-in  { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+        /* Respetar prefer-reduced-motion: sin animacion */
+        @media (prefers-reduced-motion: reduce) {
+            ::view-transition-old(mhn-content),
+            ::view-transition-new(mhn-content) { animation: none; }
+        }
     </style>
     <!-- Tab persist: oculta tab-content hasta que tab-persist.js active el tab correcto -->
     <script>
