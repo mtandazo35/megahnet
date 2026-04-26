@@ -44,6 +44,27 @@ class UsuariosModel extends Query
         $array = array($estado, $id);
         return $this->save($sql, $array);
     }
+
+    /**
+     * Devuelve el rol y estado del usuario indicado.
+     * Usado para validar la politica "ultimo administrador".
+     */
+    public function getRolEstado($id)
+    {
+        $sql = "SELECT id, rol, estado FROM usuarios WHERE id = ?";
+        return $this->select($sql, array($id));
+    }
+
+    /**
+     * Cuenta administradores activos (rol = 1, estado = 1).
+     * Para validar que no se elimine/desactive el ultimo admin.
+     */
+    public function contarAdminsActivos()
+    {
+        $sql = "SELECT COUNT(*) AS total FROM usuarios WHERE rol = 1 AND estado = 1";
+        $r = $this->select($sql);
+        return isset($r['total']) ? (int)$r['total'] : 0;
+    }
     public function editar($id)
     {
         $sql = "SELECT u.id,u.nombre,u.perfil,u.fecha, u.apellido, u.correo, u.clave, u.telefono, u.direccion, u.rol,u.vinculo,u.id_grupo_trabajo FROM usuarios u

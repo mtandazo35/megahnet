@@ -149,6 +149,21 @@ class Usuarios extends Controller
                         $res = array('msg' => 'EL CORREO ELECTRONICO DEBE SER UNICO', 'type' => 'warning');
                     }
                 } else {
+                    // Politica: si se baja a un admin (rol=1) a otro rol y es el ultimo admin activo => bloquear
+                    $infoActual = $this->model->getRolEstado((int)$id);
+                    if (!empty($infoActual)
+                        && (int)$infoActual['rol'] === 1
+                        && (int)$infoActual['estado'] === 1
+                        && (int)$rol !== 1) {
+                        $admins = $this->model->contarAdminsActivos();
+                        if ($admins <= 1) {
+                            echo json_encode([
+                                'msg'  => 'NO PUEDES CAMBIAR EL ROL DEL ÚNICO ADMINISTRADOR ACTIVO. CREA OTRO ADMINISTRADOR PRIMERO.',
+                                'type' => 'warning'
+                            ], JSON_UNESCAPED_UNICODE);
+                            die();
+                        }
+                    }
                     //verificar datos si existen
                     $verificarCorreo = $this->model->getValidar('correo', $correo, 'modificar', $id);
                     if (empty($verificarCorreo)) {
@@ -192,19 +207,36 @@ class Usuarios extends Controller
             header('Location: ' . BASE_URL . 'admin/permisos');
             exit;
         }
-        if (isset($_GET)) {
-            if (is_numeric(($id))) {
-                $data = $this->model->eliminar(0, $id);
-                if ($data == 1) {
-                    $res = array('msg' => 'USUARIO ELIMINADO EXITOSAMENTE', 'type' => 'success');
-                } else {
-                    $res = array('msg' => 'ERROR AL ELIMINAR USUARIO', 'type' => 'error');
-                }
-            } else {
-                $res = array('msg' => 'ERROR DESCONOCIDO', 'type' => 'error');
+        if (!is_numeric($id)) {
+            echo json_encode(['msg' => 'ERROR DESCONOCIDO', 'type' => 'error'], JSON_UNESCAPED_UNICODE);
+            die();
+        }
+        $id = (int)$id;
+
+        // No permitir auto-eliminacion
+        if ($id === (int)$_SESSION['id_usuario']) {
+            echo json_encode(['msg' => 'NO PUEDES DESACTIVAR TU PROPIO USUARIO', 'type' => 'warning'], JSON_UNESCAPED_UNICODE);
+            die();
+        }
+
+        // Politica: si el usuario a desactivar es ADMIN (rol=1), verificar que no sea el ultimo admin activo
+        $info = $this->model->getRolEstado($id);
+        if (!empty($info) && (int)$info['rol'] === 1 && (int)$info['estado'] === 1) {
+            $admins = $this->model->contarAdminsActivos();
+            if ($admins <= 1) {
+                echo json_encode([
+                    'msg'  => 'NO SE PUEDE DESACTIVAR EL ÚNICO ADMINISTRADOR ACTIVO. CREA OTRO ADMINISTRADOR PRIMERO.',
+                    'type' => 'warning'
+                ], JSON_UNESCAPED_UNICODE);
+                die();
             }
+        }
+
+        $data = $this->model->eliminar(0, $id);
+        if ($data == 1) {
+            $res = ['msg' => 'USUARIO ELIMINADO EXITOSAMENTE', 'type' => 'success'];
         } else {
-            $res = array('msg' => 'ERROR DESCONOCIDO', 'type' => 'error');
+            $res = ['msg' => 'ERROR AL ELIMINAR USUARIO', 'type' => 'error'];
         }
         echo json_encode($res, JSON_UNESCAPED_UNICODE);
         die();
