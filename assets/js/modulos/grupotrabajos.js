@@ -145,9 +145,9 @@ buscarUsuario.value=res.responsable;
             descripcion.value = res.descripcion;
             observacion.value = res.observacion;
 
-            // editorDireccion.setData(res.direccion);
             btnAccion.textContent = 'Actualizar';
-            firstTab.show()
+            if (typeof window.abrirModalGrupoTrabajo === 'function') { window.abrirModalGrupoTrabajo(); }
+            else { firstTab.show(); }
         }
     }
 }

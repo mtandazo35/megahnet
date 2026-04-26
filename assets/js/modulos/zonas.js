@@ -69,7 +69,8 @@ function editarZonas(idZonas) {
             id.value = res.id;
             nombre.value = res.descripcion;
             btnAccion.textContent = 'Actualizar';
-            firstTab.show()
+            if (typeof window.abrirModalZona === 'function') { window.abrirModalZona(); }
+            else { firstTab.show(); }
         }
     }
 }

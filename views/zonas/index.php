@@ -1,69 +1,84 @@
 <?php include_once 'views/templates/header.php'; ?>
 
-<div class="card">
-    <div class="card-body">
-        <div class="d-flex align-items-center">
-            <div></div>
-            <div class="dropdown ms-auto">
-                <a class="dropdown-toggle dropdown-toggle-nocaret" href="#" data-bs-toggle="dropdown"><i
-                        class='bx bx-dots-horizontal-rounded font-22 text-option'></i>
-                </a>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="<?php echo BASE_URL . 'zonas/inactivos'; ?>"><i
-                                class="fas fa-trash text-danger"></i> Inactivos</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-        <nav>
-            <div class="nav nav-tabs" id="nav-tab" role="tablist">
-                <button class="nav-link active" id="nav-zonas-tab" data-bs-toggle="tab"
-                    data-bs-target="#nav-zonas" type="button" role="tab" aria-controls="nav-zonas"
-                    aria-selected="true">Zonas</button>
-                <button class="nav-link" id="nav-nuevo-tab" data-bs-toggle="tab" data-bs-target="#nav-nuevo"
-                    type="button" role="tab" aria-controls="nav-nuevo" aria-selected="false">Nuevo</button>
-            </div>
-        </nav>
-        <div class="tab-content" id="nav-tabContent">
-            <div class="tab-pane fade show active mt-2" id="nav-zonas" role="tabpanel"
-                aria-labelledby="nav-zonas-tab" tabindex="0">
-                <?php $tituloListado='Listado de Zonas'; $iconoListado='bx-map'; include 'views/templates/listado_titulo.php'; ?>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-hover nowrap" id="tblZonas"
-                        style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th>Descripcion</th>
-                                <th></th>
-                            </tr>
-                        </thead>
+<div class="page-header d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2" id="page-header-modern">
+    <div>
+        <h4 class="mb-0 fw-semibold"><i class="bx bx-map text-primary me-1"></i>Zonas</h4>
+        <small class="text-muted">Zonas geográficas de cobertura</small>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalZona" id="btnAbrirNuevoZona">
+            <i class="bx bx-plus me-1"></i>Nueva zona
+        </button>
+        <a href="<?php echo BASE_URL . 'zonas/inactivos'; ?>" class="btn btn-outline-secondary">
+            <i class="bx bx-trash me-1"></i>Inactivos
+        </a>
+    </div>
+</div>
 
-                        <tbody>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="tab-pane fade p-3" id="nav-nuevo" role="tabpanel" aria-labelledby="nav-nuevo-tab" tabindex="0">
-                <form id="formulario" autocomplete="off">
-                    <input type="hidden" id="id" name="id">
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <label for="nombre">Nombre <span class="text-danger">*</span></label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-list"></i></span>
-                                <input class="form-control" type="text" name="nombre" id="nombre" placeholder="Nombre">
-                            </div>
-                            <span id="errorNombre" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="text-end">
-                        <button class="btn btn-danger" type="button" id="btnNuevo">Nuevo</button>
-                        <button class="btn btn-primary" type="submit" id="btnAccion">Registrar</button>
-                    </div>
-                </form>
-            </div>
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <?php $tituloListado='Listado de Zonas'; $iconoListado='bx-map'; include 'views/templates/listado_titulo.php'; ?>
+        <div class="table-responsive">
+            <table class="table table-hover nowrap" id="tblZonas" style="width: 100%;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Descripción</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="modalZona" tabindex="-1" aria-labelledby="modalZonaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="modalZonaLabel"><i class="bx bx-map text-primary me-1"></i>Datos de la zona</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form id="formulario" autocomplete="off">
+                <div class="modal-body">
+                    <input type="hidden" id="id" name="id">
+                    <label class="form-label small mb-1" for="nombre">Nombre <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bx bx-map-pin"></i></span>
+                        <input class="form-control" type="text" name="nombre" id="nombre" placeholder="Nombre de la zona">
+                    </div>
+                    <span id="errorNombre" class="text-danger small"></span>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" id="btnNuevo"><i class="bx bx-eraser me-1"></i>Limpiar</button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnAccion"><i class="bx bx-save me-1"></i>Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var modal = document.getElementById('modalZona');
+    var form  = document.getElementById('formulario');
+    var btnAccion = document.getElementById('btnAccion');
+    if (form && modal) form.addEventListener('mhn:registroOk', function () {
+        bootstrap.Modal.getOrCreateInstance(modal).hide();
+    });
+    var btnAbrir = document.getElementById('btnAbrirNuevoZona');
+    if (btnAbrir && form && btnAccion) btnAbrir.addEventListener('click', function () {
+        form.reset();
+        document.getElementById('id').value = '';
+        btnAccion.textContent = 'Registrar';
+        var err = document.getElementById('errorNombre'); if (err) err.textContent = '';
+    });
+});
+window.abrirModalZona = function () {
+    var el = document.getElementById('modalZona');
+    if (el) bootstrap.Modal.getOrCreateInstance(el).show();
+};
+</script>
 
 <?php include_once 'views/templates/footer.php'; ?>

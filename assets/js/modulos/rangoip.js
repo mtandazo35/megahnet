@@ -186,7 +186,8 @@ function editarRangoIp(idip) {
             }
 
             btnAccion.textContent = 'Actualizar';
-            firstTab.show()
+            if (typeof window.abrirModalRangoIp === 'function') { window.abrirModalRangoIp(); }
+            else { firstTab.show(); }
         }
     }
 }

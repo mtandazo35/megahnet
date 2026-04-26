@@ -84,7 +84,8 @@ function editarMedida(idMedida) {
             nombre.value = res.medida;
             nombre_corto.value = res.nombre_corto;
             btnAccion.textContent = 'Actualizar';
-            firstTab.show();
+            if (typeof window.abrirModalMedida === 'function') { window.abrirModalMedida(); }
+            else { firstTab.show(); }
         }
     }
 }

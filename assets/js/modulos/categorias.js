@@ -70,7 +70,8 @@ function editarCategoria(idCategoria) {
             id.value = res.id;
             nombre.value = res.categoria;
             btnAccion.textContent = 'Actualizar';
-            firstTab.show()
+            if (typeof window.abrirModalCategoria === 'function') { window.abrirModalCategoria(); }
+            else { firstTab.show(); }
         }
     }
 }

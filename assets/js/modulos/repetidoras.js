@@ -169,10 +169,9 @@ function editarRepetidoras(idRepetidoras) {
             seguridad.value = res.seguridad;
             frecuencia.value=res.frecuencia;
            
-           // editorDireccion.setData(res.direccion);
             btnAccion.textContent = 'Actualizar';
-            firstTab.show()
-
+            if (typeof window.abrirModalRepetidora === 'function') { window.abrirModalRepetidora(); }
+            else { firstTab.show(); }
         }
     }
 }
