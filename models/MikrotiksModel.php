@@ -54,7 +54,21 @@ class MikrotiksModel extends Query{
         return $this->select($sql);
     }
 
-  
+    /** Actualiza el estado de conexion (online/offline) y timestamp */
+    public function actualizarEstadoConexion($id, $estado, $error = null)
+    {
+        $sql = "UPDATE mikrotik
+                SET estado_conexion = ?, ultima_verificacion = NOW(), ultimo_error = ?
+                WHERE id = ?";
+        return $this->save($sql, [$estado, $error, $id]);
+    }
+
+    /** Lista todos los activos (para cron de verificacion masiva) */
+    public function getMikrotiksParaVerificar()
+    {
+        $sql = "SELECT id, nombre, ip, usuario, clave, puerto FROM mikrotik WHERE estado = 1";
+        return $this->selectAll($sql);
+    }
 }
 
 ?>

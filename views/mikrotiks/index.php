@@ -23,6 +23,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>Acciones</th>
+                        <th>Estado</th>
                         <th>Nombre</th>
                         <th>IP Pública</th>
                         <th>Usuario</th>

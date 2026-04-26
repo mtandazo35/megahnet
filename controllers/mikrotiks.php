@@ -30,17 +30,176 @@ class Mikrotiks extends Controller
     {
         $data = $this->model->getMikrotiks(1);
         for ($i = 0; $i < count($data); $i++) {
-            $data[$i]['acciones'] = '<div>
-            <button class="btn btn-info" type="button" onclick="editarMikrotik(' . $data[$i]['id'] . ')"><i class="fas fa-edit text-white"></i></button>
-            <button class="btn btn-danger" type="button" onclick="eliminarMikrotik(' . $data[$i]['id'] . ')"><i class="fas fa-trash"></i></button>
-            </div>';
+            // Badge de estado de conexion
+            $estado = $data[$i]['estado_conexion'] ?? 'unknown';
+            $ult    = $data[$i]['ultima_verificacion'] ?? null;
+            $err    = $data[$i]['ultimo_error'] ?? '';
+            $tip    = $ult ? 'Verificado: ' . $ult : 'Sin verificar';
+            if ($estado === 'offline' && $err !== '') $tip .= "\n" . $err;
+            $tip = htmlspecialchars($tip, ENT_QUOTES, 'UTF-8');
 
+            if ($estado === 'online') {
+                $badge = '<span class="badge rounded-pill bg-success" title="' . $tip . '"><i class="bx bx-check-circle"></i> Conectado</span>';
+            } elseif ($estado === 'offline') {
+                $badge = '<span class="badge rounded-pill bg-danger" title="' . $tip . '"><i class="bx bx-x-circle"></i> Sin conexión</span>';
+            } else {
+                $badge = '<span class="badge rounded-pill bg-secondary" title="' . $tip . '"><i class="bx bx-question-mark"></i> Desconocido</span>';
+            }
+            $data[$i]['estado_badge'] = $badge;
 
+            $data[$i]['acciones'] = '<div class="d-flex gap-1">'
+                . '<button class="btn btn-sm btn-outline-success" type="button" title="Verificar conexion" onclick="verificarConexionMikrotik(' . $data[$i]['id'] . ')"><i class="bx bx-plug"></i></button>'
+                . '<button class="btn btn-sm btn-info" type="button" title="Editar" onclick="editarMikrotik(' . $data[$i]['id'] . ')"><i class="fas fa-edit text-white"></i></button>'
+                . '<button class="btn btn-sm btn-danger" type="button" title="Eliminar" onclick="eliminarMikrotik(' . $data[$i]['id'] . ')"><i class="fas fa-trash"></i></button>'
+                . '</div>';
         }
-
-
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         die();
+    }
+
+    /**
+     * Verifica un MikroTik especifico (por id de BD) y actualiza su estado.
+     * Devuelve JSON con resultado.
+     */
+    public function verificarConexion($idMikrotik)
+    {
+        if (empty($idMikrotik) || !is_numeric($idMikrotik)) {
+            echo json_encode(['msg' => 'ID INVALIDO', 'type' => 'error'], JSON_UNESCAPED_UNICODE);
+            die();
+        }
+        $row = $this->model->editar((int)$idMikrotik);
+        if (empty($row)) {
+            echo json_encode(['msg' => 'MIKROTIK NO ENCONTRADO', 'type' => 'error'], JSON_UNESCAPED_UNICODE);
+            die();
+        }
+        $resultado = $this->_probarConexionRouter(
+            $row['ip'], $row['usuario'], $row['clave'], (int)($row['puerto'] ?: 8728), true
+        );
+        // Actualizar BD
+        $this->model->actualizarEstadoConexion(
+            (int)$idMikrotik,
+            $resultado['ok'] ? 'online' : 'offline',
+            $resultado['ok'] ? null : ($resultado['error'] ?? null)
+        );
+        echo json_encode([
+            'msg'    => $resultado['msg'],
+            'type'   => $resultado['ok'] ? 'success' : 'error',
+            'estado' => $resultado['ok'] ? 'online' : 'offline',
+            'info'   => $resultado['info'] ?? null,
+        ], JSON_UNESCAPED_UNICODE);
+        die();
+    }
+
+    /**
+     * Verifica TODOS los MikroTiks activos. Pensado para cron.
+     * Acepta acceso por CLI o con header X-Cron-Secret (definido en .env).
+     */
+    public function verificarTodos()
+    {
+        // Permitir CLI sin sesion
+        $isCli = (php_sapi_name() === 'cli');
+        // Permitir HTTP con secret
+        $hdr   = $_SERVER['HTTP_X_CRON_SECRET'] ?? ($_GET['secret'] ?? '');
+        $cronSecret = getenv('CRON_SECRET') ?: '';
+        $autorizado = $isCli || ($cronSecret !== '' && hash_equals($cronSecret, $hdr));
+        if (!$autorizado && empty($_SESSION['rol'])) {
+            http_response_code(403);
+            echo "Forbidden\n";
+            die();
+        }
+
+        $list = $this->model->getMikrotiksParaVerificar();
+        $resumen = ['total' => count($list), 'online' => 0, 'offline' => 0, 'detalle' => []];
+        foreach ($list as $row) {
+            $r = $this->_probarConexionRouter(
+                $row['ip'], $row['usuario'], $row['clave'], (int)($row['puerto'] ?: 8728), true
+            );
+            $estado = $r['ok'] ? 'online' : 'offline';
+            $this->model->actualizarEstadoConexion(
+                (int)$row['id'], $estado, $r['ok'] ? null : ($r['error'] ?? null)
+            );
+            $resumen[$estado]++;
+            $resumen['detalle'][] = [
+                'id' => $row['id'], 'nombre' => $row['nombre'], 'ip' => $row['ip'],
+                'estado' => $estado, 'msg' => $r['msg']
+            ];
+        }
+        if ($isCli) {
+            echo "[" . date('Y-m-d H:i:s') . "] Verificacion masiva: "
+                . $resumen['total'] . " total, "
+                . $resumen['online'] . " online, "
+                . $resumen['offline'] . " offline\n";
+        } else {
+            echo json_encode($resumen, JSON_UNESCAPED_UNICODE);
+        }
+        die();
+    }
+
+    /**
+     * Helper interno: prueba conexion al router. La clave puede venir
+     * encriptada (asume base64+openssl_decrypt si llega encriptada).
+     */
+    private function _probarConexionRouter($ip, $usuario, $claveRaw, $puerto, $claveEncriptada = false)
+    {
+        require_once 'libraries/mikrotik/routeros_api.class.php';
+
+        // Decriptar si viene de BD
+        $clave = $claveRaw;
+        if ($claveEncriptada) {
+            $bin   = base64_decode($claveRaw);
+            $ivLen = openssl_cipher_iv_length(METODOASIC);
+            $iv    = substr($bin, 0, $ivLen);
+            $enc   = substr($bin, $ivLen);
+            $clave = (string)openssl_decrypt($enc, METODOASIC, KEY, 0, $iv);
+        }
+
+        $API = new RouterosAPI();
+        $API->port    = $puerto > 0 ? $puerto : 8728;
+        $API->timeout = 4;
+
+        $t0 = microtime(true);
+        $ok = @$API->connect($ip, $usuario, $clave);
+        $latency = (int)round((microtime(true) - $t0) * 1000);
+
+        if (!$ok || !$API->connected) {
+            return [
+                'ok'      => false,
+                'msg'     => 'No se pudo conectar (timeout o credenciales).',
+                'error'   => 'CONNECT_FAILED',
+                'latency' => $latency,
+            ];
+        }
+
+        $identidad = ''; $version = ''; $boardName = '';
+        try {
+            $idRes = $API->comm('/system/identity/print');
+            if (is_array($idRes) && isset($idRes[0]['name'])) $identidad = $idRes[0]['name'];
+            $rRes = $API->comm('/system/resource/print');
+            if (is_array($rRes) && isset($rRes[0])) {
+                $version   = $rRes[0]['version']    ?? '';
+                $boardName = $rRes[0]['board-name'] ?? '';
+            }
+        } catch (\Throwable $e) { /* ignore */ }
+
+        $API->disconnect();
+
+        $partes = [];
+        if ($identidad !== '') $partes[] = 'Identidad: ' . $identidad;
+        if ($boardName !== '') $partes[] = 'Board: '     . $boardName;
+        if ($version   !== '') $partes[] = 'RouterOS: '  . $version;
+        $partes[] = $latency . ' ms';
+
+        return [
+            'ok'      => true,
+            'msg'     => 'CONEXIÓN EXITOSA — ' . implode(' · ', $partes),
+            'latency' => $latency,
+            'info'    => [
+                'identidad' => $identidad,
+                'version'   => $version,
+                'board'     => $boardName,
+                'latency'   => $latency,
+            ],
+        ];
     }
 
     public function registrar()
@@ -143,8 +302,8 @@ class Mikrotiks extends Controller
     }
     /**
      * Probar conexion al MikroTik con credenciales del form (sin guardar).
-     * Usado por el boton "Probar conexion" del modal Nuevo/Editar Mikrotik.
-     * Recibe POST: ip, usuario, clave, puerto.
+     * Usado por el boton "Probar conexion" del modal y por la verificacion
+     * automatica al hacer click en Registrar.
      */
     public function probarConexion()
     {
@@ -159,72 +318,24 @@ class Mikrotiks extends Controller
         if ($puerto <= 0) $puerto = 8728;
 
         // Si la clave viene vacia (modo edicion sin cambiar pass), recuperar de BD
+        $claveEnc = false;
         if ($clave === '' && !empty($_POST['id'])) {
             $row = $this->model->editar((int)$_POST['id']);
             if (!empty($row['clave'])) {
-                $bin   = base64_decode($row['clave']);
-                $ivLen = openssl_cipher_iv_length(METODOASIC);
-                $iv    = substr($bin, 0, $ivLen);
-                $enc   = substr($bin, $ivLen);
-                $clave = (string)openssl_decrypt($enc, METODOASIC, KEY, 0, $iv);
+                $clave = $row['clave'];
+                $claveEnc = true;
             }
         }
-
         if ($ip === '' || $usuario === '') {
             echo json_encode(['msg' => 'IP Y USUARIO SON REQUERIDOS', 'type' => 'warning'], JSON_UNESCAPED_UNICODE);
             die();
         }
 
-        require_once 'libraries/mikrotik/routeros_api.class.php';
-        $API = new RouterosAPI();
-        $API->port    = $puerto;
-        $API->timeout = 4; // 4s para no colgar el browser
-
-        $t0 = microtime(true);
-        $ok = @$API->connect($ip, $usuario, $clave);
-        $latency = (int)round((microtime(true) - $t0) * 1000);
-
-        if (!$ok || !$API->connected) {
-            echo json_encode([
-                'msg'  => 'NO SE PUDO CONECTAR. Revisa IP/usuario/clave/puerto y que la API este habilitada en el MikroTik.',
-                'type' => 'error',
-                'latency' => $latency,
-            ], JSON_UNESCAPED_UNICODE);
-            die();
-        }
-
-        // Conexion OK: obtener identidad y version del router
-        $identidad = '';
-        $version   = '';
-        $boardName = '';
-        try {
-            $idRes = $API->comm('/system/identity/print');
-            if (is_array($idRes) && isset($idRes[0]['name'])) $identidad = $idRes[0]['name'];
-
-            $rRes = $API->comm('/system/resource/print');
-            if (is_array($rRes) && isset($rRes[0])) {
-                $version   = $rRes[0]['version']    ?? '';
-                $boardName = $rRes[0]['board-name'] ?? '';
-            }
-        } catch (\Throwable $e) { /* ignore */ }
-
-        $API->disconnect();
-
-        $info = [];
-        if ($identidad !== '') $info[] = 'Identidad: ' . $identidad;
-        if ($boardName !== '') $info[] = 'Board: '     . $boardName;
-        if ($version   !== '') $info[] = 'RouterOS: '  . $version;
-        $info[] = 'Latencia: ' . $latency . ' ms';
-
+        $r = $this->_probarConexionRouter($ip, $usuario, $clave, $puerto, $claveEnc);
         echo json_encode([
-            'msg'     => 'CONEXIÓN EXITOSA — ' . implode(' · ', $info),
-            'type'    => 'success',
-            'info'    => [
-                'identidad' => $identidad,
-                'version'   => $version,
-                'board'     => $boardName,
-                'latency'   => $latency,
-            ],
+            'msg'  => $r['msg'],
+            'type' => $r['ok'] ? 'success' : 'error',
+            'info' => $r['info'] ?? null,
         ], JSON_UNESCAPED_UNICODE);
         die();
     }

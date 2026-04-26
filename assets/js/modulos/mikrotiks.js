@@ -37,13 +37,13 @@ document.addEventListener('DOMContentLoaded', function () {
             dataSrc: ''
         },
         columns: [
-		    { data: 'acciones' },
+            { data: 'acciones' },
+            { data: 'estado_badge' },
             { data: 'nombre' },
             { data: 'ip' },
             { data: 'usuario' },
             { data: 'clave' },
             { data: 'puerto' }
-        
         ],
         language: {
             url: base_url + 'assets/js/espanol.json'
@@ -84,26 +84,67 @@ document.addEventListener('DOMContentLoaded', function () {
         formulario.reset();
         limpiarCampos();
     })
-    //registrar clientes
+    // Registrar/actualizar Mikrotik con verificacion previa de conexion
     formulario.addEventListener('submit', function (e) {
         e.preventDefault();
         limpiarCampos();
-        // editorDireccion.setData('');
-        if (nombre.value == '') {
-            errorNombre.textContent = 'EL NOMBRE DEL MIKROTIK ES REQUERIDO';
-        } else if (ip.value == '') {
-            errorIp.textContent = 'LA IP DEL MIKROTIK ES REQUERIDO';
-        } else if (usuario.value == '') {
-            errorUsuario.textContent = 'EL USUARIO ES REQUERIDO';
-        } else if (clave.value == '') {
-            errorClave.textContent = 'LA CLAVE DEL MIKROTIK ES REQUERIDO';
-        } else if (puerto.value == '') {
-            errorPuerto.textContent = 'EL PUERTO ES REQUERIDO';
-        } else {
-            const url = base_url + 'mikrotiks/registrar';
-            insertarRegistros(url, this, tblMikrotiks, btnAccion, false);
-        }
+        if (nombre.value == '')      { errorNombre.textContent = 'EL NOMBRE DEL MIKROTIK ES REQUERIDO'; return; }
+        if (ip.value == '')          { errorIp.textContent     = 'LA IP DEL MIKROTIK ES REQUERIDO';      return; }
+        if (usuario.value == '')     { errorUsuario.textContent= 'EL USUARIO ES REQUERIDO';              return; }
+        if (clave.value == '' && id.value == '') { errorClave.textContent = 'LA CLAVE DEL MIKROTIK ES REQUERIDO'; return; }
+        if (puerto.value == '')      { errorPuerto.textContent = 'EL PUERTO ES REQUERIDO';               return; }
 
+        var thisForm = this;
+        var origLabel = btnAccion.innerHTML;
+        btnAccion.disabled = true;
+        btnAccion.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Verificando…';
+
+        // Probar conexion ANTES de guardar
+        var fd = new FormData();
+        fd.append('ip', ip.value);
+        fd.append('usuario', usuario.value);
+        fd.append('clave', clave.value);
+        fd.append('puerto', puerto.value);
+        if (id.value) fd.append('id', id.value);
+
+        fetch(base_url + 'mikrotiks/probarConexion', {
+            method: 'POST', credentials: 'same-origin', body: fd
+        })
+        .then(r => r.json())
+        .then(function (res) {
+            btnAccion.disabled = false;
+            btnAccion.innerHTML = origLabel;
+
+            if (res.type === 'success') {
+                // Conexion OK => guardar directo
+                const url = base_url + 'mikrotiks/registrar';
+                insertarRegistros(url, thisForm, tblMikrotiks, btnAccion, false);
+                return;
+            }
+            // Conexion fallo => preguntar si guardar igualmente
+            Swal.fire({
+                icon: 'warning',
+                title: 'No se pudo conectar al MikroTik',
+                html: '<div class="small text-muted">' + (res.msg || 'Error al verificar') + '</div>'
+                    + '<div class="mt-2">¿Deseas guardar de todas formas?</div>',
+                showCancelButton: true,
+                confirmButtonText: 'Guardar igualmente',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc2626',
+            }).then(function (r) {
+                if (r.isConfirmed) {
+                    const url = base_url + 'mikrotiks/registrar';
+                    insertarRegistros(url, thisForm, tblMikrotiks, btnAccion, false);
+                }
+            });
+        })
+        .catch(function () {
+            btnAccion.disabled = false;
+            btnAccion.innerHTML = origLabel;
+            // Si el fetch falla por red, guardar igualmente (no bloquear)
+            const url = base_url + 'mikrotiks/registrar';
+            insertarRegistros(url, thisForm, tblMikrotiks, btnAccion, false);
+        });
     })
 
 
@@ -115,6 +156,42 @@ document.addEventListener('DOMContentLoaded', function () {
 function eliminarMikrotik(idMikrotik) {
     const url = base_url + 'mikrotiks/eliminar/' + idMikrotik;
     eliminarRegistros(url, tblMikrotiks);
+}
+
+// Boton "Verificar conexion" en cada fila de la tabla.
+// Hace ping al MikroTik y actualiza estado en BD + UI.
+function verificarConexionMikrotik(idMikrotik) {
+    if (!idMikrotik) return;
+    Swal.fire({
+        title: 'Verificando conexión…',
+        html: '<div class="text-muted small">Conectando al MikroTik</div>',
+        allowOutsideClick: false, allowEscapeKey: false,
+        didOpen: () => Swal.showLoading()
+    });
+    fetch(base_url + 'mikrotiks/verificarConexion/' + idMikrotik, {
+        method: 'GET', credentials: 'same-origin'
+    })
+    .then(r => r.json())
+    .then(function (res) {
+        if (res.type === 'success') {
+            Swal.fire({
+                icon: 'success', title: 'Conectado',
+                html: '<div class="small">' + (res.msg || '') + '</div>',
+                timer: 2500, showConfirmButton: false
+            });
+        } else {
+            Swal.fire({
+                icon: 'error', title: 'Sin conexión',
+                html: '<div class="small">' + (res.msg || '') + '</div>'
+            });
+        }
+        if (typeof tblMikrotiks !== 'undefined' && tblMikrotiks && tblMikrotiks.ajax) {
+            tblMikrotiks.ajax.reload(null, false);
+        }
+    })
+    .catch(function () {
+        Swal.fire({ icon: 'error', title: 'Error de red al verificar' });
+    });
 }
 
 function editarMikrotik(idMikrotik) {
