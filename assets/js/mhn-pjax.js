@@ -2,14 +2,20 @@
  * contenido principal (.page-content) y actualiza title + history.
  * Sidebar y topbar permanecen estables (no se repinta) => sin flash.
  *
- * Diseño defensivo: si algo falla, hace fallback a navegacion normal.
+ * Diseno defensivo: si algo falla, hace fallback a navegacion normal.
  *
  * Cobertura:
  *  - Click en links del mismo origen (excepto target=_blank, mailto, etc.)
  *  - Boton atras del browser (popstate)
  *  - Soporta DataTables (destroy antes del swap)
  *  - Soporta scripts inline del modulo nuevo
- *  - Patches DOMContentLoaded para que cb de modulos cargados via PJAX se ejecuten
+ *  - Patches DOMContentLoaded para que cb de modulos se ejecuten tras swap
+ *
+ * IMPORTANTE: los modales BS5 viven dentro del .page-content en este sistema,
+ * asi que el reemplazo de innerHTML los trae automaticamente. NO se clonan
+ * modales por separado (eso era el bug que rompia los listeners).
+ * BS5 con data-bs-toggle/dismiss funciona via event delegation, asi que los
+ * botones siguen funcionando aunque sean nodos nuevos.
  */
 (function () {
     'use strict';
@@ -26,23 +32,19 @@
         if (href.indexOf('mailto:') === 0 || href.indexOf('tel:') === 0) return false;
         if (a.target && a.target !== '_self') return false;
         if (a.hasAttribute('download')) return false;
-        if (a.hasAttribute('data-bs-toggle')) return false;   // modales/dropdowns BS
+        if (a.hasAttribute('data-bs-toggle')) return false;
         if (a.hasAttribute('data-no-pjax')) return false;
         try {
             var u = new URL(href, location.href);
             if (u.origin !== ORIGIN) return false;
-            // Saltar URLs que devuelven binarios (PDF, Excel, etc.)
             if (/\.(pdf|xlsx|xls|csv|jpg|jpeg|png|gif|zip|p12|pfx)(\?|$)/i.test(u.pathname)) return false;
-            // Saltar endpoints que devuelven JSON (listar, registrar, eliminar, restaurar, editar)
             if (/\/(listar|listarInactivos|registrar|registrarExcel|eliminar|restaurar|editar|buscar|validar|cerrar|anular|enviar)/i.test(u.pathname)) return false;
         } catch (e) { return false; }
         return true;
     }
 
-    // Patch document.addEventListener: durante PJAX, los scripts de modulos
-    // que escuchan DOMContentLoaded NO se enteran (el DCL real ya paso). El
-    // patch ejecuta esos callbacks en el siguiente microtask para que sus
-    // inits (DataTables, autocompletes, etc.) corran.
+    // Patch document.addEventListener: durante PJAX, los DOMContentLoaded
+    // de scripts cargados via PJAX disparan inmediatamente (en microtask).
     var origDocAddListener = document.addEventListener.bind(document);
     document.addEventListener = function (type, cb, opts) {
         if (type === 'DOMContentLoaded' && pjaxRunning && typeof cb === 'function') {
@@ -55,7 +57,6 @@
         return origDocAddListener(type, cb, opts);
     };
 
-    // Helpers --------------------------------------------------------------
     function destroyDataTables(scope) {
         if (!window.jQuery || !$.fn || !$.fn.DataTable) return;
         try {
@@ -68,10 +69,14 @@
     }
 
     function closeOpenModals() {
+        // Cerrar y disposeear todos los modales abiertos.
+        // Importante: usar getInstance + dispose. Si se hace getOrCreateInstance,
+        // se crea instancia para nodos viejos y rompe.
         document.querySelectorAll('.modal.show').forEach(function (m) {
             try {
-                var inst = bootstrap.Modal.getInstance(m);
-                if (inst) inst.dispose();
+                var inst = (typeof bootstrap !== 'undefined' && bootstrap.Modal)
+                    ? bootstrap.Modal.getInstance(m) : null;
+                if (inst) inst.hide();
             } catch (e) {}
         });
         document.querySelectorAll('.modal-backdrop').forEach(function (b) { b.remove(); });
@@ -100,22 +105,20 @@
         return Promise.all(promises);
     }
 
-    // Reemplazar scripts de modulo (modulos/X.js, validacion.js, busqueda.js,
-    // y el inline `const nombreKey = ...`).
+    // Reemplazar scripts de modulo (modulos/X.js, validacion.js, busqueda.js)
+    // que se cargan al final del body.
     function reloadModuleScripts(newDoc) {
         var keys = ['/assets/js/modulos/', '/assets/js/validacion.js', '/assets/js/busqueda.js'];
-        // Eliminar viejos (en body)
         document.querySelectorAll('body > script[src]').forEach(function (s) {
             var src = s.getAttribute('src') || '';
             if (keys.some(function (k) { return src.indexOf(k) !== -1; })) s.remove();
         });
-        // Tambien remover el inline nombreKey si lo habia
+        // Inline nombreKey (cargado al final del body por el footer)
         document.querySelectorAll('body > script:not([src])').forEach(function (s) {
             var t = s.textContent || '';
             if (t.indexOf('nombreKey') !== -1 && t.length < 200) s.remove();
         });
 
-        // Insertar los nuevos del documento traido
         var newScripts = Array.from(newDoc.querySelectorAll('body > script'));
         var promises = [];
         newScripts.forEach(function (s) {
@@ -143,7 +146,6 @@
         try {
             var u = new URL(url, location.href);
             var path = u.pathname.replace(/^\/+/, '').replace(/\/+$/, '');
-            // Asumir BASE_URL en la raiz, simplificado
             var rel = path || 'admin';
             document.querySelectorAll('#menu li').forEach(function (li) {
                 li.classList.remove('mm-active');
@@ -167,7 +169,6 @@
         } catch (e) {}
     }
 
-    // Navegacion principal -------------------------------------------------
     function navigate(url, push) {
         if (pjaxRunning) return;
         pjaxRunning = true;
@@ -178,10 +179,8 @@
             headers: { 'X-Requested-With': 'pjax', 'Accept': 'text/html' }
         })
         .then(function (res) {
-            // Si CF/login redirigen, hacer navegacion normal
             if (res.redirected) { location.href = res.url; throw 'redirected'; }
             if (!res.ok) throw new Error('HTTP ' + res.status);
-            // Si el content-type no es HTML, probablemente es PDF/JSON => navegar normal
             var ct = res.headers.get('content-type') || '';
             if (ct.indexOf('text/html') === -1) { location.href = url; throw 'non-html'; }
             return res.text();
@@ -192,40 +191,18 @@
             if (!newPC) { location.href = url; throw 'no-page-content'; }
 
             var oldPC = document.querySelector('.page-content');
-            // Cleanup actual
             if (oldPC) destroyDataTables(oldPC);
             closeOpenModals();
 
-            // title
             if (newDoc.title) document.title = newDoc.title;
-            // Reemplazo
+
+            // Reemplazar TODO el contenido del page-content (incluye modales y scripts inline)
             if (oldPC) oldPC.innerHTML = newPC.innerHTML;
 
-            // Quitar modales/scripts del body que no esten en page-content
-            // (los modales del modulo nuevo vienen al final del body en el HTML)
-            var bodyChildren = Array.from(document.body.children);
-            var newBodyChildren = Array.from(newDoc.body.children);
-            // Estrategia: borrar viejos modales (que esten DESPUES del wrapper) y agregar los nuevos.
-            // Identificarlos por clase 'modal' y data-bs-toggle.
-            document.body.querySelectorAll(':scope > .modal').forEach(function (m) { m.remove(); });
-            newDoc.body.querySelectorAll(':scope > .modal').forEach(function (m) { document.body.appendChild(m.cloneNode(true)); });
-
-            // Tambien copiar scripts inline al final del body que no son modulos
-            // (e.g. los <script> que definen restaurarX, abrirModalX, mhn:registroOk listeners)
-            newDoc.body.querySelectorAll(':scope > script:not([src])').forEach(function (s) {
-                var t = s.textContent || '';
-                // Saltar el inline nombreKey (ya manejado en reloadModuleScripts)
-                if (t.indexOf('nombreKey') !== -1) return;
-                var ns = document.createElement('script');
-                ns.textContent = t;
-                document.body.appendChild(ns);
-            });
-
-            // history
             if (push !== false) history.pushState({ pjax: true }, '', url);
             updateSidebarActive(url);
 
-            // Re-ejecutar scripts dentro del nuevo page-content
+            // Re-ejecutar scripts inline (modales handlers, listeners) + scripts de modulo
             return executeInlineScripts(oldPC).then(function () {
                 return reloadModuleScripts(newDoc);
             });
@@ -245,7 +222,6 @@
         });
     }
 
-    // Click handler --------------------------------------------------------
     document.addEventListener('click', function (e) {
         if (e.defaultPrevented) return;
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
@@ -257,12 +233,10 @@
         navigate(u.href, true);
     }, false);
 
-    // Botón atrás del browser
-    window.addEventListener('popstate', function (e) {
+    window.addEventListener('popstate', function () {
         navigate(location.href, false);
     });
 
-    // Marcar el state inicial como pjax-aware
     if (history.state === null) {
         history.replaceState({ pjax: true, initial: true }, '');
     }
