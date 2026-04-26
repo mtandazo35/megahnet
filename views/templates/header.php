@@ -52,14 +52,6 @@
                 </button>
             </div>
 
-            <div class="sidebar-search px-3 py-2">
-              <div class="position-relative">
-                <input type="text" id="sidebarSearch" class="form-control form-control-sm rounded-pill ps-4"
-                       placeholder="Buscar..." autocomplete="off">
-                <i class="bx bx-search position-absolute" style="left:10px;top:50%;transform:translateY(-50%);color:#888"></i>
-              </div>
-            </div>
-
             <div id="loader" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;justify-content:center;align-items:center;">
                 <div style="border:8px solid #f3f3f3;border-top:8px solid #3498db;border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;"></div>
             </div>
@@ -270,9 +262,8 @@
 .wrapper.toggled .sidebar-toggle-btn i,
 .toggle-icon.rotate-icon i { transform: rotate(180deg); }
 
-/* ===== Sidebar colapsado: ocultar logo y buscador, centrar toggle ===== */
-.wrapper.toggled .sidebar-header .logo-wrap,
-.wrapper.toggled .sidebar-search {
+/* ===== Sidebar colapsado: ocultar logo, centrar toggle ===== */
+.wrapper.toggled .sidebar-header .logo-wrap {
     display: none !important;
 }
 .wrapper.toggled .sidebar-header {
@@ -306,25 +297,7 @@
     border-top: 1px solid rgba(0,0,0,0.06);
     margin-top: 6px;
 }
-#menu .menu-label:first-child { padding-top: 4px; border-top: 0; margin-top: 0; }
-
-.sidebar-wrapper .sidebar-search { padding: 4px 12px !important; }
-.sidebar-wrapper .sidebar-search input {
-    background-color: #f3f5f9;
-    border: 1px solid #d1d5db;
-    color: #333;
-    font-size: 13px;
-    height: 32px;
-}
-.sidebar-wrapper .sidebar-search input:focus {
-    background-color: #fff;
-    border-color: #7dc4ff;
-    box-shadow: 0 0 0 3px rgba(125,196,255,.15);
-    color: #222;
-}
-.sidebar-wrapper .sidebar-search input::placeholder { color: #9aa1b1; }
-.sidebar-wrapper .sidebar-search .bx-search { font-size: 14px; }
-#menu li.hidden-by-search { display: none !important; }
+#menu .menu-label:first-child { padding-top: 8px; border-top: 0; margin-top: 0; }
 
 #menu > li > a {
     border-radius: 8px;
@@ -402,25 +375,6 @@ document.addEventListener("click", function(e){
             }
         }
     });
-
-    // 2) Busqueda rapida
-    const input = document.getElementById('sidebarSearch');
-    if (input) {
-        input.addEventListener('input', () => {
-            const q = input.value.trim().toLowerCase();
-            document.querySelectorAll('#menu > li').forEach(li => {
-                if (li.classList.contains('menu-label')) { li.classList.toggle('hidden-by-search', !!q); return; }
-                const text = li.innerText.toLowerCase();
-                const match = !q || text.indexOf(q) !== -1;
-                li.classList.toggle('hidden-by-search', !match);
-                // expandir submenu si match
-                if (match && q) {
-                    const sub = li.querySelector('ul');
-                    if (sub) { sub.classList.add('mm-show'); li.classList.add('mm-active'); }
-                }
-            });
-        });
-    }
 })();
 </script>
 
