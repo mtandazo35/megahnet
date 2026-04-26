@@ -181,6 +181,78 @@
                         <label class="form-label" for="mensaje">Mensaje (Opcional)</label>
                         <textarea id="mensaje" class="form-control" name="mensaje" rows="3" placeholder="Mensaje de Agradecimiento"><?php echo $data['empresa']['mensaje'] ?? ''; ?></textarea>
                     </div>
+
+                    <!-- ===== Bloque Firma Electrónica SRI integrado en columna izquierda
+                              para llenar el espacio que dejan los logos a la derecha ===== -->
+                    <div class="col-12">
+                        <hr class="my-3">
+                        <div class="form-section-title mb-3"><i class="bx bx-shield-alt-2"></i>Firma Electrónica (SRI)</div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Archivo de firma (.p12) <small class="text-muted">— solo si vas a actualizar</small></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-file-shield"></i></span>
+                                    <input type="file" id="firma_p12" name="firma_p12" class="form-control" accept=".p12,.pfx">
+                                </div>
+                                <?php $existe_firma = file_exists(__DIR__ . '/../../facturaelectronica/public/archivos/token/FIRMA.p12'); ?>
+                                <div id="firmaEstadoBox" class="mt-2 border rounded <?php echo $existe_firma ? 'border-success' : 'border-danger'; ?>">
+                                    <?php if ($existe_firma) { ?>
+                                        <div><i class="bx bx-check-circle text-success"></i> <strong>Firma cargada</strong> (FIRMA.p12) <span class="badge bg-secondary" id="firmaEstadoBadge">Verificando…</span></div>
+                                        <div id="firmaEstadoDetalle" class="mt-1 text-muted">Cargando datos del certificado…</div>
+                                    <?php } else { ?>
+                                        <div><i class="bx bx-x-circle text-danger"></i> <strong>No hay firma cargada</strong> — sube un archivo .p12 para emitir facturas electrónicas.</div>
+                                    <?php } ?>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Contraseña de la firma <span class="text-muted small">(dejar vacío para no cambiar)</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                    <input type="password" id="firma_password" name="firma_password" class="form-control" placeholder="••••••••">
+                                    <button type="button" id="btnVerificarFirma" class="btn btn-outline-primary"><i class="bx bx-check-shield me-1"></i>Verificar</button>
+                                </div>
+                                <small class="text-muted">Pulsa Verificar para confirmar que la clave es correcta y ver la vigencia del certificado.</small>
+                                <span id="errorFirmaPassword" class="text-danger small d-block"></span>
+
+                                <?php if (($data['id_usuario'] ?? 0) == 1) { ?>
+                                <div class="row g-2 mt-1">
+                                    <div class="col-6">
+                                        <label class="form-label small mb-1">Vigencia desde</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                                            <input type="text" id="firmainicio" name="firmainicio" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['firmainicio'] ?? '', ENT_QUOTES); ?>" placeholder="2024-01-01">
+                                        </div>
+                                        <span id="errorFirmainicio" class="text-danger small"></span>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small mb-1">Vigencia hasta</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text"><i class="fas fa-calendar-check"></i></span>
+                                            <input type="text" id="firmafinal" name="firmafinal" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['firmafinal'] ?? '', ENT_QUOTES); ?>" placeholder="2026-01-01">
+                                        </div>
+                                        <span id="errorFirmafinal" class="text-danger small"></span>
+                                    </div>
+                                </div>
+                                <?php } else { ?>
+                                    <input type="hidden" name="firmainicio" value="<?php echo htmlspecialchars($data['empresa']['firmainicio'] ?? '', ENT_QUOTES); ?>">
+                                    <input type="hidden" name="firmafinal"  value="<?php echo htmlspecialchars($data['empresa']['firmafinal']  ?? '', ENT_QUOTES); ?>">
+                                <?php } ?>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="config-switch">
+                                    <?php $isOn = (($data['empresa']['facturaelectronica'] ?? 0) == 1); ?>
+                                    <input class="form-check-input" type="checkbox" role="switch" id="chelectronica" name="chelectronica" value="1" <?php echo $isOn ? 'checked' : ''; ?>>
+                                    <label for="chelectronica">
+                                        <span class="d-block fw-semibold">Facturación Electrónica activa</span>
+                                        <small class="text-muted">Si está apagado, el sistema emite Órdenes de Venta en lugar de facturas SRI.</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -241,76 +313,6 @@
                             <em>Aparece en el RIDE/PDF de facturas, notas de crédito y recibos.</em>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ============================================================== -->
-    <!-- ===== SECCION 2: FIRMA ELECTRONICA SRI ======================== -->
-    <!-- ============================================================== -->
-    <div class="form-section">
-        <div class="form-section-title"><i class="bx bx-shield-alt-2"></i>Firma Electrónica (SRI)</div>
-
-        <div class="row g-3">
-            <div class="col-lg-6">
-                <label class="form-label">Archivo de firma (.p12) <small class="text-muted">— solo si vas a actualizar</small></label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-file-shield"></i></span>
-                    <input type="file" id="firma_p12" name="firma_p12" class="form-control" accept=".p12,.pfx">
-                </div>
-                <?php $existe_firma = file_exists(__DIR__ . '/../../facturaelectronica/public/archivos/token/FIRMA.p12'); ?>
-                <div id="firmaEstadoBox" class="mt-2 border rounded <?php echo $existe_firma ? 'border-success' : 'border-danger'; ?>">
-                    <?php if ($existe_firma) { ?>
-                        <div><i class="bx bx-check-circle text-success"></i> <strong>Firma cargada</strong> (FIRMA.p12) <span class="badge bg-secondary" id="firmaEstadoBadge">Verificando…</span></div>
-                        <div id="firmaEstadoDetalle" class="mt-1 text-muted">Cargando datos del certificado…</div>
-                    <?php } else { ?>
-                        <div><i class="bx bx-x-circle text-danger"></i> <strong>No hay firma cargada</strong> — sube un archivo .p12 para emitir facturas electrónicas.</div>
-                    <?php } ?>
-                </div>
-            </div>
-
-            <div class="col-lg-6">
-                <label class="form-label">Contraseña de la firma <span class="text-muted small">(dejar vacío para no cambiar)</span></label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="fas fa-key"></i></span>
-                    <input type="password" id="firma_password" name="firma_password" class="form-control" placeholder="••••••••">
-                    <button type="button" id="btnVerificarFirma" class="btn btn-outline-primary"><i class="bx bx-check-shield me-1"></i>Verificar</button>
-                </div>
-                <small class="text-muted">Pulsa Verificar para confirmar que la clave es correcta y ver la vigencia del certificado.</small>
-                <span id="errorFirmaPassword" class="text-danger small d-block"></span>
-
-                <?php if (($data['id_usuario'] ?? 0) == 1) { ?>
-                <div class="row g-3 mt-1">
-                    <div class="col-md-6">
-                        <label class="form-label">Vigencia desde</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-calendar"></i></span>
-                            <input type="text" id="firmainicio" name="firmainicio" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['firmainicio'] ?? '', ENT_QUOTES); ?>" placeholder="2024-01-01">
-                        </div>
-                        <span id="errorFirmainicio" class="text-danger small"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Vigencia hasta</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-calendar-check"></i></span>
-                            <input type="text" id="firmafinal" name="firmafinal" class="form-control" value="<?php echo htmlspecialchars($data['empresa']['firmafinal'] ?? '', ENT_QUOTES); ?>" placeholder="2026-01-01">
-                        </div>
-                        <span id="errorFirmafinal" class="text-danger small"></span>
-                    </div>
-                </div>
-                <?php } else { ?>
-                    <input type="hidden" name="firmainicio" value="<?php echo htmlspecialchars($data['empresa']['firmainicio'] ?? '', ENT_QUOTES); ?>">
-                    <input type="hidden" name="firmafinal"  value="<?php echo htmlspecialchars($data['empresa']['firmafinal']  ?? '', ENT_QUOTES); ?>">
-                <?php } ?>
-
-                <div class="config-switch mt-3">
-                    <?php $isOn = (($data['empresa']['facturaelectronica'] ?? 0) == 1); ?>
-                    <input class="form-check-input" type="checkbox" role="switch" id="chelectronica" name="chelectronica" value="1" <?php echo $isOn ? 'checked' : ''; ?>>
-                    <label for="chelectronica">
-                        <span class="d-block fw-semibold">Facturación Electrónica activa</span>
-                        <small class="text-muted">Si está apagado, el sistema emite Órdenes de Venta en lugar de facturas SRI.</small>
-                    </label>
                 </div>
             </div>
         </div>
