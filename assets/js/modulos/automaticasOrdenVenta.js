@@ -12,6 +12,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
+  // Null-safety: cuando el corte OV esta cerrado, btnAccionO y la tabla no
+  // existen en el DOM. Sin estas guardas, btnAccionO.addEventListener tiraba
+  // TypeError y abortaba TODO el resto del DOMContentLoaded (DataTable nunca
+  // se inicializaba, etc.) — la pagina parecia rota.
+  if (!btnAccionO) {
+    return;
+  }
+
   btnAccionO.addEventListener('click', function () {
     programada();
   })

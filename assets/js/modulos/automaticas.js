@@ -6,46 +6,44 @@ let btnAccion = document.querySelector('#btnAccion');
 
 
 document.addEventListener('DOMContentLoaded', function () {
-  // cargar productos de localStorage
+  // El boton "Completar" y la tabla solo existen cuando el corte F esta abierto
+  // (estadoCorteF.total == 0). Cuando el corte ya esta cerrado, la vista pinta
+  // un mensaje "corte cerrado" sin esos elementos. Por eso son null-safe:
+  // sin guardas, btnAccion.addEventListener tiraba TypeError y rompia
+  // TODO el resto del DOMContentLoaded (DataTable nunca se inicializaba,
+  // listeners nunca se registraban, la pagina parecia "rota").
 
+  if (btnAccion) {
+    btnAccion.addEventListener('click', function () {
+      programada();
+    });
+  }
 
-
-  // completar venta
-  btnAccion.addEventListener('click', function () {
-    programada();
-  })
-
-
-
-
-  // cargar datos con el plugin datatables Factura Electronica
-  tblAutomaticas = $('#tblAutomaticas').DataTable({
-    deferRender: true,
-    pageLength: 25,
-    
-    ajax: {
-      url: base_url + 'automaticas/listarElectronica',
-      dataSrc: ''
-    },
-    columns: [
-      { data: 'nombre' },
-      { data: 'total' },
-      { data: 'tributario' },
-      { data: 'estado' },
-      { data: 'id' },
-      { data: 'fecha' }
-
-    ],
-    language: {
-      url: base_url + 'assets/js/espanol.json'
-    },
-    dom,
-    buttons,
-    responsive: true,
-    order: [[0, 'desc']]
-  })
-
-
+  if (document.querySelector('#tblAutomaticas')) {
+    tblAutomaticas = $('#tblAutomaticas').DataTable({
+      deferRender: true,
+      pageLength: 25,
+      ajax: {
+        url: base_url + 'automaticas/listarElectronica',
+        dataSrc: ''
+      },
+      columns: [
+        { data: 'nombre' },
+        { data: 'total' },
+        { data: 'tributario' },
+        { data: 'estado' },
+        { data: 'id' },
+        { data: 'fecha' }
+      ],
+      language: {
+        url: base_url + 'assets/js/espanol.json'
+      },
+      dom,
+      buttons,
+      responsive: true,
+      order: [[0, 'desc']]
+    });
+  }
 })
 
 
