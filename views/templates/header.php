@@ -47,6 +47,23 @@
     <style>
         .tab-pending .tab-content, .tab-pending .nav-tabs { visibility: hidden; }
     </style>
+
+    <!-- Sidebar scroll persist: oculta el contenido scrolleable mientras restauramos
+         el scrollTop (evita el flash "salta a top y vuelve"). Solo si hay valor guardado. -->
+    <script>
+        (function(){
+            try {
+                var t = sessionStorage.getItem('mhn_sidebar_scroll_v2');
+                if (t && parseInt(t, 10) > 0) {
+                    document.documentElement.classList.add('mhn-sidebar-restoring');
+                }
+            } catch(e){}
+        })();
+    </script>
+    <style>
+        .mhn-sidebar-restoring .sidebar-wrapper .simplebar-content-wrapper,
+        .mhn-sidebar-restoring .sidebar-wrapper .metismenu { visibility: hidden; }
+    </style>
 </head>
 
 <body>
@@ -510,6 +527,11 @@ document.addEventListener("click", function(e){
         return true;
     }
 
+    function reveal(){
+        // Quita la clase que oculta el sidebar mientras restauramos.
+        document.documentElement.classList.remove('mhn-sidebar-restoring');
+    }
+
     function restore(){
         var s = getScroller();
         if (!s) return false;
@@ -517,6 +539,7 @@ document.addEventListener("click", function(e){
             var t = sessionStorage.getItem(KEY);
             if (t !== null) s.scrollTop = parseInt(t, 10) || 0;
         } catch(e){}
+        reveal();
         return true;
     }
 
@@ -528,7 +551,10 @@ document.addEventListener("click", function(e){
             return;
         }
         var sw = document.querySelector('.sidebar-wrapper');
-        if (!sw) return;
+        if (!sw) {
+            reveal();
+            return;
+        }
         var obs = new MutationObserver(function(){
             if (restore()) {
                 attachScrollListener();
@@ -536,8 +562,8 @@ document.addEventListener("click", function(e){
             }
         });
         obs.observe(sw, { childList: true, subtree: true });
-        // Failsafe: 3s max para no quedar observando para siempre
-        setTimeout(function(){ obs.disconnect(); }, 3000);
+        // Failsafe: si SimpleBar no arrancó en 1.5s, mostramos igual (evita sidebar invisible para siempre)
+        setTimeout(function(){ obs.disconnect(); reveal(); }, 1500);
     }
 
     if (document.readyState === 'loading') {
