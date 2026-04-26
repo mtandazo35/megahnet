@@ -14,6 +14,49 @@
   </div>
 </div>
 
+<!-- ============ KPIs Cobranza ============ -->
+<?php
+  $cobMes      = (float)($data['cobradoMes']['total'] ?? 0);
+  $cobMesQty   = (int)($data['cobradoMes']['cantidad'] ?? 0);
+  $pendiente   = (float)($data['pendienteCobro']['pendiente'] ?? 0);
+  $totalMonto  = (float)($data['pendienteCobro']['total_monto'] ?? 0);
+  $cantCred    = (int)($data['pendienteCobro']['cantidad_creditos'] ?? 0);
+  $pctCobrado  = $totalMonto > 0 ? round(($totalMonto - $pendiente) * 100 / $totalMonto, 1) : 0;
+  $mesActual   = (function(){
+      $meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      return $meses[(int)date('n') - 1] . ' ' . date('Y');
+  })();
+?>
+<div class="row row-cols-1 row-cols-md-2 g-3 mb-3">
+  <div class="col">
+    <div class="kpi-card kpi-cobro">
+      <div class="kpi-body">
+        <div class="kpi-icon"><i class="bx bx-money-withdraw"></i></div>
+        <div class="flex-grow-1">
+          <small class="kpi-label">Cobrado en <?= $mesActual ?></small>
+          <h3 class="kpi-value text-success">$<?= number_format($cobMes, 2) ?></h3>
+          <small class="text-muted"><?= $cobMesQty ?> abono<?= $cobMesQty == 1 ? '' : 's' ?> registrado<?= $cobMesQty == 1 ? '' : 's' ?> este mes</small>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="kpi-card kpi-pendiente">
+      <div class="kpi-body">
+        <div class="kpi-icon"><i class="bx bx-time-five"></i></div>
+        <div class="flex-grow-1">
+          <small class="kpi-label">Pendiente por cobrar</small>
+          <h3 class="kpi-value text-danger">$<?= number_format($pendiente, 2) ?></h3>
+          <div class="progress mt-2" style="height:6px;">
+            <div class="progress-bar bg-success" style="width:<?= max(0, min(100, $pctCobrado)) ?>%"></div>
+          </div>
+          <small class="text-muted"><?= $cantCred ?> credito<?= $cantCred == 1 ? '' : 's' ?> activo<?= $cantCred == 1 ? '' : 's' ?> · <?= $pctCobrado ?>% cobrado del total ($<?= number_format($totalMonto, 2) ?>)</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ============ KPIs ============ -->
 <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 mb-3">
   <div class="col">
@@ -234,6 +277,10 @@
 .kpi-success::before { background: #10b981; }
 .kpi-warning::before { background: #f59e0b; }
 .kpi-danger::before  { background: #ef4444; }
+.kpi-cobro::before     { background: #10b981; }
+.kpi-pendiente::before { background: #ef4444; }
+.kpi-cobro     .kpi-icon { background: rgba(16,185,129,.12); color: #10b981; }
+.kpi-pendiente .kpi-icon { background: rgba(239,68,68,.12);  color: #ef4444; }
 
 .kpi-body { display: flex; align-items: center; gap: 14px; }
 .kpi-icon {

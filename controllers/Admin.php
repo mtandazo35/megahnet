@@ -47,8 +47,11 @@ class Admin extends Controller
         $data['casosProceso'] = $this->model->getCasos('EN PROCESO');
 
         $data['contratosPorSuspender'] = $this->model->getContratosPorSuspender(CONTRATOSPORSUSPENDER);
-          //  print_r($data['contratosPorSuspender'][0]); exit;
 
+        // Cobranza: lo cobrado en el mes actual y el saldo pendiente total
+        $data['cobradoMes']     = $this->model->getCobradoMes(date('Y-m'));
+        $data['cobradoPorMes']  = $this->model->getCobradoPorMes(date('Y'));
+        $data['pendienteCobro'] = $this->model->getPendienteCobro();
 
         $this->views->getView('admin', 'home', $data);
     }

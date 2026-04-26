@@ -227,5 +227,54 @@ HAVING COUNT(*) > $estado) AS subconsulta";
         return $this->save($sql, [$passwordEncoded]);
     }
 
+    /**
+     * Suma de abonos cobrados en un mes (formato 'YYYY-MM').
+     * abonos.fecha es TEXT pero se almacena como 'YYYY-MM-DD ...', asi que
+     * comparar el prefijo de 7 caracteres es seguro.
+     */
+    public function getCobradoMes($yyyymm)
+    {
+        $sql = "SELECT COALESCE(SUM(abono), 0) AS total,
+                       COUNT(*) AS cantidad
+                FROM abonos
+                WHERE LEFT(fecha, 7) = ?";
+        return $this->select($sql, [$yyyymm]);
+    }
+
+    /**
+     * Suma de abonos cobrados en un anio (formato 'YYYY'), agrupados por mes,
+     * para alimentar un grafico de evolucion mensual.
+     */
+    public function getCobradoPorMes($yyyy)
+    {
+        $sql = "SELECT LEFT(fecha, 7) AS mes,
+                       COALESCE(SUM(abono), 0) AS total
+                FROM abonos
+                WHERE LEFT(fecha, 4) = ?
+                GROUP BY mes
+                ORDER BY mes";
+        return $this->selectAll($sql, [$yyyy]);
+    }
+
+    /**
+     * Saldo pendiente de cobro: suma de (monto - abonado) sobre creditos activos.
+     */
+    public function getPendienteCobro()
+    {
+        $sql = "SELECT
+                  COALESCE(SUM(c.monto), 0) AS total_monto,
+                  COALESCE(SUM(IFNULL(a.pagado, 0)), 0) AS total_pagado,
+                  COALESCE(SUM(c.monto), 0) - COALESCE(SUM(IFNULL(a.pagado, 0)), 0) AS pendiente,
+                  COUNT(c.id) AS cantidad_creditos
+                FROM creditos c
+                LEFT JOIN (
+                    SELECT id_credito, SUM(abono) AS pagado
+                    FROM abonos
+                    GROUP BY id_credito
+                ) a ON a.id_credito = c.id
+                WHERE c.estado = 1";
+        return $this->select($sql);
+    }
+
 }
 ?>
