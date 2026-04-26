@@ -30,39 +30,17 @@ document.addEventListener('DOMContentLoaded', function () {
             http.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
                     const res = JSON.parse(this.responseText);
-                    Swal.fire({
-                        toast: true,
-                        position: 'top-right',
-                        icon: res.type,
-                        title: res.msg,
-                        showConfirmButton: false,
-                        timer: 3000
-                    })
                     if (res.type == 'success') {
-                        setTimeout(() => {
-                            let timerInterval
-                            Swal.fire({
-                                title: res.msg,
-                                html: 'Será redireccionado en <b></b> milliseconds.',
-                                timer: 2000,
-                                timerProgressBar: true,
-                                didOpen: () => {
-                                    Swal.showLoading()
-                                    const b = Swal.getHtmlContainer().querySelector('b')
-                                    timerInterval = setInterval(() => {
-                                        b.textContent = Swal.getTimerLeft()
-                                    }, 100)
-                                },
-                                willClose: () => {
-                                    clearInterval(timerInterval)
-                                }
-                            }).then((result) => {
-                                /* Read more about handling dismissals below */
-                                if (result.dismiss === Swal.DismissReason.timer) {
-                                    window.location = base_url + 'admin';
-                                }
-                            })
-                        }, 2000);
+                        window.location = base_url + 'admin';
+                    } else {
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-right',
+                            icon: res.type,
+                            title: res.msg,
+                            showConfirmButton: false,
+                            timer: 3000
+                        });
                     }
                 }
             }
