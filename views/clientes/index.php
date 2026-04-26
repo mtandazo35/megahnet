@@ -125,7 +125,7 @@
 
 <!-- ============ MODAL: CARGAR DESDE EXCEL ============ -->
 <div class="modal fade" id="modalCargarClientes" tabindex="-1" aria-labelledby="modalCargarClientesLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title fw-semibold" id="modalCargarClientesLabel"><i class="bx bx-cloud-upload text-primary me-1"></i>Cargar clientes desde Excel</h5>
@@ -133,8 +133,8 @@
             </div>
             <div class="modal-body">
                 <?php
-                $tituloCarga      = 'Cargar clientes desde Excel';
-                $descripcionCarga = 'Sube un archivo <strong>.xlsx</strong> con los clientes a registrar.';
+                $tituloCarga      = 'Sube tu archivo de clientes';
+                $descripcionCarga = 'Selecciona un archivo <strong>.xlsx</strong> con los clientes a registrar.';
                 include 'views/templates/cargar_excel.php';
                 ?>
             </div>
