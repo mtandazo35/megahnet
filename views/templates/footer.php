@@ -19,34 +19,45 @@
 <script src="<?php echo BASE_URL; ?>assets/js/jquery.min.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/plugins/simplebar/js/simplebar.min.js"></script>
 <script>
-// Sidebar scroll persist — corre INMEDIATAMENTE después de que SimpleBar
-// wrappea .sidebar-wrapper. SimpleBar es síncrono al init, así que el
-// .simplebar-content-wrapper ya existe cuando este script corre. Aplicamos
-// scrollTop ANTES del primer paint del browser → sin flash de "scroll en
-// top → salta a posición". Esa era la queja del usuario.
+// Sidebar scroll persist.
+// SimpleBar registra su handler en DOMContentLoaded para auto-wrappear
+// elementos con [data-simplebar]. Como cargamos SimpleBar ANTES que este
+// script, SimpleBar registra su listener primero. Mi listener corre
+// inmediatamente después del de SimpleBar → cuando mi código corre,
+// .simplebar-content-wrapper ya está en el DOM.
 (function(){
     var KEY = 'mhn_sidebar_scroll_v2';
     var saveTimer = null;
 
-    var scroller = document.querySelector('.sidebar-wrapper .simplebar-content-wrapper');
-    if (!scroller) return;
+    function applyScroll() {
+        var scroller = document.querySelector('.sidebar-wrapper .simplebar-content-wrapper');
+        if (!scroller) return;
 
-    // 1) Restaurar
-    try {
-        var t = sessionStorage.getItem(KEY);
-        if (t !== null) scroller.scrollTop = parseInt(t, 10) || 0;
-    } catch(e){}
+        // 1) Restaurar
+        try {
+            var t = sessionStorage.getItem(KEY);
+            if (t !== null) scroller.scrollTop = parseInt(t, 10) || 0;
+        } catch(e){}
 
-    // 2) Listener throttled — guarda mientras el usuario scrollea
-    function saveNow(){
-        try { sessionStorage.setItem(KEY, String(scroller.scrollTop)); } catch(e){}
+        // 2) Listener throttled — guarda mientras el usuario scrollea
+        function saveNow(){
+            try { sessionStorage.setItem(KEY, String(scroller.scrollTop)); } catch(e){}
+        }
+        function saveThrottled(){
+            if (saveTimer) return;
+            saveTimer = setTimeout(function(){ saveTimer = null; saveNow(); }, 120);
+        }
+        scroller.addEventListener('scroll', saveThrottled, { passive: true });
+        window.addEventListener('pagehide', saveNow);
     }
-    function saveThrottled(){
-        if (saveTimer) return;
-        saveTimer = setTimeout(function(){ saveTimer = null; saveNow(); }, 120);
+
+    // SimpleBar wrappea en DOMContentLoaded. Esperamos a que termine.
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyScroll);
+    } else {
+        // Si ya disparó (caso raro: navegación back/forward con caché), aplicar
+        applyScroll();
     }
-    scroller.addEventListener('scroll', saveThrottled, { passive: true });
-    window.addEventListener('pagehide', saveNow);
 })();
 </script>
 <script src="<?php echo BASE_URL; ?>assets/plugins/metismenu/js/metisMenu.min.js"></script>
