@@ -84,6 +84,10 @@
 */ ?>
 <script src="<?php echo BASE_URL; ?>assets/js/tab-persist.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/jquery-ui.min.js"></script>
+<!-- Column resize: handles para arrastrar bordes de columna + persistencia en localStorage.
+     Funciona con TODAS las DataTables (escucha 'init.dt' global). Anchos guardados por
+     nombre de columna, así sobreviven al colReorder. -->
+<script src="<?php echo BASE_URL; ?>assets/js/datatables-colresize.js?v=<?php echo function_exists('asset_v') ? asset_v('assets/js/datatables-colresize.js') : ''; ?>"></script>
 <script src="<?php echo BASE_URL; ?>assets/plugins/fullcalendar/js/main.min.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/es.js"></script>
 
