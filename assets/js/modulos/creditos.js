@@ -525,36 +525,67 @@ function eliminarAbono(idAbono) {
 
 
 // Handler para boton "Notificar pagado/pendiente" en tabla creditos
+// Flujo: 1) preview (mensaje renderizado) -> 2) confirmar envio -> 3) enviar
 $(document).on('click', '.btn-notif-credito', function(){
     var btn = this;
     var id = btn.dataset.id;
     var tipo = btn.dataset.tipo;
     if (!id) return;
-    var msg = (tipo === 'pagado')
-        ? 'Se enviara confirmacion de pago al cliente via WhatsApp'
-        : 'Se enviara recordatorio de pago pendiente via WhatsApp';
-    Swal.fire({
-        icon: 'question',
-        title: 'Confirmar envio?',
-        text: msg,
-        showCancelButton: true,
-        confirmButtonText: 'Si, enviar',
-        cancelButtonText: 'Cancelar'
-    }).then(function(r){
-        if (!r.isConfirmed) return;
-        btn.disabled = true;
-        var prev = btn.innerHTML;
-        btn.innerHTML = '<i class="bx bx-loader bx-spin"></i>';
-        fetch(base_url + 'creditos/notificarCliente/' + id, { method: 'POST', credentials: 'same-origin' })
-            .then(function(res){ return res.json(); })
-            .then(function(d){
-                if (d.ok) {
-                    Swal.fire({icon:'success', title:'Mensaje enviado', text:'WhatsApp a +' + d.telefono, timer:2200});
-                } else {
-                    Swal.fire({icon:'error', title:'No se pudo enviar', text: d.msg || ('HTTP ' + (d.http || '?'))});
-                }
-            })
-            .catch(function(e){ Swal.fire({icon:'error', title:'Error', text:e.message}); })
-            .finally(function(){ btn.disabled = false; btn.innerHTML = prev; });
-    });
+    btn.disabled = true;
+    var prev = btn.innerHTML;
+    btn.innerHTML = '<i class="bx bx-loader bx-spin"></i>';
+
+    // Paso 1: pedir preview del mensaje sin enviar
+    fetch(base_url + 'creditos/notificarCliente/' + id + '?preview=1', { method: 'POST', credentials: 'same-origin' })
+        .then(function(res){ return res.json(); })
+        .then(function(d){
+            btn.disabled = false; btn.innerHTML = prev;
+            if (!d.ok) {
+                Swal.fire({icon:'error', title:'No se puede preparar', text: d.msg || ''});
+                return;
+            }
+            var titulo = (d.tipo === 'pagado') ? 'Confirmar pago al cliente' : 'Recordatorio de pago al cliente';
+            // Mostrar el mensaje renderizado en un bloque tipo whatsapp
+            Swal.fire({
+                title: titulo,
+                html: '<div style="text-align:left;font-size:.85rem;color:#374151;margin-bottom:.65rem;">' +
+                      '<i class="bx bxl-whatsapp" style="color:#16a34a;font-size:18px;vertical-align:-3px;"></i> ' +
+                      'Se enviara a <b>+' + d.telefono + '</b>' +
+                      '</div>' +
+                      '<div style="background:#dcfce7;color:#0f172a;padding:.85rem 1rem;border-radius:10px;text-align:left;white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:.78rem;line-height:1.45;max-height:280px;overflow:auto;border:1px solid #bbf7d0;">' +
+                      escapeHtmlPlain(d.mensaje || '') +
+                      '</div>' +
+                      '<div style="text-align:right;font-size:.7rem;color:#6b7280;margin-top:.4rem;">' +
+                      '<a href="' + base_url + 'notificaciones#nav-plantillas" target="_blank">Editar plantilla</a>' +
+                      '</div>',
+                showCancelButton: true,
+                confirmButtonText: '<i class="bx bx-paper-plane me-1"></i>Enviar',
+                cancelButtonText: 'Cancelar',
+                width: 520
+            }).then(function(r){
+                if (!r.isConfirmed) return;
+                btn.disabled = true; btn.innerHTML = '<i class="bx bx-loader bx-spin"></i>';
+                fetch(base_url + 'creditos/notificarCliente/' + id, { method: 'POST', credentials: 'same-origin' })
+                    .then(function(res){ return res.json(); })
+                    .then(function(dd){
+                        if (dd.ok) {
+                            Swal.fire({icon:'success', title:'Mensaje enviado', text:'WhatsApp a +' + dd.telefono, timer:2200});
+                        } else {
+                            Swal.fire({icon:'error', title:'No se pudo enviar', text: dd.msg || ('HTTP ' + (dd.http || '?'))});
+                        }
+                    })
+                    .catch(function(e){ Swal.fire({icon:'error', title:'Error', text:e.message}); })
+                    .finally(function(){ btn.disabled = false; btn.innerHTML = prev; });
+            });
+        })
+        .catch(function(e){
+            btn.disabled = false; btn.innerHTML = prev;
+            Swal.fire({icon:'error', title:'Error', text:e.message});
+        });
 });
+
+function escapeHtmlPlain(s){
+    return String(s||'').replace(/[&<>"']/g, function(c){
+        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+}
