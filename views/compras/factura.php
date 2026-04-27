@@ -19,13 +19,12 @@ if (!is_array($productos)) $productos = [];
 // Totales (manteniendo logica original)
 $subtotaldoce  = 0;  $subtotaldocev = 0;
 $subtotalcero  = 0;
+// Convencion: el precio del JSON ya es SIN IVA. El IVA se suma encima por producto.
 foreach ($productos as $row) {
     $cant = (float)($row['cantidad'] ?? 0);
     $pre  = (float)($row['precio'] ?? 0);
-    if ((int)($row['iva_producto'] ?? 0) == (int)$iva) {
-        $pv = round($pre / (float)($ivaFactor . $iva), 4);
-        $pt = round($pv * $cant, 4);
-        $subtotaldocev += $pt;
+    if ((int)($row['iva_producto'] ?? 0) > 0) {
+        $subtotaldocev += round($pre * $cant, 4);
     } else {
         $subtotalcero += round($pre * $cant, 4);
     }
@@ -72,13 +71,9 @@ ob_start();
         <?php foreach ($productos as $row) {
             $cant = (float)($row['cantidad'] ?? 0);
             $pre  = (float)($row['precio'] ?? 0);
-            if ((int)($row['iva_producto'] ?? 0) == (int)$iva) {
-                $pv = round($pre / (float)($ivaFactor . $iva), 4);
-                $pt = round($pv * $cant, 4);
-            } else {
-                $pv = round($pre, 4);
-                $pt = round($pre * $cant, 4);
-            }
+            // P. Unitario = precio que ingresaste (sin IVA). P. Total = precio * cantidad.
+            $pv = round($pre, 4);
+            $pt = round($pre * $cant, 4);
         ?>
         <tr>
             <td class="ctr"><?php echo $cant; ?></td>

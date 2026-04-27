@@ -58,30 +58,19 @@ global $factura, $result_detalle, $result_config, $anulada;
                     <td><?php echo $producto['cantidad']; ?></td>
                     <td><?php echo $producto['nombre']; ?></td>
                    
-                    <?php if ($producto['iva_producto'] == $iva) {
-                                $pv = round($producto['precio'] / (CONCAT.$iva), 4);
-                                $pt = round($pv * $producto['cantidad'], 4);
-
-                            ?>
+                    <?php
+                        // Convencion: precio = SIN IVA. P. Unitario y P. Total muestran el precio ingresado.
+                        $pv = round($producto['precio'], 4);
+                        $pt = round($producto['precio'] * $producto['cantidad'], 4);
+                    ?>
                                 <td class="textright"><?php echo number_format($pv ,4,'.',','); ?></td>
                                 <td class="textright"><?php echo number_format($pt ,2,'.',','); ?></td>
-                            <?php
-                            } else { ?>
-
-                                <td class="textright"><?php echo number_format(round($producto['precio'], 4) ,4,'.',','); ?></td>
-                                <td class="textright"><?php echo number_format(round($producto['precio'] * $producto['cantidad'], 4) ,2,'.',','); ?></td>
                         </tr>
-            <?php }
-
-
-                            if ($producto['iva_producto'] == $iva) {
-                                $precio_total = round(($pv / (CONCAT.$iva)), 4);
+            <?php
+                            if ($producto['iva_producto'] > 0) {
                                 $subtotaldocev = round($subtotaldocev + $pt, 4);
-                                //print_r($subtotaldoce); exit;
                             } else {
-
-                                $precio_total = $producto['precio'] *  $producto['cantidad'];
-                                $subtotalcero = round($subtotalcero + $precio_total, 4);
+                                $subtotalcero = round($subtotalcero + $pt, 4);
                             }
                         }                    
 
@@ -102,7 +91,7 @@ global $factura, $result_detalle, $result_config, $anulada;
 
             <tr>
                 
-                    <td colspan="3" class="textright"><b> SUBTOTAL 12%<b></td>
+                    <td colspan="3" class="textright"><b> SUBTOTAL <?php echo (int)$iva; ?>%<b></td>
                     <td class="textright"><span><?php echo number_format($subtotaldoce, 2); ?></span></td>
                 </tr>
                 <tr >
