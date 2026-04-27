@@ -150,4 +150,20 @@ class RetencionesModel extends Query
     }
     
   
+    public function buscarCompraPorComprobante(array $variants, $cleanFull)
+    {
+        if (empty($variants)) return null;
+        $placeholders = implode(',', array_fill(0, count($variants), '?'));
+        $sql = "SELECT c.id, c.serie, c.total, c.fecha, c.productos, c.id_proveedor,
+                       p.nombre, p.telefono, p.correo, p.direccion, p.ruc
+                FROM compras c
+                INNER JOIN proveedor p ON p.id = c.id_proveedor
+                WHERE c.estado = 1 AND (
+                    c.serie IN ($placeholders)
+                    OR ? LIKE CONCAT('%', c.serie)
+                )
+                ORDER BY c.id DESC LIMIT 1";
+        $params = array_merge($variants, [$cleanFull]);
+        return $this->select($sql, $params);
+    }
 }
