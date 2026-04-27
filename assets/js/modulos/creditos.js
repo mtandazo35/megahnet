@@ -589,3 +589,35 @@ function escapeHtmlPlain(s){
         return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
     });
 }
+
+
+// ============================================================================
+// Handler: dropdown selectTipoPago — al elegir agrega fila a tblNuevaTipoPago
+// con descripcion del tipo. Soporta multiples (mixed payment).
+// ============================================================================
+(function(){
+    var sel = document.getElementById('selectTipoPago');
+    if (!sel) return;
+    if (sel.dataset.bound === '1') return;
+    sel.dataset.bound = '1';
+    // Mapeo id BD <-> nombre (codigos comprobante SRI)
+    var TIPOS = {
+        'EFECTIVO':       { id: 1, codigo: '01' },
+        'DEPOSITOS':      { id: 2, codigo: '17' },
+        'TRANSFERENCIA':  { id: 3, codigo: '20' },
+        'RETENCIONES':    { id: 4, codigo: '21' },
+        'CHEQUE':         { id: 5, codigo: '02' },
+        'ANTICIPOS':      { id: 6, codigo: '01' }
+    };
+    sel.addEventListener('change', function(){
+        var nombre = this.value;
+        if (!nombre) return;
+        var info = TIPOS[nombre];
+        if (!info) { this.value = ''; return; }
+        // Reusa la funcion ya existente de busqueda.js
+        if (typeof agregarTipoPago === 'function') {
+            agregarTipoPago(info.id, nombre, 0, info.codigo);
+        }
+        this.value = '';  // permite agregar otro tipo
+    });
+})();
