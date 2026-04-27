@@ -456,20 +456,25 @@
   <!-- CORREO (SMTP) -->
   <div class="tab-pane fade" id="nav-correo">
     <style>
+      /* Aplica el mismo patron de Configuracion (cfg-section) */
       .smtp-card .card-header { background: transparent; border-bottom: 1px solid #eef0f4; padding: .9rem 1.25rem; }
-      .smtp-card .card-header h6 { margin: 0; font-size: .95rem; }
-      .smtp-help { font-size: .78rem; color: #6b7280; margin-top: .25rem; display: block; }
-      .smtp-preset { font-size: .72rem; padding: .15rem .55rem; }
+      .smtp-card .card-header h6 { margin: 0; font-size: .95rem; letter-spacing: .2px; }
+      .smtp-card .card-header .small { color: #6b7280; font-weight: 400; font-size: .78rem; }
+      .smtp-card .card-body { padding: 1.25rem; }
+      .smtp-card .form-label { margin-bottom: .25rem; }
       .smtp-pass-wrap { position: relative; }
-      .smtp-pass-toggle { position: absolute; right: .5rem; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280; }
+      .smtp-pass-toggle { position: absolute; right: .65rem; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280; font-size: 18px; }
       .smtp-pass-toggle:hover { color: #2563eb; }
+      #smtp_password { padding-right: 2.25rem; }
     </style>
 
-    <div class="card smtp-card">
+    <?php $smtp = $data['config']['smtp'] ?? []; ?>
+
+    <div class="card cfg-section smtp-card mb-3">
       <div class="card-header d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center">
-          <i class="bx bx-envelope text-primary me-2" style="font-size:18px;"></i>
-          <h6 class="fw-semibold text-dark">Servidor SMTP <span class="text-muted fw-normal" style="font-size:.78rem;">— credenciales para enviar correos de notificacion</span></h6>
+          <i class="bx bx-server text-primary me-2" style="font-size:18px;"></i>
+          <h6 class="fw-semibold text-dark">Servidor SMTP <span class="small ms-1">— credenciales para enviar los correos</span></h6>
         </div>
         <div class="dropdown">
           <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -495,18 +500,18 @@
         </div>
       </div>
       <div class="card-body">
-        <?php $smtp = $data['config']['smtp'] ?? []; ?>
         <div class="row g-3">
           <div class="col-md-7">
             <label class="form-label fw-semibold mb-1" for="smtp_host">Host</label>
             <input type="text" id="smtp_host" class="form-control" placeholder="smtp.gmail.com"
               value="<?php echo htmlspecialchars($smtp['host'] ?? ''); ?>">
-            <small class="smtp-help">Servidor SMTP del proveedor de correo.</small>
+            <small class="cfg-help">Servidor SMTP del proveedor de correo.</small>
           </div>
           <div class="col-md-3">
             <label class="form-label fw-semibold mb-1" for="smtp_port">Puerto</label>
             <input type="number" id="smtp_port" class="form-control" min="1" max="65535"
               value="<?php echo (int)($smtp['port'] ?? 465); ?>">
+            <small class="cfg-help">465 SSL · 587 TLS</small>
           </div>
           <div class="col-md-2">
             <label class="form-label fw-semibold mb-1" for="smtp_secure">Encriptacion</label>
@@ -520,46 +525,58 @@
             <label class="form-label fw-semibold mb-1" for="smtp_user">Usuario / Email</label>
             <input type="email" id="smtp_user" class="form-control" placeholder="cuenta@gmail.com"
               value="<?php echo htmlspecialchars($smtp['user'] ?? ''); ?>">
+            <small class="cfg-help">La cuenta que se autentica en el SMTP.</small>
           </div>
           <div class="col-md-6">
             <label class="form-label fw-semibold mb-1" for="smtp_password">Contrasena</label>
             <div class="smtp-pass-wrap">
               <input type="password" id="smtp_password" class="form-control" autocomplete="new-password"
                 value="<?php echo !empty($smtp['password']) ? '********' : ''; ?>"
-                placeholder="<?php echo !empty($smtp['password']) ? 'Sin cambios (deja vacio o con asteriscos para mantener)' : 'App password o contrasena'; ?>">
+                placeholder="<?php echo !empty($smtp['password']) ? 'Deja con asteriscos para mantener' : 'App password o contrasena'; ?>">
               <i class="bx bx-show smtp-pass-toggle" id="smtpPassToggle" title="Mostrar/ocultar"></i>
             </div>
-            <small class="smtp-help">Para Gmail usa una <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">App password</a>, no tu contrasena normal.</small>
+            <small class="cfg-help">Para Gmail usa una <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">App password</a>.</small>
           </div>
 
           <div class="col-md-6">
             <label class="form-label fw-semibold mb-1" for="smtp_from_name">Nombre remitente</label>
             <input type="text" id="smtp_from_name" class="form-control" placeholder="Sistema MAAT"
               value="<?php echo htmlspecialchars($smtp['from_name'] ?? ''); ?>">
-            <small class="smtp-help">Aparece como nombre del que envia. Si vacio usa TITLE.</small>
+            <small class="cfg-help">Aparece como nombre del remitente. Si vacio usa <code>TITLE</code>.</small>
           </div>
           <div class="col-md-6">
-            <label class="form-label fw-semibold mb-1" for="smtp_from_email">Email "From" (opcional)</label>
+            <label class="form-label fw-semibold mb-1" for="smtp_from_email">Email "From" <span class="text-muted fw-normal">(opcional)</span></label>
             <input type="email" id="smtp_from_email" class="form-control" placeholder="(usa el usuario por defecto)"
               value="<?php echo htmlspecialchars($smtp['from_email'] ?? ''); ?>">
-            <small class="smtp-help">Solo si quieres que aparezca un email distinto al usuario SMTP.</small>
-          </div>
-        </div>
-
-        <hr>
-
-        <div class="row g-2 align-items-end">
-          <div class="col-md-7">
-            <label class="form-label fw-semibold mb-1" for="smtp_test_email">Probar enviando a:</label>
-            <input type="email" id="smtp_test_email" class="form-control" placeholder="tu@correo.com">
-            <small class="smtp-help">Usa los valores actuales del formulario (no es necesario guardar antes).</small>
-          </div>
-          <div class="col-md-5 d-flex gap-2 justify-content-end">
-            <button class="btn btn-outline-info" id="btnProbarSmtp" type="button"><i class="bx bx-paper-plane me-1"></i>Probar conexion</button>
-            <button class="btn btn-primary" id="btnGuardarSmtp" type="button"><i class="bx bx-save me-1"></i>Guardar SMTP</button>
+            <small class="cfg-help">Solo si quieres un email distinto al usuario SMTP.</small>
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="card cfg-section smtp-card">
+      <div class="card-header d-flex align-items-center">
+        <i class="bx bx-paper-plane text-info me-2" style="font-size:18px;"></i>
+        <h6 class="fw-semibold text-dark">Probar envio <span class="small ms-1">— sin necesidad de guardar antes</span></h6>
+      </div>
+      <div class="card-body">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-8">
+            <label class="form-label fw-semibold mb-1" for="smtp_test_email">Email destino</label>
+            <input type="email" id="smtp_test_email" class="form-control" placeholder="tu@correo.com">
+            <small class="cfg-help">Usa los valores actuales del formulario para enviar el correo de prueba.</small>
+          </div>
+          <div class="col-md-4 d-flex justify-content-end">
+            <button class="btn btn-outline-info w-100" id="btnProbarSmtp" type="button"><i class="bx bx-paper-plane me-1"></i>Probar conexion</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cfg-savebar d-flex justify-content-end">
+      <button class="btn btn-primary px-4" id="btnGuardarSmtp" type="button">
+        <i class="bx bx-save me-1"></i>Guardar configuracion
+      </button>
     </div>
 
     <script>
