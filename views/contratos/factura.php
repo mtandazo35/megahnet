@@ -48,7 +48,7 @@ ob_start();
         <td style="background:#f9fafb"><strong>Teléfono:</strong></td>
         <td><?php echo $_e($con['telefono'] ?? ''); ?></td>
         <td style="background:#f9fafb"><strong>Dirección:</strong></td>
-        <td><?php echo $_e($con['direccionCliente'] ?? ''); ?></td>
+        <td><?php echo $_e(trim(html_entity_decode(strip_tags((string)($con['direccionCliente'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8'))); ?></td>
     </tr>
 </table>
 
@@ -72,7 +72,7 @@ ob_start();
     </tr>
     <tr>
         <td style="background:#f9fafb"><strong>Dirección:</strong></td>
-        <td colspan="2"><?php echo $_e($con['direccion'] ?? ''); ?></td>
+        <td colspan="2"><?php echo $_e(trim(html_entity_decode(strip_tags((string)($con['direccion'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8'))); ?></td>
         <td style="background:#f9fafb"><strong>Comentario:</strong></td>
         <td colspan="2"><?php echo $_e($con['comentario'] ?? ''); ?></td>
     </tr>

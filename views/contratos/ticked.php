@@ -31,7 +31,7 @@ global $factura, $result_detalle, $result_config, $anulada;
         <p><?php echo $data['empresa']['razon_social']; ?></p>
 
         <p><?php echo $data['empresa']['telefono']; ?></p>
-        <p><?php echo $data['empresa']['direccion']; ?></p>
+        <p><?php echo htmlspecialchars(trim(html_entity_decode(strip_tags((string)($data['empresa']['direccion'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8'))); ?></p>
     </div>
     <h2 class="title">Cotización Ticked</h2>
 

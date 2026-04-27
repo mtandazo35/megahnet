@@ -157,7 +157,7 @@ $_emp          = isset($empresa) && is_array($empresa) ? $empresa : [];
                     <p class="nombre" style="font-size:15px;font-weight:bold;color:#111827;margin:0 0 4px 0;"><?php echo $_e(strtoupper($_emp['razon_social'])); ?></p>
                 <?php } ?>
                 <?php if (!empty($_emp['direccion'])) { ?>
-                    <p style="margin:1px 0;font-size:11px;"><?php echo $_e($_emp['direccion']); ?></p>
+                    <p style="margin:1px 0;font-size:11px;"><?php echo $_e(trim(html_entity_decode(strip_tags((string)($_emp['direccion'])), ENT_QUOTES | ENT_HTML5, 'UTF-8'))); ?></p>
                 <?php } ?>
                 <?php if (!empty($_emp['ruc'])) { ?>
                     <p style="margin:1px 0;font-size:11px;"><strong>RUC:</strong> <?php echo $_e($_emp['ruc']); ?></p>

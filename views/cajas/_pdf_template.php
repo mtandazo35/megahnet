@@ -165,7 +165,7 @@ $_e = function ($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); 
                 <p class="nombre"><?php echo $_e($empresa['nombre'] ?? ''); ?></p>
                 <p>RUC: <?php echo $_e($empresa['ruc'] ?? ''); ?></p>
                 <p>Teléfono: <?php echo $_e($empresa['telefono'] ?? ''); ?></p>
-                <p>Dirección: <?php echo $_e($empresa['direccion'] ?? ''); ?></p>
+                <p>Dirección: <?php echo $_e(trim(html_entity_decode(strip_tags((string)($empresa['direccion'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8'))); ?></p>
             </td>
             <td class="doc-cell">
                 <span class="badge">REPORTE DE CAJA</span>

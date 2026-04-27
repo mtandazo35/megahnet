@@ -49,7 +49,7 @@ ob_start();
         <td style="background:#f9fafb"><strong>Teléfono:</strong></td>
         <td><?php echo $_e($ov['telefono'] ?? ''); ?></td>
         <td style="background:#f9fafb"><strong>Dirección:</strong></td>
-        <td><?php echo $_e($ov['direccion'] ?? ''); ?></td>
+        <td><?php echo $_e(trim(html_entity_decode(strip_tags((string)($ov['direccion'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8'))); ?></td>
     </tr>
 </table>
 

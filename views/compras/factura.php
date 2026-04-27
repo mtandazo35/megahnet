@@ -51,7 +51,7 @@ ob_start();
         <td style="background:#f9fafb"><strong>Teléfono:</strong></td>
         <td><?php echo $_e($compra['telefono'] ?? ''); ?></td>
         <td style="background:#f9fafb"><strong>Dirección:</strong></td>
-        <td><?php echo $_e($compra['direccion'] ?? ''); ?></td>
+        <td><?php echo $_e(trim(html_entity_decode(strip_tags((string)($compra['direccion'] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8'))); ?></td>
     </tr>
 </table>
 

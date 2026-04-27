@@ -104,7 +104,7 @@ foreach ($productos as $p) {
                     <p><?php echo $_e($empresa['razon_social']); ?></p>
                 <?php } ?>
                 <?php if (!empty($empresa['direccion'])) { ?>
-                    <p><?php echo $_e($empresa['direccion']); ?></p>
+                    <p><?php echo $_e(trim(html_entity_decode(strip_tags((string)($empresa['direccion'])), ENT_QUOTES | ENT_HTML5, 'UTF-8'))); ?></p>
                 <?php } ?>
                 <?php if (!empty($empresa['ruc'])) { ?>
                     <p>RUC: <?php echo $_e($empresa['ruc']); ?></p>
