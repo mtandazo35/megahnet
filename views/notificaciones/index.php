@@ -298,10 +298,16 @@
           <i class="bx bx-envelope text-primary me-2" style="font-size:18px;"></i>
           <h6 class="fw-semibold text-dark">Servidor SMTP <span class="text-muted fw-normal" style="font-size:.78rem;">— credenciales para enviar correos de notificacion</span></h6>
         </div>
-        <div class="d-flex gap-1">
-          <button type="button" class="btn btn-light border smtp-preset" data-preset="gmail">Gmail</button>
-          <button type="button" class="btn btn-light border smtp-preset" data-preset="outlook">Outlook</button>
-          <button type="button" class="btn btn-light border smtp-preset" data-preset="zoho">Zoho</button>
+        <div class="d-flex gap-1 flex-wrap">
+          <button type="button" class="btn btn-sm btn-light border smtp-preset" data-preset="cpanel" title="Servidor del propio dominio (mail.tu-dominio.com)"><i class="bx bx-buildings me-1"></i>Corporativo (cPanel)</button>
+          <button type="button" class="btn btn-sm btn-light border smtp-preset" data-preset="m365" title="Microsoft 365 / Office 365">M365</button>
+          <button type="button" class="btn btn-sm btn-light border smtp-preset" data-preset="hostinger">Hostinger</button>
+          <button type="button" class="btn btn-sm btn-light border smtp-preset" data-preset="gmail">Gmail</button>
+          <button type="button" class="btn btn-sm btn-light border smtp-preset" data-preset="outlook">Outlook</button>
+          <button type="button" class="btn btn-sm btn-light border smtp-preset" data-preset="zoho">Zoho</button>
+          <button type="button" class="btn btn-sm btn-light border smtp-preset" data-preset="sendgrid">SendGrid</button>
+          <button type="button" class="btn btn-sm btn-light border smtp-preset" data-preset="mailgun">Mailgun</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary smtp-preset" data-preset="clear" title="Limpiar todos los campos"><i class="bx bx-eraser"></i></button>
         </div>
       </div>
       <div class="card-body">
@@ -375,13 +381,42 @@
     <script>
       (function(){
         var presets = {
-          gmail:   { host: 'smtp.gmail.com',   port: 465, secure: 1 },
-          outlook: { host: 'smtp.office365.com', port: 587, secure: 0 },
-          zoho:    { host: 'smtp.zoho.com',    port: 465, secure: 1 }
+          // Publicos
+          gmail:    { host: 'smtp.gmail.com',       port: 465, secure: 1 },
+          outlook:  { host: 'smtp.office365.com',   port: 587, secure: 0 },
+          zoho:     { host: 'smtp.zoho.com',        port: 465, secure: 1 },
+          // Corporativos / hosting
+          m365:     { host: 'smtp.office365.com',   port: 587, secure: 0 },
+          hostinger:{ host: 'smtp.hostinger.com',   port: 465, secure: 1 },
+          // Servicios transaccionales
+          sendgrid: { host: 'smtp.sendgrid.net',    port: 587, secure: 0 },
+          mailgun:  { host: 'smtp.mailgun.org',     port: 587, secure: 0 }
         };
         document.querySelectorAll('.smtp-preset').forEach(function(b){
           b.addEventListener('click', function(){
-            var p = presets[b.dataset.preset];
+            var key = b.dataset.preset;
+            // Especiales: cPanel deduce host del dominio del usuario; clear vacia todo
+            if (key === 'cpanel') {
+              var user = (document.getElementById('smtp_user').value || '').trim();
+              var host = 'mail.tu-dominio.com';
+              if (user.indexOf('@') > 0) {
+                host = 'mail.' + user.split('@')[1];
+              }
+              document.getElementById('smtp_host').value = host;
+              document.getElementById('smtp_port').value = 465;
+              document.getElementById('smtp_secure').value = '1';
+              return;
+            }
+            if (key === 'clear') {
+              document.getElementById('smtp_host').value = '';
+              document.getElementById('smtp_port').value = '';
+              document.getElementById('smtp_user').value = '';
+              document.getElementById('smtp_password').value = '';
+              document.getElementById('smtp_from_name').value = '';
+              document.getElementById('smtp_from_email').value = '';
+              return;
+            }
+            var p = presets[key];
             if (!p) return;
             document.getElementById('smtp_host').value = p.host;
             document.getElementById('smtp_port').value = p.port;
