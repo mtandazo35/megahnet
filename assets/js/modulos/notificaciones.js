@@ -2,7 +2,9 @@ document.addEventListener('DOMContentLoaded', function () {
   // ====== HISTORIAL ======
   const tbl = $('#tblNotif').DataTable({
     deferRender: true,
-    pageLength: 25,
+    pageLength: 10,
+    lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
+    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
     order: [[0, 'desc']],
     ajax: { url: base_url + 'notificaciones/listar', dataSrc: '' },
     columns: [
