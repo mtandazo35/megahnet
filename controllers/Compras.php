@@ -47,14 +47,15 @@ class Compras extends Controller
                 $saldo = $this->caja->getDatos();
                 foreach ($datos['productos'] as $producto) {
                     $result = $this->model->getProducto($producto['id']);
+                    // Redondear precio a 2 decimales para que coincida con lo que el user ve en pantalla
+                    // (ej: listaCarrito puede traer "7.5304" pero el input muestra "7.53" via number_format).
+                    $precio2 = round((float)($producto['precio'] ?? 0), 2);
                     $data['id'] = $result['id'];
                     $data['nombre'] = $producto['nombre'];
-                    $data['precio'] = $producto['precio'];
+                    $data['precio'] = number_format($precio2, 2, '.', '');
                     $data['cantidad'] = $producto['cantidad'];
                     $data['iva_producto'] = $result['iva'];
-                    // Usar el precio editado por el user (no el de BD que puede estar desactualizado)
-                    $subTotal = (float)$producto['precio'] * (float)$producto['cantidad'];
-                    // Aplicar IVA si el producto es gravado
+                    $subTotal = $precio2 * (float)$producto['cantidad'];
                     $ivaProd = (float)($result['iva'] ?? 0);
                     $subTotalConIva = ($ivaProd > 0)
                         ? round($subTotal * (1 + $ivaProd / 100), 2)
