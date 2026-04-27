@@ -93,16 +93,24 @@ class Creditos extends Controller
             $c['venta']       = $c['id_venta']        ? 'N°: ' . $c['id_venta']        : '';
             $c['electronica'] = $c['id_electronica']  ? 'N°: ' . $c['id_electronica']  : '';
             $c['ordenventa']  = $c['id_orden_venta']  ? 'N°: ' . $c['id_orden_venta']  : '';
-            $c['acciones'] = '<a class="btn btn-danger" href="' . BASE_URL . 'creditos/reporte/' . $c['id'] . '" target="_blank"><i class="fas fa-file-pdf"></i></a>';
+            $c['acciones'] = '<a class="btn btn-danger btn-sm" href="' . BASE_URL . 'creditos/reporte/' . $c['id'] . '" target="_blank" title="Reporte PDF"><i class="fas fa-file-pdf"></i></a>';
+            $tieneTelefono = !empty($c['telefono_cliente']);
             if ($c['estado'] == 1) {
                 $c['estado'] = '<span class="badge bg-warning">PENDIENTE</span>';
                 $c['ch'] = '<div class="btn-group-toggle" data-toggle="buttons"><label class="btn btn-primary"><input type="checkbox" id="' . $c['id'] . '" value="' . $restante . '"></label></div>';
+                $c['notif'] = $tieneTelefono
+                    ? '<button class="btn btn-warning btn-sm btn-notif-credito" data-id="' . $c['id'] . '" data-tipo="pendiente" title="Notificar pago pendiente al cliente"><i class="bx bx-bell"></i> Pendiente</button>'
+                    : '<span class="text-muted small" title="Sin telefono">—</span>';
             } else if ($c['estado'] == 2) {
                 $c['estado'] = '<span class="badge bg-danger">ANULADO</span>';
                 $c['ch'] = '';
+                $c['notif'] = '';
             } else {
                 $c['estado'] = '<span class="badge bg-success">COMPLETADO</span>';
                 $c['ch'] = '';
+                $c['notif'] = $tieneTelefono
+                    ? '<button class="btn btn-success btn-sm btn-notif-credito" data-id="' . $c['id'] . '" data-tipo="pagado" title="Confirmar al cliente que su pago fue recibido"><i class="bx bx-check-circle"></i> Pagado</button>'
+                    : '<span class="text-muted small" title="Sin telefono">—</span>';
             }
         }
 
