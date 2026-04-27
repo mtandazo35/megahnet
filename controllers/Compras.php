@@ -33,16 +33,17 @@ class Compras extends Controller
         $array['productos'] = array();
         $total = 0;
         if (!empty($datos['productos'])) {
-            // Sanitizar serie: aceptar solo digitos para evitar loop infinito en generate_numbers
-            $indice = (int) preg_replace('/[^0-9]/', '', (string)($datos['serie'] ?? ''));
+            // Aceptar la serie tal como la escribe el user (preserva formato 011-003-000013849).
+            // Solo se trimea y se valida que contenga al menos un digito.
+            $serie = trim((string)($datos['serie'] ?? ''));
+            $tieneDigitos = preg_match('/[0-9]/', $serie) === 1;
             $fecha = date('Y-m-d');
             $hora = date('H:i:s');
-            $serie = ($indice > 0) ? trim($this->generate_numbers($indice, 1, 8)[0]) : '';
             $idproveedor = $datos['idProveedor'];
             if (empty($idproveedor)) {
                 $res = array('msg' => 'EL PROVEEDOR ES REQUERIDO', 'type' => 'warning');
-            } else if (empty($serie)) {
-                $res = array('msg' => 'LA SERIE DEBE CONTENER NUMEROS', 'type' => 'warning');
+            } else if ($serie === '' || !$tieneDigitos) {
+                $res = array('msg' => 'LA SERIE ES REQUERIDA Y DEBE CONTENER AL MENOS UN NUMERO', 'type' => 'warning');
             } else {
                 $saldo = $this->caja->getDatos();
                 foreach ($datos['productos'] as $producto) {
