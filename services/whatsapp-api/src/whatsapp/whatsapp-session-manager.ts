@@ -45,6 +45,18 @@ export class WhatsappSessionManager {
   private logger = new Logger(WhatsappSessionManager.name)
 
   /**
+   * Notifica al websocket externo si HOST_WEBSOCKET esta configurado.
+   * Fire-and-forget: nunca arroja, asi un fallo del WS no rompe el flow
+   * de conexion (que es lo que dejaba connectionStates desincronizado).
+   */
+  private notifyWebsocket(path: string, body?: any) {
+    const host = process.env.HOST_WEBSOCKET
+    if (!host) return
+    axios.post(`${host}${path}`, body)
+      .catch(err => this.logger.warn(`websocket notify falló (${path}): ${err?.message}`))
+  }
+
+  /**
    * Carga dinámica de Baileys (ESM)
    */
   private async loadBaileys() {
@@ -96,7 +108,7 @@ export class WhatsappSessionManager {
 
   async _startSessionLogic(sessionId: string) {
     if ((this.qrAttempts.get(sessionId) ?? 0) >= this.MAX_QR_RETRIES) {
-      await axios.post(`${process.env.HOST_WEBSOCKET}/api/enviar-notificacion/${sessionId}/qr`, { qrImage: 'timeout' })
+      this.notifyWebsocket(`/api/enviar-notificacion/${sessionId}/qr`, { qrImage: 'timeout' })
       this.logger.warn(`[${sessionId}] ❌ No se iniciará sesión por límite de QR`)
       return
     }
@@ -141,7 +153,7 @@ export class WhatsappSessionManager {
 
             this.sessions.delete(sessionId)
             this.connectionStates.set(sessionId, 'close')
-            await axios.post(`${process.env.HOST_WEBSOCKET}/api/enviar-notificacion/${sessionId}/qr`, { qrImage: 'timeout' })
+            this.notifyWebsocket(`/api/enviar-notificacion/${sessionId}/qr`, { qrImage: 'timeout' })
             return
           }
 
@@ -150,10 +162,8 @@ export class WhatsappSessionManager {
           this.qrCodes.set(sessionId, qrImage)
           this.connectionStates.set(sessionId, 'connecting')
 
-          await Promise.all([
-            this.sessionRepository.update({ sessionId }, { status: 'connecting' }),
-            axios.post(`${process.env.HOST_WEBSOCKET}/api/enviar-notificacion/${sessionId}/qr`, { qrImage })
-          ])
+          await this.sessionRepository.update({ sessionId }, { status: 'connecting' })
+          this.notifyWebsocket(`/api/enviar-notificacion/${sessionId}/qr`, { qrImage })
         }
 
         if (connection === 'close') {
@@ -180,25 +190,29 @@ export class WhatsappSessionManager {
         }
 
         if (connection === 'open') {
+          // ORDEN IMPORTANTE: setear estado en memoria PRIMERO para que
+          // la sesion quede usable aunque BD/websocket fallen.
+          this.qrCodes.set(sessionId, null)
+          this.connectionStates.set(sessionId, 'open')
+          this.qrAttempts.delete(sessionId)
+
           const meJid = sock?.authState?.creds?.me?.id
 
           if (meJid) {
             const bare = meJid.split('@')[0]
             const number = bare.includes(':') ? bare.split(':')[0] : bare
 
-            await Promise.all([
-              this.sessionRepository.update({ sessionId }, { status: 'open', numberSession: number }),
-              axios.post(`${process.env.HOST_WEBSOCKET}/api/enviar-notificacion/${sessionId}/open`)
-            ])
+            try {
+              await this.sessionRepository.update({ sessionId }, { status: 'open', numberSession: number })
+            } catch (e) {
+              this.logger.warn(`[${sessionId}] no se pudo actualizar BD: ${e?.message}`)
+            }
 
+            this.notifyWebsocket(`/api/enviar-notificacion/${sessionId}/open`)
             this.logger.log(`[${sessionId}] ✅ Conectado - Número: ${number}`)
           } else {
             this.logger.warn(`[${sessionId}] ⚠️ Conectado pero no se pudo obtener el número`)
           }
-
-          this.qrCodes.set(sessionId, null)
-          this.connectionStates.set(sessionId, 'open')
-          this.qrAttempts.delete(sessionId)
         }
       } catch (error) {
         this.logger.error(`[${sessionId}] Error en connection.update:`, error)
