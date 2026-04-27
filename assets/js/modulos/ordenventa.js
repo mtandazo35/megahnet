@@ -346,3 +346,82 @@ function envioCorreoOrdenVenta(idOrden) {
     const loader = document.getElementById('loader');
     loader.style.display = 'none';
   }
+
+// ============================================================================
+// Override robusto del btn eliminar para Orden Venta:
+//   - Si el id no esta en listaCarrito, intenta eliminar por nombre (de la fila)
+//   - Re-renderiza la tabla manualmente si el backend deja un huerfano
+// ============================================================================
+(function(){
+    if (typeof tblNuevaOrdenVenta === 'undefined' || !tblNuevaOrdenVenta) return;
+    // Delegacion sobre el tbody — funciona aunque btnEliminarProducto re-bind cambie
+    tblNuevaOrdenVenta.addEventListener('click', function(e){
+        var btn = e.target.closest('.btnEliminar');
+        if (!btn) return;
+        var id = btn.getAttribute('data-id');
+        var row = btn.closest('tr');
+        var nombreInput = row ? row.querySelector('.inputDescripcion') : null;
+        var nombre = nombreInput ? nombreInput.value : '';
+        // Eliminar de listaCarrito por id O por nombre (cubre entradas sin id valido)
+        if (typeof listaCarrito !== 'undefined' && Array.isArray(listaCarrito)) {
+            var antes = listaCarrito.length;
+            listaCarrito = listaCarrito.filter(function(it){
+                if (String(it.id) === String(id)) return false;
+                if (nombre && it.nombre === nombre) return false;
+                return true;
+            });
+            if (listaCarrito.length !== antes) {
+                if (typeof nombreKey !== 'undefined') {
+                    localStorage.setItem(nombreKey, JSON.stringify(listaCarrito));
+                }
+                // Quitar la fila visualmente al instante (no esperar al backend)
+                if (row) row.remove();
+                // Re-render para recalcular totales
+                if (typeof mostrarProducto === 'function') {
+                    setTimeout(mostrarProducto, 50);
+                }
+            }
+        }
+    });
+})();
+
+// Boton "Limpiar carrito" — wipe total del listaCarrito
+(function(){
+    function inject() {
+        if (document.getElementById('btnLimpiarCarrito')) return;
+        var hint = document.getElementById('carritoVacioHint');
+        var tbl = document.getElementById('tblNuevaOrdenVenta');
+        if (!tbl) return;
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = 'btnLimpiarCarrito';
+        btn.className = 'btn btn-sm btn-outline-danger ms-2';
+        btn.style.cssText = 'margin-top:.5rem;';
+        btn.innerHTML = '<i class="bx bx-trash me-1"></i>Limpiar carrito';
+        btn.addEventListener('click', function(){
+            if (typeof Swal === 'undefined' || !confirm) return;
+            Swal.fire({
+                icon: 'warning', title: 'Limpiar carrito?',
+                text: 'Se quitaran todos los productos del carrito actual.',
+                showCancelButton: true, confirmButtonText: 'Si, limpiar', cancelButtonText: 'Cancelar'
+            }).then(function(r){
+                if (!r.isConfirmed) return;
+                if (typeof nombreKey !== 'undefined') {
+                    localStorage.removeItem(nombreKey);
+                }
+                if (typeof listaCarrito !== 'undefined') listaCarrito = [];
+                if (typeof tblNuevaOrdenVenta !== 'undefined') tblNuevaOrdenVenta.innerHTML = '';
+                var tp = document.getElementById('totalPagar');
+                if (tp) tp.value = '0.00';
+                Swal.fire({icon:'success', title:'Carrito vacio', timer:1000, showConfirmButton:false});
+            });
+        });
+        // Insertar despues de la tabla
+        if (tbl.parentNode) tbl.parentNode.appendChild(btn);
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', inject);
+    } else {
+        inject();
+    }
+})();
