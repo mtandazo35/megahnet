@@ -53,6 +53,13 @@ class Admin extends Controller
         $data['cobradoPorMes']  = $this->model->getCobradoPorMes(date('Y'));
         $data['pendienteCobro'] = $this->model->getPendienteCobro();
 
+        // Desglose financiero del mes (tablero ampliado)
+        $yyyymm = date('Y-m');
+        $data['cobrosDesglose']      = $this->model->getCobrosDesglose($yyyymm);
+        $data['retencionesDesglose'] = $this->model->getRetencionesDesglose($yyyymm);
+        $data['facturacionDesglose'] = $this->model->getFacturacionDesglose($yyyymm);
+        $data['egresosDesglose']     = $this->model->getEgresosDesglose($yyyymm);
+
         $this->views->getView('admin', 'home', $data);
     }
     //datos de la empresa

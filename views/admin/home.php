@@ -137,6 +137,153 @@
   </div>
 </div>
 
+
+<!-- ============ RESUMEN FINANCIERO DEL MES (desglose) ============ -->
+<?php
+  $cobrosD     = $data['cobrosDesglose']      ?? [];
+  $retencionesD = $data['retencionesDesglose'] ?? [];
+  $facturacionD = $data['facturacionDesglose'] ?? [];
+  $egresosD    = $data['egresosDesglose']     ?? [];
+
+  $totFacturacion = array_sum(array_column($facturacionD, 'total'));
+  $totCobros      = array_sum(array_column($cobrosD,      'total'));
+  $totRetenciones = array_sum(array_column($retencionesD, 'total'));
+  $totEgresos     = array_sum(array_column($egresosD,     'total'));
+  $saldoNeto      = $totCobros - $totEgresos;
+
+  $fmt = function($v){ return '$' . number_format((float)$v, 2); };
+?>
+<div id="resumen-financiero" class="card radius-10 mb-4">
+  <div class="card-body">
+    <h6 class="mb-3 fw-semibold"><i class="bx bx-pie-chart-alt-2 text-primary me-1"></i>Resumen financiero de <?= $mesActual ?></h6>
+
+    <div class="row g-3">
+      <!-- Facturacion emitida -->
+      <div class="col-lg-6 col-xl-3">
+        <div class="border rounded p-3 h-100" style="background:#f0f9ff;">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="text-primary"><i class="bx bx-receipt me-1"></i>Facturación</strong>
+            <span class="badge bg-primary"><?= $fmt($totFacturacion) ?></span>
+          </div>
+          <?php if (!empty($facturacionD)): ?>
+            <table class="table table-sm mb-0" style="font-size:.78rem;">
+              <tbody>
+              <?php foreach ($facturacionD as $f): ?>
+                <tr>
+                  <td class="text-muted"><?= htmlspecialchars($f['origen'] . ' (' . $f['metodo'] . ')') ?></td>
+                  <td class="text-end fw-semibold"><?= $fmt($f['total']) ?></td>
+                </tr>
+              <?php endforeach; ?>
+              </tbody>
+            </table>
+          <?php else: ?>
+            <small class="text-muted">Sin facturación este mes</small>
+          <?php endif; ?>
+        </div>
+      </div>
+
+      <!-- Cobros recibidos -->
+      <div class="col-lg-6 col-xl-3">
+        <div class="border rounded p-3 h-100" style="background:#f0fdf4;">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="text-success"><i class="bx bx-dollar-circle me-1"></i>Cobros</strong>
+            <span class="badge bg-success"><?= $fmt($totCobros) ?></span>
+          </div>
+          <?php if (!empty($cobrosD)): ?>
+            <table class="table table-sm mb-0" style="font-size:.78rem;">
+              <tbody>
+              <?php foreach ($cobrosD as $c): ?>
+                <tr>
+                  <td class="text-muted"><?= htmlspecialchars($c['tipo_pago']) ?>
+                    <small class="text-muted">(<?= (int)$c['cantidad'] ?>)</small>
+                  </td>
+                  <td class="text-end fw-semibold"><?= $fmt($c['total']) ?></td>
+                </tr>
+              <?php endforeach; ?>
+              </tbody>
+            </table>
+          <?php else: ?>
+            <small class="text-muted">Sin cobros este mes</small>
+          <?php endif; ?>
+        </div>
+      </div>
+
+      <!-- Retenciones -->
+      <div class="col-lg-6 col-xl-3">
+        <div class="border rounded p-3 h-100" style="background:#fefce8;">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="text-warning"><i class="bx bx-shield-alt-2 me-1"></i>Retenciones</strong>
+            <span class="badge bg-warning text-dark"><?= $fmt($totRetenciones) ?></span>
+          </div>
+          <?php if (!empty($retencionesD)): ?>
+            <table class="table table-sm mb-0" style="font-size:.78rem;">
+              <tbody>
+              <?php foreach ($retencionesD as $r): ?>
+                <tr>
+                  <td class="text-muted"><?= htmlspecialchars($r['tipo']) ?>
+                    <small class="text-muted">(<?= (int)$r['cantidad'] ?> ret.)</small>
+                  </td>
+                  <td class="text-end fw-semibold"><?= $fmt($r['total']) ?></td>
+                </tr>
+              <?php endforeach; ?>
+              <tr class="border-top">
+                <td class="text-muted"><small>Base imponible total</small></td>
+                <td class="text-end"><small><?= $fmt(array_sum(array_column($retencionesD, 'base'))) ?></small></td>
+              </tr>
+              </tbody>
+            </table>
+          <?php else: ?>
+            <small class="text-muted">Sin retenciones este mes</small>
+          <?php endif; ?>
+        </div>
+      </div>
+
+      <!-- Egresos -->
+      <div class="col-lg-6 col-xl-3">
+        <div class="border rounded p-3 h-100" style="background:#fef2f2;">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="text-danger"><i class="bx bx-trending-down me-1"></i>Egresos</strong>
+            <span class="badge bg-danger"><?= $fmt($totEgresos) ?></span>
+          </div>
+          <?php if (!empty($egresosD)): ?>
+            <table class="table table-sm mb-0" style="font-size:.78rem;">
+              <tbody>
+              <?php foreach ($egresosD as $e): ?>
+                <tr>
+                  <td class="text-muted"><?= htmlspecialchars($e['concepto']) ?>
+                    <small class="text-muted">(<?= (int)$e['cantidad'] ?>)</small>
+                  </td>
+                  <td class="text-end fw-semibold"><?= $fmt($e['total']) ?></td>
+                </tr>
+              <?php endforeach; ?>
+              </tbody>
+            </table>
+          <?php else: ?>
+            <small class="text-muted">Sin egresos este mes</small>
+          <?php endif; ?>
+        </div>
+      </div>
+    </div>
+
+    <!-- SALDO NETO -->
+    <div class="row g-3 mt-2">
+      <div class="col-12">
+        <div class="d-flex flex-wrap align-items-center justify-content-between p-3 rounded" style="background: linear-gradient(90deg, #f1f5f9 0%, #fff 100%); border-left: 4px solid <?= $saldoNeto >= 0 ? '#10b981' : '#ef4444' ?>;">
+          <div>
+            <small class="text-muted d-block">Saldo neto del mes (cobros − egresos)</small>
+            <h4 class="mb-0 <?= $saldoNeto >= 0 ? 'text-success' : 'text-danger' ?> fw-bold"><?= $fmt($saldoNeto) ?></h4>
+          </div>
+          <div class="text-end" style="font-size:.82rem;">
+            <div><span class="text-muted">Cobros:</span> <span class="text-success fw-semibold"><?= $fmt($totCobros) ?></span></div>
+            <div><span class="text-muted">Egresos:</span> <span class="text-danger fw-semibold"><?= $fmt($totEgresos) ?></span></div>
+            <div><span class="text-muted">Retenciones emitidas:</span> <span class="text-warning fw-semibold"><?= $fmt($totRetenciones) ?></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ============ Graficos + Alertas ============ -->
 <div class="row g-3 mb-4">
   <div class="col-lg-7">

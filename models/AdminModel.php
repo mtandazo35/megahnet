@@ -276,5 +276,91 @@ HAVING COUNT(*) > $estado) AS subconsulta";
         return $this->select($sql);
     }
 
+
+    /**
+     * Cobros del mes desglosados por tipo de pago (efectivo, transferencia, deposito, etc).
+     */
+    public function getCobrosDesglose($yyyymm)
+    {
+        $sql = "SELECT
+                    COALESCE(NULLIF(TRIM(tipo_pago), ''), 'SIN ESPECIFICAR') AS tipo_pago,
+                    COUNT(*)            AS cantidad,
+                    COALESCE(SUM(abono), 0) AS total
+                FROM abonos
+                WHERE LEFT(fecha, 7) = ?
+                GROUP BY tipo_pago
+                ORDER BY total DESC";
+        return $this->selectAll($sql, [$yyyymm]);
+    }
+
+    /**
+     * Retenciones emitidas en el mes, agrupadas por tipo de impuesto (IVA, Renta).
+     * Solo cuenta retenciones con encabezado activo (retencion.estado = 1).
+     */
+    public function getRetencionesDesglose($yyyymm)
+    {
+        $sql = "SELECT
+                    rd.tipo_impuesto AS tipo,
+                    COUNT(DISTINCT r.id) AS cantidad,
+                    COALESCE(SUM(rd.valor_retenido), 0) AS total,
+                    COALESCE(SUM(rd.base_imponible), 0) AS base
+                FROM retencion_detalle rd
+                INNER JOIN retencion r ON r.id = rd.id_retencion
+                WHERE LEFT(r.fecha, 7) = ? AND r.estado = 1
+                GROUP BY rd.tipo_impuesto
+                ORDER BY total DESC";
+        return $this->selectAll($sql, [$yyyymm]);
+    }
+
+    /**
+     * Facturacion del mes desglosada por origen (ventas, electronicas, orden_venta) y metodo (contado/credito).
+     */
+    public function getFacturacionDesglose($yyyymm)
+    {
+        $sql = "SELECT 'Ventas Fisicas' AS origen, metodo,
+                    COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
+                FROM ventas
+                WHERE LEFT(fecha, 7) = ? AND estado = 1
+                GROUP BY metodo
+
+                UNION ALL
+
+                SELECT 'Facturacion Electronica' AS origen, metodo,
+                    COUNT(*) AS cantidad, COALESCE(SUM(totalfactura), 0) AS total
+                FROM datos_cabecera_electronica
+                WHERE LEFT(fecha, 7) = ? AND estado = 1
+                GROUP BY metodo
+
+                UNION ALL
+
+                SELECT 'Orden de Venta' AS origen, metodo,
+                    COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
+                FROM orden_venta
+                WHERE LEFT(fecha, 7) = ? AND estado = 1
+                GROUP BY metodo
+
+                ORDER BY total DESC";
+        return $this->selectAll($sql, [$yyyymm, $yyyymm, $yyyymm]);
+    }
+
+    /**
+     * Egresos del mes: compras + gastos.
+     */
+    public function getEgresosDesglose($yyyymm)
+    {
+        $sql = "SELECT 'Compras a proveedores' AS concepto,
+                    COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
+                FROM compras
+                WHERE LEFT(fecha, 7) = ? AND estado = 1
+
+                UNION ALL
+
+                SELECT 'Gastos operativos' AS concepto,
+                    COUNT(*) AS cantidad, COALESCE(SUM(monto), 0) AS total
+                FROM gastos
+                WHERE LEFT(fecha, 7) = ?";
+        return $this->selectAll($sql, [$yyyymm, $yyyymm]);
+    }
+
 }
 ?>
