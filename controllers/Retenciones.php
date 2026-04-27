@@ -446,6 +446,53 @@ class Retenciones extends Controller
         die();
     }
 
+
+    public function buscarPorComprobante()
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        if (empty($_SESSION['id_usuario'])) { echo json_encode(['ok'=>false]); exit; }
+        $raw   = trim((string)($_GET['numero'] ?? ''));
+        $clean = preg_replace('/[^0-9]/', '', $raw);
+        if ($clean === '') { echo json_encode(['ok'=>false, 'msg'=>'sin numero']); exit; }
+
+        // Variantes para tolerar formatos: 15 digitos (3+3+9), solo secuencial 9, solo 8, ltrim ceros
+        $variants = [$raw, $clean];
+        if (strlen($clean) >= 9) {
+            $variants[] = substr($clean, -9);
+            $variants[] = ltrim(substr($clean, -9), '0');
+        }
+        if (strlen($clean) >= 8) $variants[] = substr($clean, -8);
+        $variants = array_values(array_unique(array_filter($variants, function($v){ return $v !== ''; })));
+
+        $compra = $this->model->buscarCompraPorComprobante($variants, $clean);
+        if (empty($compra)) { echo json_encode(['ok'=>false, 'msg'=>'compra no encontrada']); exit; }
+
+        // Recalcular total real desde JSON de productos (campo total en BD puede estar mal)
+        $totalReal = 0;
+        $prods = !empty($compra['productos']) ? json_decode($compra['productos'], true) : [];
+        if (is_array($prods)) {
+            foreach ($prods as $p) {
+                $totalReal += ((float)($p['cantidad'] ?? 0)) * ((float)($p['precio'] ?? 0));
+            }
+        }
+        if ($totalReal <= 0) $totalReal = (float)$compra['total'];
+
+        echo json_encode([
+            'ok'              => true,
+            'idProveedor'     => $compra['id_proveedor'],
+            'nombreProveedor' => $compra['nombre'],
+            'telefono'        => $compra['telefono'] ?? '',
+            'correo'          => $compra['correo'] ?? '',
+            'direccion'       => $compra['direccion'] ?? '',
+            'ruc'             => $compra['ruc'] ?? '',
+            'fechaEmision'    => date('d/m/Y', strtotime($compra['fecha'])),
+            'totalFactura'    => number_format($totalReal, 2, '.', ''),
+            'serieCompra'     => $compra['serie'],
+            'idCompra'        => $compra['id'],
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     function generate_numbers($start, $count, $digits)
     {
         $result = array();

@@ -352,3 +352,50 @@ function mostrarRetenciones() {
       </tr>`;*/
   }
 }
+
+// ============================================================================
+// Autocompletar datos al escribir el numero de comprobante (busca en compras)
+// ============================================================================
+(function(){
+    var inp = document.getElementById('numeroComprobante');
+    if (!inp) return;
+    var timer = null;
+    function autocompletarPorComprobante() {
+        var raw = inp.value.trim();
+        var clean = raw.replace(/[^0-9]/g, '');
+        if (clean.length < 6) return;
+        fetch(base_url + 'retenciones/buscarPorComprobante?numero=' + encodeURIComponent(raw), {credentials:'same-origin'})
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                if (!d || !d.ok) return;
+                var idProv = document.getElementById('idProveedor');
+                var inpProv = document.getElementById('buscarProveedor');
+                var inpTel  = document.getElementById('telefonoProveedor');
+                var inpCor  = document.getElementById('correoProveedor');
+                var inpFec  = document.getElementById('fechaEmisionFactura');
+                var inpTot  = document.getElementById('totalFactura');
+                var spErr   = document.getElementById('errorProveedor');
+                if (idProv)  idProv.value  = d.idProveedor;
+                if (inpProv) inpProv.value = d.nombreProveedor;
+                if (inpTel)  inpTel.value  = d.telefono || '';
+                if (inpCor)  inpCor.value  = d.correo   || '';
+                if (inpFec && !inpFec.value) inpFec.value = d.fechaEmision;
+                if (inpTot)  { inpTot.value = d.totalFactura; inpTot.dispatchEvent(new Event('keyup')); }
+                if (spErr)   spErr.textContent = '';
+                if (typeof mostrarRetenciones === 'function') mostrarRetenciones();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon:'success', title:'Datos cargados',
+                        text:'Compra ' + d.serieCompra + ' - ' + d.nombreProveedor,
+                        timer:1500, showConfirmButton:false
+                    });
+                }
+            })
+            .catch(function(){});
+    }
+    inp.addEventListener('input', function(){
+        clearTimeout(timer);
+        timer = setTimeout(autocompletarPorComprobante, 400);
+    });
+    inp.addEventListener('blur', autocompletarPorComprobante);
+})();
