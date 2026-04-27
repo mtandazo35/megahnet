@@ -474,6 +474,7 @@ function mostrarOrdenCreadaModal(idOrden) {
                 message: 'Adjunto orden de venta #' + idOrden,
                 mediaUrl: pdfUrlAbs,
                 mediaPath: 'facturaelectronica/public/archivos/facturables/Facturable_' + idOrden + '.pdf',
+                regenerateOrdenId: idOrden,
                 fileName: 'OrdenVenta_' + idOrden + '.pdf'
             })
         }).then(function(r){ return r.text(); }).then(function(text){

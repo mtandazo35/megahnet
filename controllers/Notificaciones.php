@@ -531,6 +531,19 @@ class Notificaciones extends Controller
         // Caso: tenemos archivo local -> upload multipart al WA API
         if (!empty($mediaLocalPath)) {
             header('Content-Type: application/json; charset=utf-8');
+            // Regenerar el PDF antes de enviar si lo piden (asegura template actualizado)
+            if (!empty($bodyIn['regenerateOrdenId'])) {
+                try {
+                    if (!class_exists('OrdenVenta')) {
+                        $ovFile = ROOT_PATH . '/controllers/OrdenVenta.php';
+                        if (file_exists($ovFile)) require_once $ovFile;
+                    }
+                    if (class_exists('OrdenVenta')) {
+                        $ov = new OrdenVenta();
+                        $ov->ordenVentaPDF('facturas', (int)$bodyIn['regenerateOrdenId']);
+                    }
+                } catch (\Throwable $e) { error_log('regenerate PDF falla: ' . $e->getMessage()); }
+            }
             $tel = preg_replace('/[^0-9]/', '', (string)($bodyIn['number'] ?? ''));
             if (empty($tel)) { echo json_encode(['ok'=>false,'msg'=>'Sin numero']); exit; }
             if (strlen($tel) === 10 && $tel[0] === '0') $tel = '593' . substr($tel, 1);
