@@ -182,10 +182,13 @@
   #modalProbarNotif .modal-title,
   #modalQrWa .modal-title { font-size: 1rem; }
 
-  /* SweetAlert2 mas compacto pero con icono respirando */
-  .swal2-popup { width: 380px !important; padding: 1.75rem 1.25rem 1.25rem !important; font-size: .9rem !important; border-radius: 14px !important; }
-  .swal2-title { font-size: 1.1rem !important; padding: .25rem 0 .25rem !important; margin-top: .35rem !important; }
-  .swal2-html-container { font-size: .85rem !important; margin: .25rem 0 0 !important; }
+  /* SweetAlert2: solo ajustes del popup; el icono usa tamano nativo */
+  .swal2-popup { width: 380px !important; padding: 1.5rem 1.25rem !important; font-size: .9rem !important; border-radius: 14px !important; }
+  .swal2-title { font-size: 1.15rem !important; padding: .25rem 0 .35rem !important; margin-top: .25rem !important; }
+  .swal2-html-container { font-size: .85rem !important; margin: .25rem 0 0 !important; line-height: 1.45 !important; }
+  .swal2-actions { margin-top: 1.1rem !important; gap: .5rem !important; }
+  .swal2-styled { padding: .45rem 1.4rem !important; font-size: .88rem !important; border-radius: 8px !important; font-weight: 500 !important; }
+  .swal2-styled.swal2-confirm { box-shadow: 0 2px 6px rgba(99,102,241,.3) !important; }
   /* Icon: tamano 64px con su SVG escalado proporcionalmente */
   .swal2-icon { width: 64px !important; height: 64px !important; margin: .25rem auto .75rem !important; border-width: 3px !important; }
   .swal2-icon.swal2-success [class^=swal2-success-line] { height: 4px !important; }
