@@ -746,5 +746,33 @@ function whatsappLinkPlantilla($key, $telefono, array $vars = [], $codpais = '59
 }
 }
 
+if (!function_exists('moduloActivo')) {
+function moduloActivo($key)
+{
+    static $cache = null;
+    if ($cache === null) {
+        $f = (defined('ROOT_PATH') ? ROOT_PATH : (__DIR__ . '/..')) . '/storage/modulos.json';
+        $cache = [];
+        if (file_exists($f)) {
+            $j = @json_decode(@file_get_contents($f), true);
+            if (is_array($j) && isset($j['ocultos']) && is_array($j['ocultos'])) {
+                $cache = array_flip($j['ocultos']);
+            }
+        }
+    }
+    return !isset($cache[$key]);
+}
+}
+
+if (!function_exists('modulosOcultos')) {
+function modulosOcultos()
+{
+    $f = (defined('ROOT_PATH') ? ROOT_PATH : (__DIR__ . '/..')) . '/storage/modulos.json';
+    if (!file_exists($f)) return [];
+    $j = @json_decode(@file_get_contents($f), true);
+    return (is_array($j) && isset($j['ocultos']) && is_array($j['ocultos'])) ? $j['ocultos'] : [];
+}
+}
+
 
 ?>

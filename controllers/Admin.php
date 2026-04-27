@@ -728,6 +728,32 @@ class Admin extends Controller
         die();
     }
 
+    public function modulos()
+    {
+        if (empty($_SESSION['id_usuario']) || ($_SESSION['rol'] ?? 0) != 1) {
+            header('Location: ' . BASE_URL); exit;
+        }
+        $data['title']    = 'Modulos del sistema';
+        $data['ocultos']  = function_exists('modulosOcultos') ? modulosOcultos() : [];
+        $this->views->getView('admin', 'modulos', $data);
+    }
+
+    public function guardarModulos()
+    {
+        header('Content-Type: application/json');
+        if (empty($_SESSION['id_usuario']) || ($_SESSION['rol'] ?? 0) != 1) {
+            echo json_encode(['ok'=>false,'msg'=>'No autorizado']); exit;
+        }
+        $body = json_decode(file_get_contents('php://input'), true);
+        $ocultos = (is_array($body) && isset($body['ocultos']) && is_array($body['ocultos']))
+            ? array_values(array_unique(array_filter(array_map('strval', $body['ocultos']))))
+            : [];
+        $dir = ROOT_PATH . '/storage';
+        if (!is_dir($dir)) @mkdir($dir, 0755, true);
+        @file_put_contents($dir . '/modulos.json', json_encode(['ocultos' => $ocultos], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        echo json_encode(['ok'=>true, 'count'=>count($ocultos)]);
+    }
+
     public function permisos()
     {
         $data['title'] = 'Permisos';
