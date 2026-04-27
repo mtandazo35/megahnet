@@ -53,11 +53,19 @@
                             <div class="card-body">
                                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                                     <h6 class="mb-0 fw-semibold"><i class="bx bx-search-alt me-1 text-primary"></i>Buscar productos</h6>
-                                    <div class="btn-group" role="group" aria-label="Tipo de busqueda">
-                                        <input type="radio" class="btn-check" id="barcode" name="buscarProducto" checked>
-                                        <label class="btn btn-outline-primary btn-sm" for="barcode"><i class="bx bx-barcode me-1"></i>Servicios</label>
-                                        <input type="radio" class="btn-check" id="nombre" name="buscarProducto">
-                                        <label class="btn btn-outline-primary btn-sm" for="nombre"><i class="bx bx-list-ul me-1"></i>Productos</label>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <div class="btn-group" role="group" aria-label="Tipo de busqueda">
+                                            <input type="radio" class="btn-check" id="barcode" name="buscarProducto" checked>
+                                            <label class="btn btn-outline-primary btn-sm" for="barcode"><i class="bx bx-barcode me-1"></i>Servicios</label>
+                                            <input type="radio" class="btn-check" id="nombre" name="buscarProducto">
+                                            <label class="btn btn-outline-primary btn-sm" for="nombre"><i class="bx bx-list-ul me-1"></i>Productos</label>
+                                        </div>
+                                        <button type="button" id="btnLimpiarCarrito"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Vaciar todo el carrito"
+                                            style="border-radius:8px;padding:.3rem .7rem;font-weight:500;">
+                                            <i class="bx bx-trash"></i>
+                                        </button>
                                     </div>
                                 </div>
 

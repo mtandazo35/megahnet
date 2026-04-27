@@ -385,43 +385,34 @@ function envioCorreoOrdenVenta(idOrden) {
     });
 })();
 
-// Boton "Limpiar carrito" — wipe total del listaCarrito
+// Boton "Limpiar carrito" — wipe total del listaCarrito (boton ahora en HTML del view)
 (function(){
-    function inject() {
-        if (document.getElementById('btnLimpiarCarrito')) return;
-        var hint = document.getElementById('carritoVacioHint');
-        var tbl = document.getElementById('tblNuevaOrdenVenta');
-        if (!tbl) return;
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.id = 'btnLimpiarCarrito';
-        btn.className = 'btn btn-sm btn-outline-danger ms-2';
-        btn.style.cssText = 'margin-top:.5rem;';
-        btn.innerHTML = '<i class="bx bx-trash me-1"></i>Limpiar carrito';
+    function bind() {
+        var btn = document.getElementById('btnLimpiarCarrito');
+        if (!btn || btn.dataset.bound === '1') return;
+        btn.dataset.bound = '1';
         btn.addEventListener('click', function(){
-            if (typeof Swal === 'undefined' || !confirm) return;
+            var vacio = (typeof listaCarrito === 'undefined' || !Array.isArray(listaCarrito) || listaCarrito.length === 0);
+            if (vacio) {
+                Swal.fire({icon:'info', title:'Carrito vacio', text:'No hay nada que limpiar.', timer:1500, showConfirmButton:false});
+                return;
+            }
             Swal.fire({
                 icon: 'warning', title: 'Limpiar carrito?',
-                text: 'Se quitaran todos los productos del carrito actual.',
-                showCancelButton: true, confirmButtonText: 'Si, limpiar', cancelButtonText: 'Cancelar'
+                text: 'Se quitaran todos los productos.',
+                showCancelButton: true, confirmButtonText: 'Si, limpiar', cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc3545'
             }).then(function(r){
                 if (!r.isConfirmed) return;
-                if (typeof nombreKey !== 'undefined') {
-                    localStorage.removeItem(nombreKey);
-                }
+                if (typeof nombreKey !== 'undefined') localStorage.removeItem(nombreKey);
                 if (typeof listaCarrito !== 'undefined') listaCarrito = [];
                 if (typeof tblNuevaOrdenVenta !== 'undefined') tblNuevaOrdenVenta.innerHTML = '';
                 var tp = document.getElementById('totalPagar');
                 if (tp) tp.value = '0.00';
-                Swal.fire({icon:'success', title:'Carrito vacio', timer:1000, showConfirmButton:false});
+                Swal.fire({icon:'success', title:'Carrito vaciado', timer:1200, showConfirmButton:false});
             });
         });
-        // Insertar despues de la tabla
-        if (tbl.parentNode) tbl.parentNode.appendChild(btn);
     }
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', inject);
-    } else {
-        inject();
-    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
+    else bind();
 })();
