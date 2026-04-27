@@ -73,6 +73,8 @@ function editarZonas(idZonas) {
             const res = JSON.parse(this.responseText);
             id.value = res.id;
             nombre.value = res.descripcion;
+            var sm = document.getElementById('id_mikrotik');
+            if (sm) sm.value = (res.id_mikrotik !== null && res.id_mikrotik !== undefined) ? res.id_mikrotik : '';
             btnAccion.textContent = 'Actualizar';
             if (typeof window.abrirModalZona === 'function') { window.abrirModalZona(); }
             else { firstTab.show(); }

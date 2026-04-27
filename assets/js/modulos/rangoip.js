@@ -171,6 +171,8 @@ function editarRangoIp(idip) {
             final.value = res.final;
             finalDisplay.value = res.final;
             zona.value = res.id_zona;
+            var sm = document.getElementById('id_mikrotik');
+            if (sm) sm.value = (res.id_mikrotik !== null && res.id_mikrotik !== undefined) ? res.id_mikrotik : '';
             const inferred = inferCidr(res.red, res.final);
             redCidr.value = inferred || (res.red + '   final: ' + res.final);
             rangoInfo.textContent = inferred ? 'Mascara inferida' : 'Sin CIDR exacto (rango legacy)';
