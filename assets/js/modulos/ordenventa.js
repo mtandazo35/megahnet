@@ -463,12 +463,9 @@ function mostrarOrdenCreadaModal(idOrden) {
         btnWa.disabled = true;
         var prev = btnWa.innerHTML;
         btnWa.innerHTML = '<i class="bx bx-loader bx-spin me-1"></i>Enviando...';
-        // Usar /notificaciones/waEnviarPrueba con caption + URL del PDF (CF lo conoce)
-        var pdfUrlAbs = window.location.origin + base_url.replace(window.location.origin, '') + 'ordenventa/reporte/factura/' + idOrden;
-        // Ajuste: si base_url ya tiene origin, no duplicar
-        if (base_url.indexOf('://') !== -1) {
-            pdfUrlAbs = base_url + 'ordenventa/reporte/factura/' + idOrden;
-        }
+        // URL al PDF GUARDADO (publico, sin auth) — el endpoint reporte/factura
+        // requiere sesion PHP que la WA API no tiene.
+        var pdfUrlAbs = base_url + 'facturaelectronica/public/archivos/facturables/Facturable_' + idOrden + '.pdf';
         fetch(base_url + 'notificaciones/waEnviarPrueba', {
             method: 'POST', credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
@@ -486,7 +483,8 @@ function mostrarOrdenCreadaModal(idOrden) {
                 throw e;
             }
             if (d.ok) {
-                Swal.fire({icon:'success', title:'PDF enviado', text:'WhatsApp a +' + tel, timer:2200, showConfirmButton:false});
+                var telN = tel; if (telN.length===10 && telN[0]==='0') telN='593'+telN.substring(1); else if (telN.length===9) telN='593'+telN;
+                Swal.fire({icon:'success', title:'PDF enviado', text:'WhatsApp a +' + telN, timer:2200, showConfirmButton:false});
             } else {
                 Swal.fire({icon:'error', title:'No se pudo enviar', text: d.msg || ('HTTP ' + (d.http || '?'))});
             }
