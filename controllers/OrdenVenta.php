@@ -151,13 +151,18 @@ class OrdenVenta extends Controller
         }
 
     }
-        // Tareas pesadas (PDF + email) en background via exec — funciona con mod_php
+        // Tareas pesadas (PDF + email + WhatsApp opcional) en background via exec
         if (!empty($deferOrdenId)) {
             $bgScript = ROOT_PATH . '/cron/orden_post_create.php';
             if (file_exists($bgScript)) {
+                // Detectar si el cliente pidio enviar por WhatsApp
+                $rawIn = file_get_contents('php://input');
+                $payloadIn = json_decode($rawIn, true) ?: [];
+                $enviarWa = !empty($payloadIn['enviar_wa']) ? '1' : '0';
                 $php = '/usr/bin/php';
                 $cmd = $php . ' ' . escapeshellarg($bgScript)
                      . ' ' . (int)$deferOrdenId
+                     . ' ' . $enviarWa
                      . ' > /dev/null 2>&1 &';
                 @exec($cmd);
             }

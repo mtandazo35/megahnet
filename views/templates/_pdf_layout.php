@@ -147,25 +147,23 @@ $_emp          = isset($empresa) && is_array($empresa) ? $empresa : [];
 <div class="header">
     <table>
         <tr>
-            <td class="logo-cell">
-                <?php if ($_logoSrc !== '') { ?><img src="<?php echo $_logoSrc; ?>" alt=""><?php } ?>
+            <td class="logo-cell" style="width:160px;padding-right:14px;">
+                <?php if ($_logoSrc !== '') { ?>
+                    <img src="<?php echo $_logoSrc; ?>" alt="" style="max-width:150px;max-height:90px;display:block;">
+                <?php } ?>
             </td>
             <td class="empresa-cell">
-                <p class="nombre"><?php echo $_e(strtoupper($_emp['nombre'] ?? '')); ?></p>
                 <?php if (!empty($_emp['razon_social'])) { ?>
-                    <p><?php echo $_e($_emp['razon_social']); ?></p>
+                    <p class="nombre" style="font-size:15px;font-weight:bold;color:#111827;margin:0 0 4px 0;"><?php echo $_e(strtoupper($_emp['razon_social'])); ?></p>
                 <?php } ?>
                 <?php if (!empty($_emp['direccion'])) { ?>
-                    <p><?php echo $_e($_emp['direccion']); ?></p>
+                    <p style="margin:1px 0;font-size:11px;"><?php echo $_e($_emp['direccion']); ?></p>
                 <?php } ?>
                 <?php if (!empty($_emp['ruc'])) { ?>
-                    <p>RUC: <?php echo $_e($_emp['ruc']); ?></p>
+                    <p style="margin:1px 0;font-size:11px;"><strong>RUC:</strong> <?php echo $_e($_emp['ruc']); ?></p>
                 <?php } ?>
                 <?php if (!empty($_emp['telefono'])) { ?>
-                    <p>Teléfono: <?php echo $_e($_emp['telefono']); ?></p>
-                <?php } ?>
-                <?php if (!empty($_emp['correo'])) { ?>
-                    <p>Email: <?php echo $_e($_emp['correo']); ?></p>
+                    <p style="margin:1px 0;font-size:11px;"><strong>Teléfono:</strong> <?php echo $_e($_emp['telefono']); ?></p>
                 <?php } ?>
             </td>
             <td class="doc-cell">
