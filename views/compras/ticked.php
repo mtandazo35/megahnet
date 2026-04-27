@@ -58,7 +58,7 @@ global $factura, $result_detalle, $result_config, $anulada;
                     <td><?php echo $producto['cantidad']; ?></td>
                     <td><?php echo $producto['nombre']; ?></td>
                    
-                    <?php if ($producto['iva_producto'] == 12) {
+                    <?php if ($producto['iva_producto'] == $iva) {
                                 $pv = round($producto['precio'] / (CONCAT.$iva), 4);
                                 $pt = round($pv * $producto['cantidad'], 4);
 
@@ -74,7 +74,7 @@ global $factura, $result_detalle, $result_config, $anulada;
             <?php }
 
 
-                            if ($producto['iva_producto'] == 12) {
+                            if ($producto['iva_producto'] == $iva) {
                                 $precio_total = round(($pv / (CONCAT.$iva)), 4);
                                 $subtotaldocev = round($subtotaldocev + $pt, 4);
                                 //print_r($subtotaldoce); exit;

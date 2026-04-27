@@ -22,7 +22,7 @@ $subtotalcero  = 0;
 foreach ($productos as $row) {
     $cant = (float)($row['cantidad'] ?? 0);
     $pre  = (float)($row['precio'] ?? 0);
-    if ((int)($row['iva_producto'] ?? 0) == 12) {
+    if ((int)($row['iva_producto'] ?? 0) == (int)$iva) {
         $pv = round($pre / (float)($ivaFactor . $iva), 4);
         $pt = round($pv * $cant, 4);
         $subtotaldocev += $pt;
@@ -72,7 +72,7 @@ ob_start();
         <?php foreach ($productos as $row) {
             $cant = (float)($row['cantidad'] ?? 0);
             $pre  = (float)($row['precio'] ?? 0);
-            if ((int)($row['iva_producto'] ?? 0) == 12) {
+            if ((int)($row['iva_producto'] ?? 0) == (int)$iva) {
                 $pv = round($pre / (float)($ivaFactor . $iva), 4);
                 $pt = round($pv * $cant, 4);
             } else {
