@@ -47,7 +47,6 @@
         try {
             var t = sessionStorage.getItem(KEY);
             if (t !== null) scroller.scrollTop = parseInt(t, 10) || 0;
-            document.documentElement.classList.remove("mhn-pre");
         } catch(e){}
 
         // 2) Listener throttled — guarda mientras el usuario scrollea

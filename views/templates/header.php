@@ -58,8 +58,6 @@
 </head>
 
 <body>
-<script>(function(){try{if(sessionStorage.getItem("mhn_sidebar_scroll_v2")!==null){var d=document.documentElement;d.classList.add("mhn-pre");setTimeout(function(){d.classList.remove("mhn-pre");},200);}}catch(e){}})();</script>
-<style>html.mhn-pre .sidebar-wrapper{visibility:hidden!important;}</style>
     <!--wrapper-->
     <div class="wrapper">
         <!--sidebar wrapper -->
