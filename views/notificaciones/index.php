@@ -1,4 +1,5 @@
 <?php include_once 'views/templates/header.php'; ?>
+<script>window.__plantillasInitial = <?php echo json_encode($data['plantillas'] ?? new stdClass(), JSON_UNESCAPED_UNICODE); ?>;</script>
 
 <div class="notif-header d-flex justify-content-between align-items-center mb-3">
   <div class="d-flex align-items-center">

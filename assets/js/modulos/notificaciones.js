@@ -256,7 +256,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ====== PLANTILLAS ======
   let plantillaActual = null;
-  let plantillasCache = {};
+  let plantillasCache = (typeof window !== 'undefined' && window.__plantillasInitial) ? window.__plantillasInitial : {};
 
   function cargarPlantillas() {
     fetch(base_url + 'notificaciones/listarPlantillas')
