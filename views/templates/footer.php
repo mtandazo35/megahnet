@@ -26,6 +26,15 @@
 // frames ~500ms). Apenas existe, restauramos scrollTop y enganchamos
 // el listener de save.
 (function(){
+    // Forzar init de SimpleBar AHORA, sin esperar a DOMContentLoaded.
+    // Sin esto, datatables/ckeditor bloquean el thread y SimpleBar no
+    // wrappea hasta despues de varios cientos de ms.
+    try {
+        var w = document.querySelector('.sidebar-wrapper');
+        if (w && typeof SimpleBar !== 'undefined' && !w.querySelector('.simplebar-content-wrapper')) {
+            new SimpleBar(w);
+        }
+    } catch(e){}
     var KEY = 'mhn_sidebar_scroll_v2';
     var saveTimer = null;
     var attached = false;
@@ -38,6 +47,7 @@
         try {
             var t = sessionStorage.getItem(KEY);
             if (t !== null) scroller.scrollTop = parseInt(t, 10) || 0;
+            document.documentElement.classList.remove("mhn-pre");
         } catch(e){}
 
         // 2) Listener throttled — guarda mientras el usuario scrollea
@@ -52,20 +62,31 @@
         window.addEventListener('pagehide', saveNow);
     }
 
-    function poll(remaining) {
+    function tryAttach() {
         var scroller = document.querySelector('.sidebar-wrapper .simplebar-content-wrapper');
-        if (scroller) { attach(scroller); return; }
-        if (remaining > 0) {
-            requestAnimationFrame(function(){ poll(remaining - 1); });
-        }
+        if (scroller) { attach(scroller); return true; }
+        return false;
     }
 
-    // Arrancar el polling en DOMContentLoaded (cuando SimpleBar ya disparó
-    // su init) y dar hasta ~30 frames para que termine de wrappear.
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function(){ poll(30); });
-    } else {
-        poll(30);
+    // Intento inmediato (por si SimpleBar ya wrappeo)
+    if (!tryAttach()) {
+        var wrapper = document.querySelector('.sidebar-wrapper');
+        if (wrapper && typeof MutationObserver !== 'undefined') {
+            // MutationObserver: dispara en microtask en cuanto SimpleBar
+            // inserta .simplebar-content-wrapper. Mucho mas rapido que rAF.
+            var obs = new MutationObserver(function(){
+                if (tryAttach()) obs.disconnect();
+            });
+            obs.observe(wrapper, { childList: true, subtree: true });
+            // Fallback rAF por si MO no dispara (edge cases)
+            var deadline = performance.now() + 1500;
+            (function tick(){
+                if (attached) return;
+                if (tryAttach()) { obs.disconnect(); return; }
+                if (performance.now() < deadline) requestAnimationFrame(tick);
+                else obs.disconnect();
+            })();
+        }
     }
 })();
 </script>
@@ -162,3 +183,68 @@
 </body>
 
 </html>
+<script>
+// PJAX piloto: intercepta clicks en a[data-pjax] y reemplaza solo
+// .page-content sin recargar header/sidebar. Re-ejecuta scripts y
+// actualiza titulo + URL via pushState.
+(function(){
+    if (typeof window.fetch === "undefined") return;
+    var TARGET = ".page-content";
+
+    function execScripts(container){
+        // Re-ejecuta <script> inline y carga <script src> del nuevo HTML
+        var scripts = container.querySelectorAll("script");
+        scripts.forEach(function(old){
+            var s = document.createElement("script");
+            for (var i=0; i<old.attributes.length; i++) {
+                s.setAttribute(old.attributes[i].name, old.attributes[i].value);
+            }
+            s.text = old.textContent;
+            old.parentNode.replaceChild(s, old);
+        });
+    }
+
+    function load(url, push){
+        var current = document.querySelector(TARGET);
+        if (!current) { window.location.href = url; return; }
+        document.body.style.cursor = "progress";
+        fetch(url, { headers: { "X-PJAX": "1" }, credentials: "same-origin" })
+            .then(function(r){ if (!r.ok) throw new Error("HTTP "+r.status); return r.text(); })
+            .then(function(html){
+                var doc = new DOMParser().parseFromString(html, "text/html");
+                var fresh = doc.querySelector(TARGET);
+                if (!fresh) { window.location.href = url; return; }
+                // Reemplaza contenido
+                current.innerHTML = fresh.innerHTML;
+                // Actualiza titulo
+                if (doc.title) document.title = doc.title;
+                // Re-ejecuta scripts del contenido nuevo
+                execScripts(current);
+                // pushState
+                if (push) history.pushState({pjax:true}, "", url);
+                // Marca activo en sidebar
+                document.querySelectorAll("#menu li.mm-active").forEach(function(li){ li.classList.remove("mm-active"); });
+                document.querySelectorAll(".mhn-clicked").forEach(function(el){ el.classList.remove("mhn-clicked"); });
+                document.documentElement.classList.remove("mhn-navigating");
+                document.querySelectorAll("#menu a").forEach(function(a){
+                    if (a.href === url) a.parentElement.classList.add("mm-active");
+                });
+                window.scrollTo(0, 0);
+            })
+            .catch(function(e){ console.warn("PJAX fallo, recargando:", e); window.location.href = url; })
+            .finally(function(){ document.body.style.cursor = ""; });
+    }
+
+    document.addEventListener("click", function(e){
+        var a = e.target.closest && e.target.closest("a[data-pjax]");
+        if (!a) return;
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+        e.preventDefault(); a.blur();
+        load(a.href, true);
+    });
+
+    window.addEventListener("popstate", function(e){
+        if (e.state && e.state.pjax) load(location.href, false);
+    });
+})();
+</script>

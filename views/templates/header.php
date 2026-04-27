@@ -27,14 +27,14 @@
     <link href="<?php echo BASE_URL; ?>assets/css/bootstrap.min.css" rel="stylesheet">
     <link href="<?php echo BASE_URL; ?>assets/css/bootstrap-extended.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    <link href="<?php echo BASE_URL; ?>assets/css/app.css" rel="stylesheet">
+    <link href="<?php echo BASE_URL; ?>assets/css/app.css?v=<?php echo asset_v('assets/css/app.css'); ?>" rel="stylesheet">
     <link href="<?php echo BASE_URL; ?>assets/css/icons.css" rel="stylesheet">
     <link href="<?php echo BASE_URL; ?>assets/css/modern-theme.css?v=<?php echo asset_v('assets/css/modern-theme.css'); ?>" rel="stylesheet" />
     <link href="<?php echo BASE_URL; ?>assets/css/form-sections.css?v=<?php echo asset_v('assets/css/form-sections.css'); ?>" rel="stylesheet" />
     <!-- Theme Style CSS -->
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/dark-theme.css" />
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/semi-dark.css" />
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/header-colors.css" />
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/css/header-colors.css?v=<?php echo asset_v('assets/css/header-colors.css'); ?>" />
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/DataTables/datatables.min.css" />
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>assets/plugins/fullcalendar/css/main.min.css" />
 
@@ -58,6 +58,8 @@
 </head>
 
 <body>
+<script>(function(){try{if(sessionStorage.getItem("mhn_sidebar_scroll_v2")!==null){var d=document.documentElement;d.classList.add("mhn-pre");setTimeout(function(){d.classList.remove("mhn-pre");},200);}}catch(e){}})();</script>
+<style>html.mhn-pre .sidebar-wrapper{visibility:hidden!important;}</style>
     <!--wrapper-->
     <div class="wrapper">
         <!--sidebar wrapper -->
@@ -81,7 +83,7 @@
                 <li class="menu-label">Principal</li>
 
                 <li data-url="admin">
-                    <a href="<?php echo BASE_URL . 'admin'; ?>">
+                    <a href="<?php echo BASE_URL . 'admin'; ?>" data-pjax="1">
                         <div class="parent-icon"><i class="bx bx-home-alt"></i></div>
                         <div class="menu-title">Tablero</div>
                     </a>

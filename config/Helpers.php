@@ -273,14 +273,14 @@ function respaldoBD_restaurar_sin_predump($nombre) {
 }
 
 /**
- * Lista de tablas "borrables" (datos transaccionales).
- * NO incluye: usuarios (preserva admin actual), configuracion, tipo_pago,
- * tipo_comprobante, codigos_retencion (catálogos del sistema/SRI).
+ * Lista de tablas "borrables" (datos transaccionales + configuracion empresa).
+ * NO incluye: tipo_pago, tipo_comprobante, codigos_retencion (catalogos SRI).
+ * usuarios: borrable pero la funcion preserva administradores (rol=1).
  */
 function respaldoBD_tablasBorrables() {
     return [
         'abonos','acceso','apartados','cajas','casos','categorias','clientes',
-        'compras','contratos','cotizaciones','creditos','datos_cabecera_electronica',
+        'compras','configuracion','contratos','cotizaciones','creditos','datos_cabecera_electronica',
         'detalle_apartado','detalle_factura_electronica','estado_corte','gastos',
         'grupo_trabajo','inventario','ip','ip_anuladas','medidas','mes_facturar',
         'mikrotik','nota_credito_cabecera','nota_credito_detalle','orden_venta',
@@ -336,10 +336,12 @@ function respaldoBD_borrarDatos($tablas, $userKeep) {
         foreach ($aProcesar as $t) {
             try {
                 if ($t === 'usuarios') {
-                    // Caso especial: NO truncar — borrar todos excepto el admin actual
-                    $stmt = $pdo->prepare("DELETE FROM `usuarios` WHERE id != ?");
+                    // Caso especial: NO truncar — preservar TODOS los administradores
+                    // (rol=1) ademas del usuario actual logueado. Asi un wipe nunca
+                    // deja el sistema sin admins, aunque el operador no sea el unico.
+                    $stmt = $pdo->prepare("DELETE FROM `usuarios` WHERE id != ? AND rol != 1");
                     $stmt->execute([$userKeep]);
-                    $eliminadas[] = 'usuarios (excepto admin actual)';
+                    $eliminadas[] = 'usuarios (excepto administradores)';
                 } else {
                     $pdo->exec("TRUNCATE TABLE `$t`");
                     $eliminadas[] = $t;

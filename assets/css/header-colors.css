@@ -117,7 +117,7 @@ html.color-sidebar .simplebar-scrollbar:before {
 	background: rgba(255, 255, 255, .4)
 }
 
-html.color-sidebar .sidebar-wrapper .metismenu .mm-active>a, html.color-sidebar .sidebar-wrapper .metismenu a:active, html.color-sidebar .sidebar-wrapper .metismenu a:focus, html.color-sidebar .sidebar-wrapper .metismenu a:hover {
+html.color-sidebar .sidebar-wrapper .metismenu .mm-active>a, html.color-sidebar .sidebar-wrapper .metismenu a:hover {
     color: #fff;
     text-decoration: none;
     background: rgb(255 255 255 / 18%);

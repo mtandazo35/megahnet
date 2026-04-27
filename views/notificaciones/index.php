@@ -33,99 +33,230 @@
 
   <!-- CONFIGURACION -->
   <div class="tab-pane fade" id="nav-config">
-    <div class="card"><div class="card-body">
-      <h6 class="text-primary fw-semibold mb-3"><i class="bx bx-cog me-1"></i>Personalizacion</h6>
-      <div class="mb-3">
-        <label class="form-label fw-semibold">Destinatarios (uno por linea, o separados por coma)</label>
-        <textarea id="cfg_destinatarios" class="form-control" rows="3" placeholder="admin@empresa.com&#10;contador@empresa.com"><?php echo htmlspecialchars(implode("\n", $data['config']['destinatarios'] ?? [])); ?></textarea>
-        <small class="text-muted">Si esta vacio, se usa el correo de USER_SMTP por defecto.</small>
-      </div>
-      <div class="mb-3">
-        <label class="form-label fw-semibold">Rate-limit (segundos entre alertas del mismo tipo)</label>
-        <input type="number" id="cfg_rate_limit" class="form-control" min="0" max="86400" value="<?php echo (int)($data['config']['rate_limit_segs'] ?? 3600); ?>">
-        <small class="text-muted">Por defecto 3600 (1 hora). Pone 0 para desactivar el rate-limit.</small>
-      </div>
 
+    <style>
+      .cfg-section .card-header { background: transparent; border-bottom: 1px solid #eef0f4; padding: .9rem 1.25rem; }
+      .cfg-section .card-header h6 { margin: 0; font-size: .95rem; letter-spacing: .2px; }
+      .cfg-section .card-header .small { color: #6b7280; font-weight: 400; font-size: .78rem; }
+      .cfg-section .card-body { padding: 1.25rem; }
+      .cfg-help { font-size: .78rem; color: #6b7280; margin-top: .25rem; display: block; }
+      .cfg-tipo-item {
+        display: flex; align-items: center; gap: .65rem;
+        padding: .55rem .75rem; border: 1px solid #eef0f4; border-radius: 10px;
+        background: #fafbfd; transition: background .15s, border-color .15s;
+      }
+      .cfg-tipo-item:hover { background: #f3f5fa; border-color: #dbe2ee; }
+      .cfg-tipo-item .form-check { margin: 0; padding-left: 0; min-width: 0; flex: 1; }
+      .cfg-tipo-item .form-check-input { float: none; margin: 0; }
+      .cfg-tipo-item .form-check-label { font-size: .85rem; color: #1f2937; cursor: pointer; user-select: none; }
+      .cfg-tipo-item .tipo-icon { font-size: 18px; color: #6b7280; line-height: 1; }
+      .cfg-tipo-item.is-on { border-color: #bfdbfe; background: #eff6ff; }
+      .cfg-tipo-item.is-on .tipo-icon { color: #2563eb; }
+      .cfg-tipo-item.is-on .form-check-label { color: #1e40af; font-weight: 500; }
+      .cfg-savebar {
+        position: sticky; bottom: 0; z-index: 5;
+        background: linear-gradient(180deg, rgba(248,250,253,0) 0%, #f8fafd 40%);
+        padding: 1rem 0 .25rem; margin-top: 1rem;
+      }
+    </style>
+
+    <div class="card cfg-section mb-3">
+      <div class="card-header d-flex align-items-center">
+        <i class="bx bx-envelope text-primary me-2" style="font-size:18px;"></i>
+        <h6 class="fw-semibold text-dark">Entrega <span class="small ms-1">— a quien y con que frecuencia</span></h6>
       </div>
-      <div class="mb-3">
-        <label class="form-label fw-semibold">Tipos de alerta activos</label>
-        <div class="row" id="cfg_tipos">
-          <?php foreach (($data['config']['tipos_activos'] ?? []) as $tipo => $on): ?>
-            <div class="col-md-6 mb-1">
-              <div class="form-check form-switch">
-                <input class="form-check-input cfg-tipo" type="checkbox" data-tipo="<?php echo htmlspecialchars($tipo); ?>" <?php echo $on ? 'checked' : ''; ?>>
-                <label class="form-check-label"><?php echo htmlspecialchars($tipo); ?></label>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-lg-7">
+            <label class="form-label fw-semibold mb-1" for="cfg_destinatarios">Destinatarios</label>
+            <textarea id="cfg_destinatarios" class="form-control" rows="4" placeholder="admin@empresa.com&#10;contador@empresa.com"><?php echo htmlspecialchars(implode("\n", $data['config']['destinatarios'] ?? [])); ?></textarea>
+            <small class="cfg-help">Uno por linea o separados por coma. Si esta vacio se usa <code>USER_SMTP</code> por defecto.</small>
+          </div>
+          <div class="col-lg-5">
+            <label class="form-label fw-semibold mb-1" for="cfg_rate_limit">Rate-limit (segundos)</label>
+            <div class="input-group">
+              <input type="number" id="cfg_rate_limit" class="form-control" min="0" max="86400" value="<?php echo (int)($data['config']['rate_limit_segs'] ?? 3600); ?>">
+              <span class="input-group-text">seg</span>
+            </div>
+            <small class="cfg-help">Pausa minima entre alertas del mismo tipo. <b>3600</b> = 1 hora. <b>0</b> = sin limite.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card cfg-section">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+          <i class="bx bx-bell text-primary me-2" style="font-size:18px;"></i>
+          <h6 class="fw-semibold text-dark">Tipos de alerta <span class="small ms-1">— activa o desactiva cada categoria</span></h6>
+        </div>
+        <div class="d-flex gap-1">
+          <button type="button" class="btn btn-sm btn-light border" id="cfgTiposAll"><i class="bx bx-check-double"></i> Todos</button>
+          <button type="button" class="btn btn-sm btn-light border" id="cfgTiposNone"><i class="bx bx-x"></i> Ninguno</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row g-2" id="cfg_tipos">
+          <?php
+          $iconMap = [
+              'VENCIDA' => 'bx-error-circle',
+              'POR_VENCER' => 'bx-time-five',
+              'NO_EXISTE' => 'bx-file-blank',
+              'CLAVE' => 'bx-key',
+              'LECTURA' => 'bx-error',
+              'VIGENCIA' => 'bx-calendar-x',
+              'CORREO' => 'bx-envelope',
+              'CLIENTE' => 'bx-user',
+              'FIRMA' => 'bx-pen',
+          ];
+          foreach (($data['config']['tipos_activos'] ?? []) as $tipo => $on):
+              $icon = 'bx-bell';
+              foreach ($iconMap as $kw => $ic) { if (strpos($tipo, $kw) !== false) { $icon = $ic; break; } }
+              $id = 'cfgTipo_' . preg_replace('/[^a-z0-9]/i', '_', $tipo);
+          ?>
+            <div class="col-md-6 col-xl-4">
+              <div class="cfg-tipo-item <?php echo $on ? 'is-on' : ''; ?>">
+                <i class="bx <?php echo $icon; ?> tipo-icon"></i>
+                <div class="form-check form-switch">
+                  <input class="form-check-input cfg-tipo" type="checkbox" id="<?php echo $id; ?>" data-tipo="<?php echo htmlspecialchars($tipo); ?>" <?php echo $on ? 'checked' : ''; ?>>
+                  <label class="form-check-label" for="<?php echo $id; ?>"><?php echo htmlspecialchars($tipo); ?></label>
+                </div>
               </div>
             </div>
           <?php endforeach; ?>
         </div>
       </div>
-      <div class="text-end mt-3">
-        <button class="btn btn-primary" id="btnGuardarCfg" type="button"><i class="bx bx-save"></i> Guardar configuracion</button>
-      </div>
-    </div></div>
+    </div>
+
+    <div class="cfg-savebar d-flex justify-content-end">
+      <button class="btn btn-primary px-4" id="btnGuardarCfg" type="button">
+        <i class="bx bx-save me-1"></i> Guardar configuracion
+      </button>
+    </div>
+
+    <script>
+      document.addEventListener('change', function(e){
+        var t = e.target;
+        if (!t.classList || !t.classList.contains('cfg-tipo')) return;
+        var box = t.closest('.cfg-tipo-item');
+        if (box) box.classList.toggle('is-on', t.checked);
+      });
+      var allBtn = document.getElementById('cfgTiposAll');
+      var noneBtn = document.getElementById('cfgTiposNone');
+      function setAll(v){
+        document.querySelectorAll('#cfg_tipos .cfg-tipo').forEach(function(cb){
+          cb.checked = v;
+          var box = cb.closest('.cfg-tipo-item');
+          if (box) box.classList.toggle('is-on', v);
+        });
+      }
+      if (allBtn) allBtn.addEventListener('click', function(){ setAll(true); });
+      if (noneBtn) noneBtn.addEventListener('click', function(){ setAll(false); });
+    </script>
   </div>
 
   <!-- PLANTILLAS -->
   <div class="tab-pane fade" id="nav-plantillas">
-    <div class="row">
-      <div class="col-lg-3 mb-3">
-        <div class="card"><div class="card-body p-2">
-          <h6 class="fw-semibold mb-2 px-1">Plantillas</h6>
-          <div class="list-group" id="plantilla-lista">
-            <?php foreach ($data['plantillas'] as $key => $p): ?>
-              <button type="button" class="list-group-item list-group-item-action plantilla-item" data-key="<?php echo htmlspecialchars($key); ?>">
-                <div class="fw-semibold" style="font-size:0.85em;"><?php echo htmlspecialchars($key); ?></div>
-                <small class="text-muted"><?php echo htmlspecialchars($p['descripcion'] ?? ''); ?></small>
-              </button>
-            <?php endforeach; ?>
+
+    <style>
+      .pl-list .list-group-item { border: 0; border-bottom: 1px solid #f1f3f7; padding: .55rem .75rem; }
+      .pl-list .list-group-item:last-child { border-bottom: 0; }
+      .pl-list .list-group-item .pl-key { font-size: .8rem; font-weight: 600; color: #1f2937; }
+      .pl-list .list-group-item .pl-desc { font-size: .72rem; color: #6b7280; line-height: 1.25; }
+      .pl-list .list-group-item.active { background: #eff6ff !important; color: inherit !important; }
+      .pl-list .list-group-item.active .pl-key { color: #1e40af; }
+      .pl-card .card-body { padding: 1rem 1.15rem; }
+      .pl-card label.form-label { margin-bottom: .25rem; font-size: .82rem; }
+      .pl-card .form-control { font-size: .88rem; }
+      .pl-card #pl_cuerpo { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; line-height: 1.45; }
+      .pl-help { font-size: .75rem; color: #6b7280; margin-top: .25rem; display: block; }
+      .pl-actions { gap: .5rem; }
+      .pl-ph-card .card-body { padding: .75rem 1rem; }
+      .pl-ph-group { margin-bottom: .35rem; }
+      .pl-ph-title { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; margin-bottom: .25rem; }
+      .pl-ph-chip {
+        display: inline-block; font-family: ui-monospace, Menlo, monospace; font-size: .72rem;
+        background: #f3f5fa; color: #374151; border: 1px solid #e5e7eb; border-radius: 6px;
+        padding: .12rem .4rem; margin: .1rem .15rem .1rem 0; cursor: pointer; user-select: none;
+        transition: background .12s, border-color .12s, color .12s;
+      }
+      .pl-ph-chip:hover { background: #dbeafe; border-color: #93c5fd; color: #1d4ed8; }
+      .pl-ph-empresa { border-left: 3px solid #3b82f6; padding-left: .5rem; }
+      .pl-ph-cliente { border-left: 3px solid #10b981; padding-left: .5rem; }
+      .pl-ph-servicio { border-left: 3px solid #06b6d4; padding-left: .5rem; }
+    </style>
+
+    <div class="row g-3">
+      <div class="col-lg-3">
+        <div class="card pl-card">
+          <div class="card-body p-0">
+            <div class="px-3 pt-2 pb-1 d-flex align-items-center justify-content-between">
+              <h6 class="fw-semibold mb-0" style="font-size:.85rem;"><i class="bx bx-list-ul text-primary me-1"></i>Plantillas</h6>
+              <span class="badge bg-light text-muted border" style="font-size:.7rem;"><?php echo count($data['plantillas'] ?? []); ?></span>
+            </div>
+            <div class="list-group list-group-flush pl-list" id="plantilla-lista">
+              <?php foreach ($data['plantillas'] as $key => $p): ?>
+                <button type="button" class="list-group-item list-group-item-action plantilla-item" data-key="<?php echo htmlspecialchars($key); ?>">
+                  <div class="pl-key"><?php echo htmlspecialchars($key); ?></div>
+                  <div class="pl-desc"><?php echo htmlspecialchars($p['descripcion'] ?? ''); ?></div>
+                </button>
+              <?php endforeach; ?>
+            </div>
           </div>
-        </div></div>
+        </div>
       </div>
+
       <div class="col-lg-9">
-        <div class="card"><div class="card-body">
-          <h6 class="text-primary fw-semibold mb-3"><i class="bx bx-edit-alt me-1"></i>Editor de plantilla <small class="text-muted" id="plantilla-key">— selecciona una a la izquierda</small></h6>
-
-          <div class="mb-2">
-            <label class="form-label fw-semibold">Descripcion</label>
-            <input type="text" id="pl_descripcion" class="form-control" placeholder="Descripcion corta de cuando se usa esta plantilla">
-          </div>
-
-          <div class="mb-2">
-            <label class="form-label fw-semibold">Asunto / Titulo (opcional)</label>
-            <input type="text" id="pl_asunto" class="form-control" placeholder="Solo para emails. WhatsApp lo ignora.">
-          </div>
-
-          <div class="mb-2">
-            <label class="form-label fw-semibold">Cuerpo</label>
-            <textarea id="pl_cuerpo" class="form-control" rows="14" style="font-family:monospace;font-size:0.9em;"></textarea>
-            <small class="text-muted">Para WhatsApp, usa <code>*texto*</code> para negrita, <code>_texto_</code> para italica, <code>\n</code> es salto de linea.</small>
-          </div>
-
-          <div class="d-flex justify-content-between mt-3">
-            <button class="btn btn-outline-secondary" id="btnPreviewPlantilla" type="button"><i class="bx bx-show"></i> Previsualizar</button>
-            <button class="btn btn-primary" id="btnGuardarPlantilla" type="button"><i class="bx bx-save"></i> Guardar plantilla</button>
-          </div>
-
-          <div class="mt-4 pt-3 border-top">
-            <h6 class="fw-semibold mb-2">Placeholders disponibles</h6>
-            <div class="row" style="font-size:0.85em;">
-              <div class="col-md-6">
-                <div class="fw-semibold text-primary">Empresa</div>
-                <code>{{empresa_nombre}}</code> · <code>{{empresa_ruc}}</code> · <code>{{empresa_correo}}</code><br>
-                <code>{{empresa_telefono}}</code> · <code>{{empresa_direccion}}</code> · <code>{{empresa_razon_social}}</code><br>
-                <code>{{empresa_cuentas}}</code> · <code>{{empresa_titular_cuenta}}</code>
-              </div>
-              <div class="col-md-6">
-                <div class="fw-semibold text-success">Cliente</div>
-                <code>{{cliente_nombre}}</code> · <code>{{cliente_saldo}}</code> · <code>{{cliente_telefono}}</code><br>
-                <div class="fw-semibold text-info mt-2">Servicio / Caso</div>
-                <code>{{servicio_meses}}</code> · <code>{{caso_problema}}</code> · <code>{{caso_estado}}</code> · <code>{{caso_trabajo}}</code>
+        <div class="card pl-card mb-2">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <h6 class="text-primary fw-semibold mb-0"><i class="bx bx-edit-alt me-1"></i>Editor <small class="text-muted ms-1" id="plantilla-key">— selecciona una a la izquierda</small></h6>
+              <div class="d-flex pl-actions">
+                <button class="btn btn-sm btn-outline-secondary" id="btnPreviewPlantilla" type="button"><i class="bx bx-show me-1"></i>Previsualizar</button>
+                <button class="btn btn-sm btn-primary" id="btnGuardarPlantilla" type="button"><i class="bx bx-save me-1"></i>Guardar</button>
               </div>
             </div>
-            <small class="text-muted d-block mt-2">Click en cualquier placeholder para insertarlo en el cuerpo.</small>
+
+            <div class="row g-2">
+              <div class="col-md-5">
+                <label class="form-label fw-semibold" for="pl_descripcion">Descripcion</label>
+                <input type="text" id="pl_descripcion" class="form-control form-control-sm" placeholder="Cuando se usa esta plantilla">
+              </div>
+              <div class="col-md-7">
+                <label class="form-label fw-semibold" for="pl_asunto">Asunto / Titulo <span class="text-muted fw-normal">(solo email)</span></label>
+                <input type="text" id="pl_asunto" class="form-control form-control-sm" placeholder="WhatsApp lo ignora">
+              </div>
+            </div>
+
+            <div class="mt-2">
+              <label class="form-label fw-semibold" for="pl_cuerpo">Cuerpo</label>
+              <textarea id="pl_cuerpo" class="form-control" rows="9"></textarea>
+              <small class="pl-help">WhatsApp: <code>*texto*</code> negrita · <code>_texto_</code> italica · <code>\n</code> salto de linea.</small>
+            </div>
           </div>
-        </div></div>
+        </div>
+
+        <div class="card pl-ph-card">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <span class="fw-semibold" style="font-size:.82rem;"><i class="bx bx-code-curly text-primary me-1"></i>Placeholders <span class="text-muted fw-normal">— click para insertar</span></span>
+            </div>
+            <div class="row g-2">
+              <div class="col-md-5 pl-ph-group pl-ph-empresa">
+                <div class="pl-ph-title text-primary">Empresa</div>
+                <span class="pl-ph-chip">{{empresa_nombre}}</span><span class="pl-ph-chip">{{empresa_ruc}}</span><span class="pl-ph-chip">{{empresa_correo}}</span><span class="pl-ph-chip">{{empresa_telefono}}</span><span class="pl-ph-chip">{{empresa_direccion}}</span><span class="pl-ph-chip">{{empresa_razon_social}}</span><span class="pl-ph-chip">{{empresa_cuentas}}</span><span class="pl-ph-chip">{{empresa_titular_cuenta}}</span>
+              </div>
+              <div class="col-md-4 pl-ph-group pl-ph-cliente">
+                <div class="pl-ph-title text-success">Cliente</div>
+                <span class="pl-ph-chip">{{cliente_nombre}}</span><span class="pl-ph-chip">{{cliente_saldo}}</span><span class="pl-ph-chip">{{cliente_telefono}}</span>
+              </div>
+              <div class="col-md-3 pl-ph-group pl-ph-servicio">
+                <div class="pl-ph-title text-info">Servicio / Caso</div>
+                <span class="pl-ph-chip">{{servicio_meses}}</span><span class="pl-ph-chip">{{caso_problema}}</span><span class="pl-ph-chip">{{caso_estado}}</span><span class="pl-ph-chip">{{caso_trabajo}}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

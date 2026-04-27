@@ -8,7 +8,7 @@ class UsuariosModel extends Query
     public function getUsuarios($estado)
     {
         $sql = "SELECT u.id, CONCAT(u.nombre, ' ', u.apellido) AS nombres, u.correo, u.clave, u.telefono, u.direccion, u.rol,u.vinculo, gt.descripcion FROM usuarios u
-        INNER JOIN grupo_trabajo gt ON gt.id = u.id_grupo_trabajo
+        LEFT JOIN grupo_trabajo gt ON gt.id = u.id_grupo_trabajo
         WHERE u.estado = $estado";
         return $this->selectAll($sql);
     }

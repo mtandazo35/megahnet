@@ -219,8 +219,6 @@ a {
 }
 
 .sidebar-wrapper .metismenu .mm-active>a,
-.sidebar-wrapper .metismenu a:active,
-.sidebar-wrapper .metismenu a:focus,
 .sidebar-wrapper .metismenu a:hover {
 	color: #008cff;
 	text-decoration: none;
