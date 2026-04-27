@@ -68,10 +68,10 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: 'abonado' },
             { data: 'restante' },
             { data: 'estado' },
-            { data: 'notif' },
             { data: 'electronica' },
             { data: 'ordenventa' },
-            { data: 'acciones' }
+            { data: 'acciones' },
+            { data: 'notif' }
         ],
         language: {
             url: base_url + 'assets/js/espanol.json'
