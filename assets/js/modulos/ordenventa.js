@@ -191,6 +191,15 @@ document.addEventListener('DOMContentLoaded', function () {
 //cargar productos
 function mostrarProducto() {
     if (localStorage.getItem(nombreKey) != null) {
+        // Limpiar entradas legacy de tipoPago (TRANSFERENCIA, etc.) que se pudieron colar
+        var antes = listaCarrito.length;
+        listaCarrito = listaCarrito.filter(function(it){ return !it.codigoComprobante; });
+        if (listaCarrito.length !== antes) localStorage.setItem(nombreKey, JSON.stringify(listaCarrito));
+        if (listaCarrito.length === 0) {
+            tblNuevaOrdenVenta.innerHTML = '';
+            if (typeof totalPagar !== 'undefined' && totalPagar) totalPagar.value = '0.00';
+            return;
+        }
         const url = base_url + 'productos/mostrarDatos';
         //hacer una instancia del objeto XMLHttpRequest 
         const http = new XMLHttpRequest();
