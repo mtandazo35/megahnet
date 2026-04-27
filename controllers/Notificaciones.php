@@ -90,7 +90,7 @@ class Notificaciones extends Controller
             'tipos_activos'   => ['FIRMA_VENCIDA' => true, 'FIRMA_POR_VENCER' => true, 'FIRMA_NO_EXISTE' => true, 'FIRMA_CLAVE_INCORRECTA' => true, 'FIRMA_LECTURA_FALLO' => true, 'FIRMA_SIN_VIGENCIA' => true, 'FIRMA_SIN_CLAVE' => true, 'CLIENTE_SIN_CORREO' => true],
             'rate_limit_segs' => 3600,
             'wa_api' => [
-                'base_url'     => 'http://131.196.14.35:3005',
+                'base_url'     => 'http://127.0.0.1:3005',
                 'session_uuid' => '',
                 'session_id'   => '',
                 'session_name' => '',

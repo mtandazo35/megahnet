@@ -284,29 +284,35 @@
     <div class="row">
       <div class="col-lg-6 mb-3">
         <div class="card h-100">
-          <div class="card-body text-center">
-            <h6 class="text-success fw-semibold mb-3"><i class="bx bxl-whatsapp me-1"></i>Vincular WhatsApp de la empresa</h6>
-            <div id="wa-status-area" class="mb-3">
-              <span class="badge bg-secondary" id="wa-status-badge">Sin sesion</span>
-              <div class="mt-2"><small class="text-muted">Numero vinculado:</small> <span id="wa-phone" class="fw-semibold">-</span></div>
-              <div><small class="text-muted">Sesion:</small> <span id="wa-sess-name">-</span></div>
+          <div class="card-body">
+            <div class="text-center">
+              <h6 class="text-success fw-semibold mb-3"><i class="bx bxl-whatsapp me-1"></i>Vincular WhatsApp de la empresa</h6>
+              <div id="wa-status-area" class="mb-3">
+                <span class="badge bg-secondary" id="wa-status-badge">Sin sesion</span>
+                <div class="mt-2"><small class="text-muted">Numero vinculado:</small> <span id="wa-phone" class="fw-semibold">-</span></div>
+                <div><small class="text-muted">Sesion:</small> <span id="wa-sess-name">-</span></div>
+              </div>
+              <div class="d-flex gap-2 justify-content-center flex-wrap">
+                <button class="btn btn-success" id="btnVincularWa" type="button"><i class="bx bxl-whatsapp me-1"></i>Vincular WhatsApp</button>
+                <button class="btn btn-outline-danger d-none" id="btnCerrarWa" type="button"><i class="bx bx-power-off me-1"></i>Cerrar sesion</button>
+              </div>
+              <small class="text-muted d-block mt-3">Solo necesitas escanear UNA vez. La sesion queda guardada y se reconecta sola.</small>
             </div>
-            <div class="d-flex gap-2 justify-content-center flex-wrap">
-              <button class="btn btn-success" id="btnVincularWa" type="button"><i class="bx bxl-whatsapp me-1"></i>Vincular WhatsApp</button>
-              <button class="btn btn-outline-danger d-none" id="btnCerrarWa" type="button"><i class="bx bx-power-off me-1"></i>Cerrar sesion</button>
-            </div>
-            <small class="text-muted d-block mt-3">Solo necesitas escanear UNA vez. La sesion queda guardada y se reconecta sola.</small>
+            <hr>
+            <h6 class="text-info fw-semibold mb-2 mt-3"><i class="bx bx-paper-plane me-1"></i>Probar envio</h6>
+            <form autocomplete="off" onsubmit="return false;">
+              <div class="input-group input-group-sm">
+                <input type="text" id="wa_test_number" class="form-control" placeholder="0991234567" autocomplete="off">
+                <button class="btn btn-info" id="btnProbarWa" type="button">Enviar prueba</button>
+              </div>
+            </form>
+            <small class="text-muted">Envia "Prueba desde sistema" al numero indicado.</small>
           </div>
         </div>
       </div>
       <div class="col-lg-6 mb-3">
         <div class="card h-100"><div class="card-body">
           <h6 class="text-primary fw-semibold mb-2"><i class="bx bx-cog me-1"></i>Configuracion API</h6>
-          <div class="mb-2">
-            <label class="form-label fw-semibold mb-1">URL de la API</label>
-            <input type="text" id="wa_base_url" class="form-control form-control-sm" value="<?php echo htmlspecialchars($data['config']['wa_api']['base_url'] ?? ''); ?>" placeholder="http://131.196.14.35:3005">
-            <small class="text-muted">Endpoint del servicio NestJS+Baileys.</small>
-          </div>
           <div class="mb-2">
             <label class="form-label fw-semibold mb-1">Telefonos para alertas administrativas</label>
             <textarea id="wa_phones_alerta" class="form-control form-control-sm" rows="3" placeholder="0991234567&#10;0987654321"><?php echo htmlspecialchars(implode("\n", $data['config']['wa_api']['phones_alerta'] ?? [])); ?></textarea>
@@ -315,13 +321,6 @@
           <div class="text-end">
             <button class="btn btn-primary btn-sm" id="btnGuardarWaCfg" type="button"><i class="bx bx-save"></i> Guardar</button>
           </div>
-          <hr>
-          <h6 class="text-info fw-semibold mb-2 mt-3"><i class="bx bx-paper-plane me-1"></i>Probar envio</h6>
-          <div class="input-group input-group-sm">
-            <input type="text" id="wa_test_number" class="form-control" placeholder="0991234567">
-            <button class="btn btn-info" id="btnProbarWa" type="button">Enviar prueba</button>
-          </div>
-          <small class="text-muted">Envia "Prueba desde sistema" al numero indicado.</small>
         </div></div>
       </div>
     </div>

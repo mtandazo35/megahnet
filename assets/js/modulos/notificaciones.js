@@ -209,11 +209,10 @@ document.addEventListener('DOMContentLoaded', function () {
   const btnGuardarWaCfg = document.querySelector('#btnGuardarWaCfg');
   if (btnGuardarWaCfg) {
     btnGuardarWaCfg.addEventListener('click', function () {
-      const base_url_wa = document.querySelector('#wa_base_url').value.trim();
-      const phones      = document.querySelector('#wa_phones_alerta').value.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
+      const phones = document.querySelector('#wa_phones_alerta').value.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
       fetch(base_url + 'notificaciones/guardarConfig', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wa_api: { base_url: base_url_wa, phones_alerta: phones } })
+        body: JSON.stringify({ wa_api: { phones_alerta: phones } })
       }).then(r => r.json()).then(d => {
         Swal.fire({ icon: d.ok ? 'success' : 'error', title: d.ok ? 'Configuracion WhatsApp guardada' : 'Error', text: d.msg || '' });
       });
@@ -223,7 +222,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const btnProbarWa = document.querySelector('#btnProbarWa');
   if (btnProbarWa) {
     btnProbarWa.addEventListener('click', function () {
-      const tel = document.querySelector('#wa_test_number').value.trim();
+      const inputTel = document.querySelector('#wa_test_number');
+      const tel = inputTel.value.trim();
       if (!tel) { Swal.fire({icon:'warning', title:'Ingresa un numero'}); return; }
       this.disabled = true;
       fetch(base_url + 'notificaciones/waEnviarPrueba', {
@@ -233,10 +233,15 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(r => r.json())
         .then(d => {
           Swal.fire({ icon: d.ok ? 'success' : 'error', title: d.ok ? 'Mensaje enviado' : 'Fallo el envio', text: d.msg || (d.error || '') });
+          if (d.ok) inputTel.value = '';
         })
         .finally(() => { this.disabled = false; });
     });
   }
+
+  // Limpiar campo "Probar envio" al cargar la pagina (evita autocompletado del navegador)
+  const waTestNumberInput = document.querySelector('#wa_test_number');
+  if (waTestNumberInput) waTestNumberInput.value = '';
 
   // Estado inicial al cargar
   if (document.querySelector('#wa-status-badge')) {
