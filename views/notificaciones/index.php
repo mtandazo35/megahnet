@@ -383,8 +383,10 @@
         <div class="card pl-list-card">
           <div class="card-body">
             <div class="px-3 pt-2 pb-1 d-flex align-items-center justify-content-between" style="flex:0 0 auto;">
-              <h6 class="fw-semibold mb-0" style="font-size:.85rem;"><i class="bx bx-list-ul text-primary me-1"></i>Plantillas</h6>
-              <span class="badge bg-light text-muted border" style="font-size:.7rem;"><?php echo count($data['plantillas'] ?? []); ?></span>
+              <h6 class="fw-semibold mb-0" style="font-size:.85rem;"><i class="bx bx-list-ul text-primary me-1"></i>Plantillas <span class="badge bg-light text-muted border ms-1" id="plantillaCount" style="font-size:.7rem;"><?php echo count($data['plantillas'] ?? []); ?></span></h6>
+              <button type="button" class="btn btn-sm btn-primary" id="btnNuevaPlantilla" title="Nueva plantilla" style="padding:.15rem .5rem;font-size:.75rem;">
+                <i class="bx bx-plus"></i> Nueva
+              </button>
             </div>
             <div class="list-group list-group-flush pl-list" id="plantilla-lista">
               <?php foreach ($data['plantillas'] as $key => $p): ?>
@@ -790,6 +792,37 @@
   </div></div>
 </div>
 
+
+<!-- Modal Nueva plantilla -->
+<div class="modal fade" id="modalNuevaPlantilla" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bx bx-plus-circle me-1 text-primary"></i>Nueva plantilla</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold mb-1" for="np_key">Identificador (key)</label>
+          <input type="text" id="np_key" class="form-control" placeholder="ej. recordatorio_vencimiento" autocomplete="off">
+          <small class="text-muted">Solo letras, numeros y guion bajo. Se usa internamente para invocar la plantilla.</small>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold mb-1" for="np_desc">Descripcion</label>
+          <input type="text" id="np_desc" class="form-control" placeholder="Cuando se usa esta plantilla">
+        </div>
+        <div class="alert alert-light border" style="font-size:.8rem;">
+          <i class="bx bx-info-circle text-info me-1"></i>
+          Despues podras editar el asunto y el cuerpo en el editor.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" id="btnCrearPlantilla" type="button"><i class="bx bx-check me-1"></i>Crear</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Modal Probar notificacion -->
 <div class="modal fade" id="modalProbarNotif" tabindex="-1">
