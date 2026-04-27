@@ -321,16 +321,12 @@ $('#nav-completados-tab').on('shown.bs.tab', function () {
                         localStorage.removeItem('posTipoPago');
                         modalAbono.hide();
                         tblHistorial.ajax.reload();
-                        setTimeout(() => {
-                            const ruta = base_url + 'creditos/reporte/' + idCredito.value;
-                            const whatsapp = res.whatsapp;
-
-                           // window.open(ruta, '_blank');
-                            window.open(whatsapp, '_blank');
+                        // Preview WA antes de enviar via API
+                        if (res.idCredito && typeof previewYEnviarWaCredito === 'function') {
+                            previewYEnviarWaCredito(res.idCredito, res.telefonoCliente);
+                        } else {
                             tblHistorial.ajax.reload();
-                            window.location.reload()
-
-                        }, 2000);
+                        }
                     }
                 }
             }
@@ -420,14 +416,12 @@ $('#nav-completados-tab').on('shown.bs.tab', function () {
                     if (res.type == 'success') {
                         modalVariosAbonos.hide();
                         tblHistorial.ajax.reload();
-                        setTimeout(() => {
-                            const ruta = base_url + 'creditos/reporte/' + res.id;
-                            const whatsapp = res.whatsapp;
-
-                            // window.open(ruta, '_blank');
-                             window.open(whatsapp, '_blank');
+                        // Preview WA antes de enviar via API
+                        if (res.idCredito && typeof previewYEnviarWaCredito === 'function') {
+                            previewYEnviarWaCredito(res.idCredito, res.telefonoCliente);
+                        } else {
                             tblHistorial.ajax.reload();
-                        }, 2000);
+                        }
                     }
                 }
             }
@@ -621,3 +615,53 @@ function escapeHtmlPlain(s){
         this.value = '';  // permite agregar otro tipo
     });
 })();
+
+
+// ============================================================================
+// Preview del mensaje WhatsApp antes de enviar (post-abono)
+// Reusa el endpoint creditos/notificarCliente con preview=1
+// ============================================================================
+function previewYEnviarWaCredito(idCredito, telefonoCliente) {
+    if (!idCredito) return;
+    var telDef = (telefonoCliente || '').replace(/[^0-9]/g, '');
+    fetch(base_url + 'creditos/notificarCliente/' + idCredito + '?preview=1', {
+        method: 'POST', credentials: 'same-origin'
+    }).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) {
+            if (typeof Swal !== 'undefined') Swal.fire({icon:'info', title:'Sin notificacion WA', text: d.msg || ''});
+            return;
+        }
+        var titulo = (d.tipo === 'pagado') ? 'Confirmar pago al cliente' : 'Recordatorio al cliente';
+        Swal.fire({
+            title: titulo,
+            html: '<div style="text-align:left;font-size:.85rem;color:#374151;margin-bottom:.5rem;">' +
+                  '<i class="bx bxl-whatsapp" style="color:#16a34a;font-size:18px;vertical-align:-3px;"></i> Se enviara a <b>+' + d.telefono + '</b>' +
+                  '</div>' +
+                  '<div style="background:#dcfce7;color:#0f172a;padding:.85rem 1rem;border-radius:10px;text-align:left;white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:.78rem;line-height:1.45;max-height:300px;overflow:auto;border:1px solid #bbf7d0;">' +
+                  String(d.mensaje || '').replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }) +
+                  '</div>',
+            showCancelButton: true,
+            confirmButtonText: '<i class="bx bx-paper-plane me-1"></i>Enviar',
+            cancelButtonText: 'No enviar',
+            width: 540
+        }).then(function(r){
+            if (!r.isConfirmed) {
+                if (typeof tblHistorial !== 'undefined') tblHistorial.ajax.reload();
+                return;
+            }
+            // Enviar via API real
+            fetch(base_url + 'creditos/notificarCliente/' + idCredito, {
+                method: 'POST', credentials: 'same-origin'
+            }).then(function(r2){ return r2.json(); }).then(function(dd){
+                if (dd.ok) {
+                    Swal.fire({icon:'success', title:'Mensaje enviado', text:'WhatsApp a +' + dd.telefono, timer:2200, showConfirmButton:false});
+                } else {
+                    Swal.fire({icon:'error', title:'No se pudo enviar', text: dd.msg || ('HTTP ' + (dd.http || '?'))});
+                }
+                if (typeof tblHistorial !== 'undefined') tblHistorial.ajax.reload();
+            });
+        });
+    }).catch(function(e){
+        Swal.fire({icon:'error', title:'Error preview', text:e.message});
+    });
+}

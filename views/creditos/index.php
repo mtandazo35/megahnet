@@ -124,7 +124,7 @@
     </div>
 </div>
 <div id="modalAbono" class="modal fade" role="dialog" aria-labelledby="my-modal-title" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Agregar Abono</h5>
@@ -198,7 +198,7 @@
 
                     <!-- table productos -->
 
-                    <div class="table-responsive">
+                    <div class="table-responsive" style="max-height:280px; overflow-y:auto;">
                         <table class="table table-bordered table-striped table-hover align-middle" id="tblNuevaTipoPago" style="width: 100%;">
                             <thead>
                                 <tr>
