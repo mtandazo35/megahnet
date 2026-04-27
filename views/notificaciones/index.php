@@ -19,6 +19,46 @@
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-whatsapp" type="button"><i class="bx bxl-whatsapp text-success"></i> WhatsApp</button></li>
 </ul>
 
+<style>
+  /* Modales mas compactos en notificaciones */
+  #nav-historial .modal .modal-dialog,
+  #nav-config .modal .modal-dialog,
+  #nav-plantillas .modal .modal-dialog,
+  #nav-correo .modal .modal-dialog,
+  #nav-whatsapp .modal .modal-dialog,
+  #modalDetalleNotif .modal-dialog,
+  #modalPreviewPlantilla .modal-dialog,
+  #modalProbarNotif .modal-dialog,
+  #modalQrWa .modal-dialog {
+    max-width: 480px;
+  }
+  #modalDetalleNotif .modal-body,
+  #modalPreviewPlantilla .modal-body,
+  #modalProbarNotif .modal-body {
+    padding: 1rem 1.25rem;
+    font-size: .9rem;
+  }
+  #modalDetalleNotif .modal-header,
+  #modalPreviewPlantilla .modal-header,
+  #modalProbarNotif .modal-header,
+  #modalQrWa .modal-header {
+    padding: .65rem 1rem;
+  }
+  #modalDetalleNotif .modal-title,
+  #modalPreviewPlantilla .modal-title,
+  #modalProbarNotif .modal-title,
+  #modalQrWa .modal-title { font-size: 1rem; }
+
+  /* SweetAlert2 mas compacto */
+  .swal2-popup { width: 380px !important; padding: 1.25rem 1rem !important; font-size: .9rem !important; }
+  .swal2-title { font-size: 1.05rem !important; padding: .25rem 0 .5rem !important; }
+  .swal2-html-container { font-size: .85rem !important; margin: .25rem 0 0 !important; }
+  .swal2-icon { width: 48px !important; height: 48px !important; margin: .5rem auto !important; }
+  .swal2-icon .swal2-icon-content { font-size: 1.6rem !important; }
+  .swal2-actions { margin-top: .8rem !important; gap: .35rem !important; }
+  .swal2-styled { padding: .35rem .9rem !important; font-size: .85rem !important; }
+</style>
+
 <div class="tab-content">
   <!-- HISTORIAL -->
   <div class="tab-pane fade show active" id="nav-historial">
@@ -582,7 +622,7 @@
 
   <!-- Modal detalle historial -->
 <div class="modal fade" id="modalDetalleNotif" tabindex="-1">
-  <div class="modal-dialog modal-lg"><div class="modal-content">
+  <div class="modal-dialog"><div class="modal-content">
     <div class="modal-header"><h5 class="modal-title">Detalle de notificacion</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
     <div class="modal-body" id="detalleNotifBody"></div>
   </div></div>
@@ -590,7 +630,7 @@
 
 <!-- Modal preview plantilla -->
 <div class="modal fade" id="modalPreviewPlantilla" tabindex="-1">
-  <div class="modal-dialog modal-lg"><div class="modal-content">
+  <div class="modal-dialog"><div class="modal-content">
     <div class="modal-header"><h5 class="modal-title">Previsualizar plantilla</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
     <div class="modal-body">
       <div class="mb-2"><b>Asunto:</b> <span id="prev_asunto"></span></div>
