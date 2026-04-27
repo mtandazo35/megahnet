@@ -483,6 +483,46 @@ function buildSearchClause($search, array $columns, array &$params, $prefix = ' 
  * @return bool            true si se envio, false en caso contrario (silencioso)
  */
 if (!function_exists('enviarAlertaAdmin')) {
+/**
+ * Devuelve la configuracion SMTP efectiva: si /storage/alertas-config.json
+ * tiene valores no vacios bajo la clave "smtp", esos ganan; si no, fallback
+ * a las constantes del .env (HOST_SMTP, USER_SMTP, etc).
+ */
+if (!function_exists('notifSmtpSettings')) {
+function notifSmtpSettings()
+{
+    $cfg = null;
+    $f = (defined('ROOT_PATH') ? ROOT_PATH : (__DIR__ . '/..')) . '/storage/alertas-config.json';
+    if (file_exists($f)) {
+        $cfg = @json_decode(@file_get_contents($f), true);
+    }
+    $smtp = (is_array($cfg) && isset($cfg['smtp']) && is_array($cfg['smtp'])) ? $cfg['smtp'] : [];
+
+    $pick = function($key, $envConst, $default) use ($smtp) {
+        if (isset($smtp[$key]) && trim((string)$smtp[$key]) !== '') return $smtp[$key];
+        return defined($envConst) ? constant($envConst) : $default;
+    };
+    $pickInt = function($key, $envConst, $default) use ($smtp) {
+        if (isset($smtp[$key]) && (string)$smtp[$key] !== '') return (int)$smtp[$key];
+        return defined($envConst) ? (int)constant($envConst) : (int)$default;
+    };
+
+    return [
+        'host'     => $pick('host', 'HOST_SMTP', 'smtp.gmail.com'),
+        'port'     => $pickInt('port', 'PUERTO_SMTP', 465),
+        'secure'   => $pickInt('secure', 'SECURE_SMTP', 1),
+        'user'     => $pick('user', 'USER_SMTP', ''),
+        'password' => $pick('password', 'CLAVE_SMTP', ''),
+        'from_name'=> isset($smtp['from_name']) && trim((string)$smtp['from_name']) !== ''
+                       ? $smtp['from_name']
+                       : (defined('TITLE') ? TITLE : 'Sistema'),
+        'from_email'=> isset($smtp['from_email']) && trim((string)$smtp['from_email']) !== ''
+                       ? $smtp['from_email']
+                       : null,
+    ];
+}
+}
+
 function enviarAlertaAdmin($tipo, $asunto, $cuerpo)
 {
     // === Log JSONL para historico de notificaciones ===
@@ -588,25 +628,26 @@ function enviarAlertaAdmin($tipo, $asunto, $cuerpo)
     if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer', false)) { $logEntry('NO_PHPMAILER'); return false; }
 
     try {
+        $smtpCfg = notifSmtpSettings();
         $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
         $mail->isSMTP();
-        $mail->Host       = defined('HOST_SMTP') ? HOST_SMTP : 'smtp.gmail.com';
+        $mail->Host       = $smtpCfg['host'];
         $mail->SMTPAuth   = true;
-        $mail->Username   = defined('USER_SMTP') ? USER_SMTP : '';
-        $mail->Password   = defined('CLAVE_SMTP') ? CLAVE_SMTP : '';
-        $mail->SMTPSecure = (defined('SECURE_SMTP') && SECURE_SMTP == 1)
+        $mail->Username   = $smtpCfg['user'];
+        $mail->Password   = $smtpCfg['password'];
+        $mail->SMTPSecure = ((int)$smtpCfg['secure'] === 1)
             ? \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS
             : \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = defined('PUERTO_SMTP') ? PUERTO_SMTP : 587;
+        $mail->Port       = (int)$smtpCfg['port'];
         $mail->CharSet    = 'UTF-8';
         $mail->Timeout    = 15;
         // TLS relajado para tolerar hosts con certs intermedios faltantes / FPM
         $mail->SMTPOptions = ['ssl' => ['verify_peer' => false, 'verify_peer_name' => false, 'allow_self_signed' => true]];
         $mail->SMTPKeepAlive = false;
 
-        $from = $mail->Username ?: ('noreply@' . (defined('DBNAME') ? DBNAME : 'sistema') . '.local');
+        $from = $smtpCfg['from_email'] ?: ($mail->Username ?: ('noreply@' . (defined('DBNAME') ? DBNAME : 'sistema') . '.local'));
         $titulo = defined('TITLE') ? TITLE : (defined('DBNAME') ? DBNAME : 'Sistema');
-        $mail->setFrom($from, $titulo . ' Alertas');
+        $mail->setFrom($from, $smtpCfg['from_name'] ?: ($titulo . ' Alertas'));
         foreach ((array)$destinatarios as $d) {
             $d = trim($d);
             if (filter_var($d, FILTER_VALIDATE_EMAIL)) $mail->addAddress($d);

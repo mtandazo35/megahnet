@@ -15,6 +15,7 @@
   <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#nav-historial" type="button">Historial</button></li>
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-config" type="button">Configuracion</button></li>
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-plantillas" type="button">Plantillas</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-correo" type="button"><i class="bx bx-envelope text-primary"></i> Correo</button></li>
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-whatsapp" type="button"><i class="bx bxl-whatsapp text-success"></i> WhatsApp</button></li>
 </ul>
 
@@ -277,6 +278,185 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- CORREO (SMTP) -->
+  <div class="tab-pane fade" id="nav-correo">
+    <style>
+      .smtp-card .card-header { background: transparent; border-bottom: 1px solid #eef0f4; padding: .9rem 1.25rem; }
+      .smtp-card .card-header h6 { margin: 0; font-size: .95rem; }
+      .smtp-help { font-size: .78rem; color: #6b7280; margin-top: .25rem; display: block; }
+      .smtp-preset { font-size: .72rem; padding: .15rem .55rem; }
+      .smtp-pass-wrap { position: relative; }
+      .smtp-pass-toggle { position: absolute; right: .5rem; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280; }
+      .smtp-pass-toggle:hover { color: #2563eb; }
+    </style>
+
+    <div class="card smtp-card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+          <i class="bx bx-envelope text-primary me-2" style="font-size:18px;"></i>
+          <h6 class="fw-semibold text-dark">Servidor SMTP <span class="text-muted fw-normal" style="font-size:.78rem;">— credenciales para enviar correos de notificacion</span></h6>
+        </div>
+        <div class="d-flex gap-1">
+          <button type="button" class="btn btn-light border smtp-preset" data-preset="gmail">Gmail</button>
+          <button type="button" class="btn btn-light border smtp-preset" data-preset="outlook">Outlook</button>
+          <button type="button" class="btn btn-light border smtp-preset" data-preset="zoho">Zoho</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <?php $smtp = $data['config']['smtp'] ?? []; ?>
+        <div class="row g-3">
+          <div class="col-md-7">
+            <label class="form-label fw-semibold mb-1" for="smtp_host">Host</label>
+            <input type="text" id="smtp_host" class="form-control" placeholder="smtp.gmail.com"
+              value="<?php echo htmlspecialchars($smtp['host'] ?? ''); ?>">
+            <small class="smtp-help">Servidor SMTP del proveedor de correo.</small>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold mb-1" for="smtp_port">Puerto</label>
+            <input type="number" id="smtp_port" class="form-control" min="1" max="65535"
+              value="<?php echo (int)($smtp['port'] ?? 465); ?>">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-semibold mb-1" for="smtp_secure">Encriptacion</label>
+            <select id="smtp_secure" class="form-select">
+              <option value="1" <?php echo (int)($smtp['secure'] ?? 1) === 1 ? 'selected' : ''; ?>>SSL</option>
+              <option value="0" <?php echo (int)($smtp['secure'] ?? 1) === 0 ? 'selected' : ''; ?>>TLS</option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-semibold mb-1" for="smtp_user">Usuario / Email</label>
+            <input type="email" id="smtp_user" class="form-control" placeholder="cuenta@gmail.com"
+              value="<?php echo htmlspecialchars($smtp['user'] ?? ''); ?>">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold mb-1" for="smtp_password">Contrasena</label>
+            <div class="smtp-pass-wrap">
+              <input type="password" id="smtp_password" class="form-control" autocomplete="new-password"
+                value="<?php echo !empty($smtp['password']) ? '********' : ''; ?>"
+                placeholder="<?php echo !empty($smtp['password']) ? 'Sin cambios (deja vacio o con asteriscos para mantener)' : 'App password o contrasena'; ?>">
+              <i class="bx bx-show smtp-pass-toggle" id="smtpPassToggle" title="Mostrar/ocultar"></i>
+            </div>
+            <small class="smtp-help">Para Gmail usa una <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">App password</a>, no tu contrasena normal.</small>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-semibold mb-1" for="smtp_from_name">Nombre remitente</label>
+            <input type="text" id="smtp_from_name" class="form-control" placeholder="Sistema MAAT"
+              value="<?php echo htmlspecialchars($smtp['from_name'] ?? ''); ?>">
+            <small class="smtp-help">Aparece como nombre del que envia. Si vacio usa TITLE.</small>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold mb-1" for="smtp_from_email">Email "From" (opcional)</label>
+            <input type="email" id="smtp_from_email" class="form-control" placeholder="(usa el usuario por defecto)"
+              value="<?php echo htmlspecialchars($smtp['from_email'] ?? ''); ?>">
+            <small class="smtp-help">Solo si quieres que aparezca un email distinto al usuario SMTP.</small>
+          </div>
+        </div>
+
+        <hr>
+
+        <div class="row g-2 align-items-end">
+          <div class="col-md-7">
+            <label class="form-label fw-semibold mb-1" for="smtp_test_email">Probar enviando a:</label>
+            <input type="email" id="smtp_test_email" class="form-control" placeholder="tu@correo.com">
+            <small class="smtp-help">Usa los valores actuales del formulario (no es necesario guardar antes).</small>
+          </div>
+          <div class="col-md-5 d-flex gap-2 justify-content-end">
+            <button class="btn btn-outline-info" id="btnProbarSmtp" type="button"><i class="bx bx-paper-plane me-1"></i>Probar conexion</button>
+            <button class="btn btn-primary" id="btnGuardarSmtp" type="button"><i class="bx bx-save me-1"></i>Guardar SMTP</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function(){
+        var presets = {
+          gmail:   { host: 'smtp.gmail.com',   port: 465, secure: 1 },
+          outlook: { host: 'smtp.office365.com', port: 587, secure: 0 },
+          zoho:    { host: 'smtp.zoho.com',    port: 465, secure: 1 }
+        };
+        document.querySelectorAll('.smtp-preset').forEach(function(b){
+          b.addEventListener('click', function(){
+            var p = presets[b.dataset.preset];
+            if (!p) return;
+            document.getElementById('smtp_host').value = p.host;
+            document.getElementById('smtp_port').value = p.port;
+            document.getElementById('smtp_secure').value = String(p.secure);
+          });
+        });
+
+        var pass = document.getElementById('smtp_password');
+        var toggle = document.getElementById('smtpPassToggle');
+        if (toggle && pass) {
+          toggle.addEventListener('click', function(){
+            if (pass.type === 'password') { pass.type = 'text'; toggle.classList.replace('bx-show','bx-hide'); }
+            else { pass.type = 'password'; toggle.classList.replace('bx-hide','bx-show'); }
+          });
+        }
+        // Si el usuario hace click en el campo y solo tiene ********, lo limpia
+        if (pass) {
+          pass.addEventListener('focus', function(){
+            if (pass.value === '********') pass.value = '';
+          });
+        }
+
+        function buildPayload(){
+          return {
+            host:       document.getElementById('smtp_host').value.trim(),
+            port:       parseInt(document.getElementById('smtp_port').value, 10) || 465,
+            secure:     parseInt(document.getElementById('smtp_secure').value, 10),
+            user:       document.getElementById('smtp_user').value.trim(),
+            password:   document.getElementById('smtp_password').value,
+            from_name:  document.getElementById('smtp_from_name').value.trim(),
+            from_email: document.getElementById('smtp_from_email').value.trim()
+          };
+        }
+
+        var saveBtn = document.getElementById('btnGuardarSmtp');
+        if (saveBtn) saveBtn.addEventListener('click', function(){
+          saveBtn.disabled = true; saveBtn.innerHTML = '<i class="bx bx-loader bx-spin me-1"></i>Guardando...';
+          fetch(base_url + 'notificaciones/guardarConfig', {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ smtp: buildPayload() })
+          }).then(function(r){ return r.json(); }).then(function(d){
+            if (d.ok) {
+              if (typeof Swal !== 'undefined') Swal.fire({icon:'success', title:'SMTP guardado', timer:1800, showConfirmButton:false});
+              else alert('SMTP guardado');
+              if (pass && pass.value && pass.value !== '********') pass.value = '********';
+            } else {
+              alert('Error: ' + (d.msg || 'desconocido'));
+            }
+          }).catch(function(e){ alert('Error de red: ' + e.message); })
+            .finally(function(){ saveBtn.disabled = false; saveBtn.innerHTML = '<i class="bx bx-save me-1"></i>Guardar SMTP'; });
+        });
+
+        var testBtn = document.getElementById('btnProbarSmtp');
+        if (testBtn) testBtn.addEventListener('click', function(){
+          var dest = document.getElementById('smtp_test_email').value.trim();
+          if (!dest) { alert('Pon un email destino para la prueba'); return; }
+          testBtn.disabled = true; testBtn.innerHTML = '<i class="bx bx-loader bx-spin me-1"></i>Enviando...';
+          fetch(base_url + 'notificaciones/probarSmtp', {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ smtp: buildPayload(), test_email: dest })
+          }).then(function(r){ return r.json(); }).then(function(d){
+            if (d.ok) {
+              if (typeof Swal !== 'undefined') Swal.fire({icon:'success', title:'Correo enviado', text:'Revisa la bandeja de ' + dest, timer:3000});
+              else alert('Correo enviado a ' + dest);
+            } else {
+              if (typeof Swal !== 'undefined') Swal.fire({icon:'error', title:'No se pudo enviar', text: d.error || 'Revisa host/usuario/contrasena'});
+              else alert('No se pudo enviar: ' + (d.error || 'revisa los datos'));
+            }
+          }).catch(function(e){ alert('Error de red: ' + e.message); })
+            .finally(function(){ testBtn.disabled = false; testBtn.innerHTML = '<i class="bx bx-paper-plane me-1"></i>Probar conexion'; });
+        });
+      })();
+    </script>
   </div>
 
   <!-- WHATSAPP -->

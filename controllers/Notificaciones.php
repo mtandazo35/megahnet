@@ -98,6 +98,15 @@ class Notificaciones extends Controller
                 'last_status'  => '',
                 'phones_alerta'=> [],
             ],
+            'smtp' => [
+                'host'       => '',
+                'port'       => 465,
+                'secure'     => 1,
+                'user'       => '',
+                'password'   => '',
+                'from_name'  => '',
+                'from_email' => '',
+            ],
         ];
         if (!file_exists($f)) return $defaults;
         $arr = @json_decode(@file_get_contents($f), true);
@@ -124,6 +133,19 @@ class Notificaciones extends Controller
             if (isset($body['wa_api']['phones_alerta']) && is_array($body['wa_api']['phones_alerta'])) {
                 $cfg['wa_api']['phones_alerta'] = array_values(array_filter(array_map(function($s){ return preg_replace('/[^0-9]/', '', (string)$s); }, $body['wa_api']['phones_alerta'])));
             }
+        }
+        if (isset($body['smtp']) && is_array($body['smtp'])) {
+            $sIn = $body['smtp'];
+            if (isset($sIn['host']))       $cfg['smtp']['host']       = trim((string)$sIn['host']);
+            if (isset($sIn['port']))       $cfg['smtp']['port']       = max(1, min(65535, (int)$sIn['port']));
+            if (isset($sIn['secure']))     $cfg['smtp']['secure']     = ((int)$sIn['secure'] === 1) ? 1 : 0;
+            if (isset($sIn['user']))       $cfg['smtp']['user']       = trim((string)$sIn['user']);
+            // Password: si llega vacia o es el placeholder mascarado, no la sobreescribimos
+            if (isset($sIn['password']) && $sIn['password'] !== '' && $sIn['password'] !== '********') {
+                $cfg['smtp']['password'] = (string)$sIn['password'];
+            }
+            if (isset($sIn['from_name']))  $cfg['smtp']['from_name']  = trim((string)$sIn['from_name']);
+            if (isset($sIn['from_email'])) $cfg['smtp']['from_email'] = trim((string)$sIn['from_email']);
         }
 
         $dir = ROOT_PATH . '/storage';
@@ -178,6 +200,64 @@ class Notificaciones extends Controller
         echo json_encode(['ok' => $ok, 'modo' => 'override', 'destino_email' => $emailOverride], JSON_UNESCAPED_UNICODE);
     }
 
+    /**
+     * Prueba la configuracion SMTP enviando un correo de prueba sin guardar
+     * los cambios definitivamente. Acepta los mismos campos que guardarConfig
+     * bajo "smtp" + "test_email" (destinatario del test).
+     */
+    public function probarSmtp()
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        if (($_SESSION['rol'] ?? 0) != 1) { echo json_encode(['ok'=>false,'msg'=>'No autorizado']); return; }
+        $body = json_decode(file_get_contents('php://input'), true) ?: [];
+        $sIn  = is_array($body['smtp'] ?? null) ? $body['smtp'] : [];
+        $testEmail = trim((string)($body['test_email'] ?? ''));
+        if (!filter_var($testEmail, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['ok'=>false,'msg'=>'Email de prueba invalido']); return;
+        }
+
+        // Backup de la config actual
+        $f = $this->configFile();
+        $original = file_exists($f) ? @file_get_contents($f) : null;
+        $cfg = $this->cargarConfig();
+
+        // Aplicar overrides SMTP en memoria + guardar al disco temporalmente
+        if (isset($sIn['host']))       $cfg['smtp']['host']       = trim((string)$sIn['host']);
+        if (isset($sIn['port']))       $cfg['smtp']['port']       = max(1, min(65535, (int)$sIn['port']));
+        if (isset($sIn['secure']))     $cfg['smtp']['secure']     = ((int)$sIn['secure'] === 1) ? 1 : 0;
+        if (isset($sIn['user']))       $cfg['smtp']['user']       = trim((string)$sIn['user']);
+        if (isset($sIn['password']) && $sIn['password'] !== '' && $sIn['password'] !== '********') {
+            $cfg['smtp']['password'] = (string)$sIn['password'];
+        }
+        if (isset($sIn['from_name']))  $cfg['smtp']['from_name']  = trim((string)$sIn['from_name']);
+        if (isset($sIn['from_email'])) $cfg['smtp']['from_email'] = trim((string)$sIn['from_email']);
+
+        // Forzar destinatario unico del test + bypass rate-limit + tipo PRUEBA activo
+        $cfg['destinatarios'] = [$testEmail];
+        $cfg['tipos_activos']['PRUEBA'] = true;
+        $cfg['rate_limit_segs'] = 0;
+        // Desactivar canal WhatsApp para no enviar duplicado en la prueba
+        if (isset($cfg['wa_api'])) $cfg['wa_api']['session_id'] = '';
+
+        $dir = ROOT_PATH . '/storage';
+        if (!is_dir($dir)) @mkdir($dir, 0755, true);
+        @file_put_contents($f, json_encode($cfg, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+        $ok = false; $err = '';
+        try {
+            if (function_exists('enviarAlertaAdmin')) {
+                $ok = (bool)enviarAlertaAdmin('PRUEBA', 'Prueba de configuracion SMTP - {{empresa_nombre}}',
+                    '<p>Si recibes este mensaje la configuracion SMTP funciona correctamente.</p>'
+                    . '<p>Hora: ' . date('Y-m-d H:i:s') . '</p>');
+            } else { $err = 'enviarAlertaAdmin no disponible'; }
+        } catch (\Throwable $e) { $err = $e->getMessage(); }
+        finally {
+            if ($original !== null) @file_put_contents($f, $original);
+            else @unlink($f);
+        }
+
+        echo json_encode(['ok' => $ok, 'destino' => $testEmail, 'error' => $err], JSON_UNESCAPED_UNICODE);
+    }
 
     /** ============== WHATSAPP API ============== */
 
