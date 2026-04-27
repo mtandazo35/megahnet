@@ -35,6 +35,7 @@
                         <th>Última utilizada</th>
                         <th>Disponibles</th>
                         <th>Zona</th>
+                        <th>Mikrotik</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>

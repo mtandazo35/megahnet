@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded', function(){
             { data: 'ultima' },
             { data: 'disponibles'},
             { data: 'zona'},
+            { data: 'mikrotik_nombre' },
             { data: 'acciones' }
         ],
         language: {
