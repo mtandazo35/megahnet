@@ -204,11 +204,36 @@ function cargarInventario(ruta) {
     colReorder: true,
     pageLength: 10,
     lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
-    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
+    stateLoadParams: function(settings, data){
+        // Limpia filtro de busqueda cacheado: si el usuario escribio algo y se guardo,
+        // al recargar la tabla cargaba 28k filas pero las filtraba ocultandolas todas.
+        if (data && data.search) data.search.search = '';
+        if (data && Array.isArray(data.columns)) {
+            data.columns.forEach(function(c){ if (c && c.search) c.search.search = ''; });
+        }
+        var v = [5,10,20,50,100,-1];
+        if (data && data.length && v.indexOf(data.length) === -1) data.length = 10;
+        if (data && data.start) data.start = 0;
+    },
     
         ajax: {
             url: ruta,
-            dataSrc: ''
+            dataSrc: '',
+            error: function(xhr, status, err){
+                console.error('inventarios/listarMovimientos fallo:', status, err, xhr.responseText && xhr.responseText.substring(0, 300));
+                if (typeof alertaPersonalizada === 'function') {
+                    alertaPersonalizada('error', 'No se pudieron cargar los movimientos (HTTP ' + xhr.status + ')');
+                }
+                if (typeof window.mhnLogClientError === 'function') {
+                    window.mhnLogClientError({
+                        kind: 'AJAX_ERROR',
+                        message: 'inventarios/listarMovimientos HTTP ' + xhr.status,
+                        source: ruta, line: 0, col: 0,
+                        stack: (xhr.responseText || '').substring(0, 500),
+                        page: location.pathname
+                    });
+                }
+            }
         },
         columns: [
             { data: 'descripcion' },
