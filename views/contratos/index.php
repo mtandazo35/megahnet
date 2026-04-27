@@ -141,6 +141,15 @@
                     <div class="nc-section-title"><i class="fas fa-network-wired"></i> Datos Técnicos del Contrato</div>
                     <div class="row g-2">
                         <div class="col-md-4">
+                            <label class="nc-label">Mikrotik <span class="text-danger">*</span></label>
+                            <select id="idMikrotik" class="form-select form-select-sm" name="idMikrotik">
+                                <option value="">Seleccionar</option>
+                                <?php foreach ($data['mikrotiks'] as $mikrotik) { ?>
+                                <option value="<?php echo $mikrotik['id']; ?>"><?php echo $mikrotik['nombre']; ?></option>
+                                <?php } ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
                             <label class="nc-label">Zona <span class="text-danger">*</span></label>
                             <select id="idZonas" class="form-select form-select-sm" name="idZonas" onchange="seleccionarip()">
                                 <option value="">Seleccionar</option>
@@ -155,15 +164,6 @@
                                 <option value="">Seleccionar</option>
                                 <?php foreach ($data['repetidoras'] as $repetidoras) { ?>
                                 <option value="<?php echo $repetidoras['ssid']; ?>"><?php echo $repetidoras['ssid']; ?></option>
-                                <?php } ?>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="nc-label">Mikrotik <span class="text-danger">*</span></label>
-                            <select id="idMikrotik" class="form-select form-select-sm" name="idMikrotik">
-                                <option value="">Seleccionar</option>
-                                <?php foreach ($data['mikrotiks'] as $mikrotik) { ?>
-                                <option value="<?php echo $mikrotik['id']; ?>"><?php echo $mikrotik['nombre']; ?></option>
                                 <?php } ?>
                             </select>
                         </div>

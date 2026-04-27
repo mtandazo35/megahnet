@@ -5,14 +5,23 @@ class RangoIpModel extends Query{
     }
     public function getIp()
     {
-        $sql = "SELECT i.id,i.ultima,i.red,i.gateway,i.final,z.descripcion AS zona, i.estado FROM ip i INNER JOIN zonas z ON z.id=i.id_zona";
+        $sql = "SELECT i.id,i.ultima,i.red,i.gateway,i.final,
+                z.descripcion AS zona, m.nombre AS mikrotik_nombre, i.id_mikrotik, i.estado
+                FROM ip i
+                INNER JOIN zonas z ON z.id=i.id_zona
+                LEFT JOIN mikrotik m ON m.id = i.id_mikrotik";
         return $this->selectAll($sql);
     }
-    public function registrar($red,$final,$ultima,$zona,$gateway=null)
+    public function getMikrotiks()
+    {
+        $sql = "SELECT id, nombre FROM mikrotik WHERE estado = 1 ORDER BY nombre";
+        return $this->selectAll($sql);
+    }
+    public function registrar($red,$final,$ultima,$zona,$gateway=null,$idMikrotik=null)
     {
         if ($gateway === null) $gateway = $red;
-        $sql = "INSERT INTO ip (red,gateway,final,ultima,id_zona) VALUES (?,?,?,?,?)";
-        $array = array($red,$gateway,$final,$ultima,$zona);
+        $sql = "INSERT INTO ip (red,gateway,final,ultima,id_zona,id_mikrotik) VALUES (?,?,?,?,?,?)";
+        $array = array($red,$gateway,$final,$ultima,$zona, $idMikrotik !== '' ? $idMikrotik : null);
         return $this->insertar($sql, $array);
     }
     public function getValidar($campo, $valor, $accion, $id)
@@ -24,7 +33,6 @@ class RangoIpModel extends Query{
         }
         return $this->select($sql);
     }
-
     public function eliminar($estado, $idIp)
     {
         $sql = "UPDATE ip SET estado = ? WHERE id = ?";
@@ -41,15 +49,13 @@ class RangoIpModel extends Query{
         $sql = "SELECT * FROM zonas WHERE estado = $estado";
         return $this->selectAll($sql);
     }
-    public function actualizar($red,$final, $id,$zona,$gateway=null)
+    public function actualizar($red,$final, $id,$zona,$gateway=null,$idMikrotik=null)
     {
         if ($gateway === null) $gateway = $red;
-        $sql = "UPDATE ip SET red = ?,gateway=?,final=?,id_zona=? WHERE id = ?";
-        $array = array($red,$gateway,$final,$zona, $id);
+        $sql = "UPDATE ip SET red = ?,gateway=?,final=?,id_zona=?,id_mikrotik=? WHERE id = ?";
+        $array = array($red,$gateway,$final,$zona, $idMikrotik !== '' ? $idMikrotik : null, $id);
         return $this->save($sql, $array);
     }
-
-
     public function contarClientesEnRango($red, $final)
     {
         $sql = "SELECT COUNT(*) AS c FROM contratos
@@ -58,13 +64,11 @@ class RangoIpModel extends Query{
         $r = $this->select2($sql, [$red, $final]);
         return $r ? intval($r[0]['c']) : 0;
     }
-
     public function contarContratosConIp($ip)
     {
         $sql = "SELECT COUNT(*) AS c FROM contratos WHERE estado = 1 AND ip_usuario = ?";
         $r = $this->select2($sql, [$ip]);
         return $r ? intval($r[0]['c']) : 0;
     }
-
 }
 ?>

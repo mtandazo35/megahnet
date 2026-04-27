@@ -42,12 +42,26 @@
             <form id="formulario" autocomplete="off">
                 <div class="modal-body">
                     <input type="hidden" id="id" name="id">
-                    <label class="form-label small mb-1" for="nombre">Nombre <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bx bx-map-pin"></i></span>
-                        <input class="form-control" type="text" name="nombre" id="nombre" placeholder="Nombre de la zona">
+                    <div class="mb-2">
+                        <label class="form-label small mb-1" for="nombre">Nombre <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bx bx-map-pin"></i></span>
+                            <input class="form-control" type="text" name="nombre" id="nombre" placeholder="Nombre de la zona">
+                        </div>
+                        <span id="errorNombre" class="text-danger small"></span>
                     </div>
-                    <span id="errorNombre" class="text-danger small"></span>
+                    <div>
+                        <label class="form-label small mb-1" for="id_mikrotik">Mikrotik <span class="text-muted fw-normal">(pool de IPs pertenece a)</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bx bx-server"></i></span>
+                            <select id="id_mikrotik" name="id_mikrotik" class="form-select">
+                                <option value="">Seleccionar (opcional)</option>
+                                <?php foreach (($data['mikrotiks'] ?? []) as $mk): ?>
+                                    <option value="<?php echo (int)$mk['id']; ?>"><?php echo htmlspecialchars($mk['nombre']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" id="btnNuevo"><i class="bx bx-eraser me-1"></i>Limpiar</button>

@@ -36,6 +36,7 @@ class RangoIp extends Controller
         $data['script'] = 'rangoip.js';
         $data['zona'] = $this->model->zona(1);
 
+        $data['mikrotiks'] = $this->model->getMikrotiks();
         $this->views->getView('rangoip', 'index', $data);
     }
     public function listar()
@@ -103,7 +104,8 @@ class RangoIp extends Controller
                     } else {
                         $verificar = $this->model->getValidar('red', $red, 'registrar', 0);
                         if (empty($verificar)) {
-                            $data = $this->model->registrar($red, $final, $red, $zona, $gateway);
+                            $idMik = isset($_POST['id_mikrotik']) ? trim($_POST['id_mikrotik']) : null;
+                            $data = $this->model->registrar($red, $final, $red, $zona, $gateway, $idMik);
                             $res = $data > 0
                                 ? array('msg' => 'IP REGISTRADA EXITOSAMENTE', 'type' => 'success')
                                 : array('msg' => 'ERROR AL REGISTRAR', 'type' => 'error');

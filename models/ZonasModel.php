@@ -5,13 +5,21 @@ class ZonasModel extends Query{
     }
     public function getZonas($estado)
     {
-        $sql = "SELECT * FROM zonas WHERE estado = $estado";
+        $sql = "SELECT z.*, m.nombre AS mikrotik_nombre
+                FROM zonas z
+                LEFT JOIN mikrotik m ON m.id = z.id_mikrotik
+                WHERE z.estado = $estado";
         return $this->selectAll($sql);
     }
-    public function registrar($zonas)
+    public function getMikrotiks()
     {
-        $sql = "INSERT INTO zonas (descripcion) VALUES (?)";
-        $array = array($zonas);
+        $sql = "SELECT id, nombre FROM mikrotik WHERE estado = 1 ORDER BY nombre";
+        return $this->selectAll($sql);
+    }
+    public function registrar($zonas, $idMikrotik = null)
+    {
+        $sql = "INSERT INTO zonas (descripcion, id_mikrotik) VALUES (?, ?)";
+        $array = array($zonas, $idMikrotik !== '' ? $idMikrotik : null);
         return $this->insertar($sql, $array);
     }
     public function getValidar($campo, $valor, $accion, $id)
@@ -23,7 +31,6 @@ class ZonasModel extends Query{
         }
         return $this->select($sql);
     }
-
     public function eliminar($estado, $idZonas)
     {
         $sql = "UPDATE zonas SET estado = ? WHERE id = ?";
@@ -35,13 +42,11 @@ class ZonasModel extends Query{
         $sql = "SELECT * FROM zonas WHERE id = $idZonas";
         return $this->select($sql);
     }
-
-    public function actualizar($zonas, $id)
+    public function actualizar($zonas, $id, $idMikrotik = null)
     {
-        $sql = "UPDATE zonas SET descripcion = ? WHERE id = ?";
-        $array = array($zonas, $id);
+        $sql = "UPDATE zonas SET descripcion = ?, id_mikrotik = ? WHERE id = ?";
+        $array = array($zonas, $idMikrotik !== '' ? $idMikrotik : null, $id);
         return $this->save($sql, $array);
     }
 }
-
 ?>

@@ -48,13 +48,22 @@
                     <input type="hidden" name="red" id="red">
                     <input type="hidden" name="final" id="final">
                     <div class="row g-3">
-                        <div class="col-12">
+                        <div class="col-md-6">
                             <label class="form-label small mb-1" for="zona">Zona <span class="text-danger">*</span></label>
                             <select id="zona" class="form-select" name="zona">
                                 <option value="">Seleccionar</option>
                                 <?php foreach ($data['zona'] as $zona) { ?>
                                     <option value="<?php echo htmlspecialchars($zona['id'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($zona['descripcion'], ENT_QUOTES, 'UTF-8'); ?></option>
                                 <?php } ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small mb-1" for="id_mikrotik">Mikrotik <span class="text-muted fw-normal">(opcional)</span></label>
+                            <select id="id_mikrotik" class="form-select" name="id_mikrotik">
+                                <option value="">Seleccionar</option>
+                                <?php foreach (($data['mikrotiks'] ?? []) as $mk): ?>
+                                    <option value="<?php echo (int)$mk['id']; ?>"><?php echo htmlspecialchars($mk['nombre']); ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="col-md-4">

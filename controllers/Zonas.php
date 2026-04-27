@@ -15,6 +15,7 @@ class Zonas extends Controller
     {
         $data['title'] = 'Zonas';
         $data['script'] = 'zonas.js';
+        $data['mikrotiks'] = $this->model->getMikrotiks();
         $this->views->getView('zonas', 'index', $data);
     }
     public function listar()
@@ -40,7 +41,8 @@ class Zonas extends Controller
                 if ($id == '') {
                     $verificar = $this->model->getValidar('descripcion', $zonas, 'registrar', 0);
                     if (empty($verificar)) {
-                        $data = $this->model->registrar($zonas);
+                        $idMik = isset($_POST['id_mikrotik']) ? trim($_POST['id_mikrotik']) : null;
+                        $data = $this->model->registrar($zonas, $idMik);
                         if ($data > 0) {
                             $res = array('msg' => 'LA ZONA REGISTRADO EXITOSAMENTE', 'type' => 'success');
                         } else {
@@ -52,7 +54,8 @@ class Zonas extends Controller
                 } else {
                     $verificar = $this->model->getValidar('descripcion', $zonas, 'actualizar', $id);
                     if (empty($verificar)) {
-                        $data = $this->model->actualizar($zonas, $id);
+                        $idMik = isset($_POST['id_mikrotik']) ? trim($_POST['id_mikrotik']) : null;
+                        $data = $this->model->actualizar($zonas, $id, $idMik);
                         if ($data > 0) {
                             $res = array('msg' => 'ZONA ACTUALIZADO EXITOSAMENTE', 'type' => 'success');
                         } else {
