@@ -228,7 +228,7 @@
                 </tr>
               <?php endforeach; ?>
               <tr class="border-top">
-                <td class="text-muted"><small>Base imponible total</small></td>
+                <td class="text-muted"><small>Retenciones recibidas</small></td>
                 <td class="text-end"><small><?= $fmt(array_sum(array_column($retencionesD, 'base'))) ?></small></td>
               </tr>
               </tbody>
