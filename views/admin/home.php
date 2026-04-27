@@ -161,10 +161,11 @@
       <!-- Facturacion emitida -->
       <div class="col-lg-6 col-xl-3">
         <div class="border rounded p-3 h-100" style="background:#f0f9ff;">
-          <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="d-flex justify-content-between align-items-center mb-1">
             <strong class="text-primary"><i class="bx bx-receipt me-1"></i>Facturación</strong>
             <span class="badge bg-primary"><?= $fmt($totFacturacion) ?></span>
           </div>
+          <small class="text-muted d-block mb-2">Valores con IVA incluido</small>
           <?php if (!empty($facturacionD)): ?>
             <table class="table table-sm mb-0" style="font-size:.78rem;">
               <tbody>

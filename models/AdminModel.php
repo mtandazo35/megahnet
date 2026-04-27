@@ -316,10 +316,14 @@ HAVING COUNT(*) > $estado) AS subconsulta";
     }
 
     /**
-     * Facturacion del mes desglosada por origen (ventas, electronicas, orden_venta) y metodo (contado/credito).
+     * Facturacion del mes desglosada por origen y metodo, TODOS los valores CON IVA:
+     *  - ventas.total: campo crudo (asumimos con IVA, igual que electronica)
+     *  - datos_cabecera_electronica.totalfactura: ya esta con IVA
+     *  - orden_venta: se recalcula desde JSON aplicando IVA por producto
      */
     public function getFacturacionDesglose($yyyymm)
     {
+        // Ventas y electronica: SQL agregado simple
         $sql = "SELECT 'Ventas Fisicas' AS origen, metodo,
                     COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
                 FROM ventas
@@ -332,18 +336,42 @@ HAVING COUNT(*) > $estado) AS subconsulta";
                     COUNT(*) AS cantidad, COALESCE(SUM(totalfactura), 0) AS total
                 FROM datos_cabecera_electronica
                 WHERE LEFT(fecha, 7) = ? AND estado = 1
-                GROUP BY metodo
+                GROUP BY metodo";
+        $rows = $this->selectAll($sql, [$yyyymm, $yyyymm]);
 
-                UNION ALL
+        // Orden de Venta: recalcular con IVA desde el JSON (orden_venta.total es sin IVA)
+        $sqlOv = "SELECT metodo, productos FROM orden_venta WHERE LEFT(fecha, 7) = ? AND estado = 1";
+        $ovRows = $this->selectAll($sqlOv, [$yyyymm]);
+        $ovAgg = []; // metodo => ['cantidad'=>n, 'total'=>x]
+        foreach ($ovRows as $ov) {
+            $met = $ov['metodo'] ?? 'CONTADO';
+            $tot = 0;
+            $prods = !empty($ov['productos']) ? json_decode($ov['productos'], true) : [];
+            if (is_array($prods)) {
+                foreach ($prods as $p) {
+                    $cant = (float)($p['cantidad'] ?? 0);
+                    $prec = (float)($p['precio']   ?? 0);
+                    $iva  = (float)($p['iva_producto'] ?? 0);
+                    $sub  = $cant * $prec;
+                    $tot += ($iva > 0) ? round($sub * (1 + $iva/100), 2) : $sub;
+                }
+            }
+            if (!isset($ovAgg[$met])) $ovAgg[$met] = ['cantidad' => 0, 'total' => 0];
+            $ovAgg[$met]['cantidad']++;
+            $ovAgg[$met]['total'] += $tot;
+        }
+        foreach ($ovAgg as $met => $agg) {
+            $rows[] = [
+                'origen'   => 'Orden de Venta',
+                'metodo'   => $met,
+                'cantidad' => $agg['cantidad'],
+                'total'    => round($agg['total'], 2),
+            ];
+        }
 
-                SELECT 'Orden de Venta' AS origen, metodo,
-                    COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
-                FROM orden_venta
-                WHERE LEFT(fecha, 7) = ? AND estado = 1
-                GROUP BY metodo
-
-                ORDER BY total DESC";
-        return $this->selectAll($sql, [$yyyymm, $yyyymm, $yyyymm]);
+        // Ordenar por total desc
+        usort($rows, function($a, $b){ return ((float)$b['total']) <=> ((float)$a['total']); });
+        return $rows;
     }
 
     /**
