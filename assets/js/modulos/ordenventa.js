@@ -205,18 +205,26 @@ function mostrarProducto() {
                 let html = '';
                 if (res.productos.length > 0) {
                     res.productos.forEach(producto => {
-                        html += `<tr>
-                        <td>
-                                        <input style="width:800px"; type="text" class="form-control inputDescripcion" data-id="${producto.id}" value="${producto.nombre}">
+                        html += `<tr class="ordenventa-row">
+                                        <td class="cell-producto">
+                                            <input type="text" class="form-control form-control-sm inputDescripcion" data-id="${producto.id}" value="${producto.nombre}">
+                                            <div class="row-mini d-md-none mt-1">
+                                                <small class="text-muted me-2">Precio:</small>
+                                                <input type="number" class="form-control form-control-sm inputPrecio d-inline-block" style="width:90px;" data-id="${producto.id}" value="${producto.precio_venta}">
+                                                <small class="text-muted ms-2 me-2">Cant:</small>
+                                                <input type="number" class="form-control form-control-sm inputCantidad d-inline-block" style="width:80px;" data-id="${producto.id}" value="${producto.cantidad}">
+                                                <small class="text-muted ms-2 me-1">Sub:</small>
+                                                <span class="fw-semibold">$${producto.subTotalVenta}</span>
+                                            </div>
                                         </td>
-                                        <td>
-                                        <input style="width:125px"; type="number" class="form-control inputPrecio" data-id="${producto.id}" value="${producto.precio_venta}">
+                                        <td class="cell-precio d-none d-md-table-cell text-end">
+                                            <input type="number" class="form-control form-control-sm inputPrecio text-end" style="max-width:110px;display:inline-block;" data-id="${producto.id}" value="${producto.precio_venta}">
                                         </td>
-                                        <td>
-                                        <input style="width:100px"; type="number" class="form-control inputCantidad" data-id="${producto.id}" value="${producto.cantidad}">
+                                        <td class="cell-cantidad d-none d-md-table-cell text-center">
+                                            <input type="number" class="form-control form-control-sm inputCantidad text-center" style="max-width:90px;display:inline-block;" data-id="${producto.id}" value="${producto.cantidad}">
                                         </td>
-                                        <td>${producto.subTotalVenta}</td>
-                                        <td><button class="btn btn-danger btnEliminar" data-id="${producto.id}" type="button"><i class="fas fa-trash"></i></button></td>
+                                        <td class="cell-subtotal d-none d-md-table-cell text-end fw-semibold">$${producto.subTotalVenta}</td>
+                                        <td class="text-center"><button class="btn btn-danger btn-sm btnEliminar" data-id="${producto.id}" type="button" title="Quitar"><i class="fas fa-trash"></i></button></td>
                                     </tr>`;
                     });
                     tblNuevaOrdenVenta.innerHTML = html;

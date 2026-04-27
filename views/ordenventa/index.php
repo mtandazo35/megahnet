@@ -1,4 +1,20 @@
 <?php include_once 'views/templates/header.php'; ?>
+<style>
+  /* Tabla productos en orden de venta — responsive: en md+ se ven todas las columnas,
+     en sm- el precio/cantidad/subtotal se apilan debajo del producto */
+  #tblNuevaOrdenVenta { table-layout: auto; }
+  #tblNuevaOrdenVenta .cell-producto .inputDescripcion { width: 100%; min-width: 200px; }
+  #tblNuevaOrdenVenta .row-mini {
+    display: flex; align-items: center; flex-wrap: wrap; gap: .25rem;
+    background: #f8fafc; padding: .35rem .5rem; border-radius: 6px;
+    margin-top: .35rem;
+  }
+  @media (max-width: 767.98px) {
+    #tblNuevaOrdenVenta thead .text-end,
+    #tblNuevaOrdenVenta thead .text-center { display: none; }
+  }
+</style>
+
 <div class="page-header d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2" id="page-header-modern">
     <div>
         <h4 class="mb-0 fw-semibold"><i class="bx bx-package text-primary me-1"></i>Órdenes de Venta</h4>
@@ -45,18 +61,13 @@
                                     </div>
                                 </div>
 
-                                <!-- Toggles ocultos (compatibilidad con flujos legacy) -->
+                                <!-- Inputs Buscar Renta / Buscar Tipo Pagos eliminados:
+                                     redundantes con el select de Forma de Pago al final del flujo. -->
                                 <div class="d-none">
                                     <input type="radio" id="renta" name="buscarProducto">
                                     <input type="radio" id="nombreTipoPago" name="buscarProducto">
-                                </div>
-                                <div class="input-group d-none mb-2" id="containerRenta">
-                                    <span class="input-group-text"><i class="bx bx-search"></i></span>
-                                    <input class="form-control" type="text" id="buscarRenta" placeholder="Buscar Renta" autocomplete="off">
-                                </div>
-                                <div class="input-group d-none mb-2" id="containerNombreTipoPago">
-                                    <span class="input-group-text"><i class="bx bx-search"></i></span>
-                                    <input class="form-control" type="text" id="buscarTipoPagoNombre" placeholder="Buscar Tipo Pagos" autocomplete="off">
+                                    <input type="text" id="buscarRenta">
+                                    <input type="text" id="buscarTipoPagoNombre">
                                 </div>
 
                                 <div class="input-group mb-2" id="containerCodigo">
