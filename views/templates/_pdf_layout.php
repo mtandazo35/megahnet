@@ -11,7 +11,18 @@ $_e = function ($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); 
 
 // Logo embebido base64 (Dompdf no resuelve URLs externas confiablemente).
 $_logoSrc = '';
-foreach (['logo.png', 'Logo.jpg', 'logo.jpg'] as $_logoName) {
+// Lista de candidatos: 1) configuracion.img de BD, 2) logoedessi.png, 3) defaults
+$_logoCandidates = ['logoedessi.png', 'logo.png', 'Logo.jpg', 'logo.jpg'];
+try {
+    if (defined('HOSTT') && defined('DBNAME') && defined('USER')) {
+        $__pdoLogo = new PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, defined('PASSWORD') ? PASSWORD : '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT, PDO::ATTR_TIMEOUT => 2]);
+        $__rs = $__pdoLogo->query('SELECT img FROM configuracion WHERE id = 1 LIMIT 1');
+        if ($__rs && ($__row = $__rs->fetch(PDO::FETCH_ASSOC))) {
+            if (!empty($__row['img'])) array_unshift($_logoCandidates, $__row['img']);
+        }
+    }
+} catch (\Throwable $e) { /* ignore */ }
+foreach ($_logoCandidates as $_logoName) {
     $_lp = ROOT_PATH . '/assets/images/' . $_logoName;
     if (is_file($_lp)) {
         $_data = @file_get_contents($_lp);
