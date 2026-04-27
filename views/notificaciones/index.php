@@ -23,20 +23,16 @@
 </ul>
 
 <style>
-  /* === Tabs: transicion suave sin saltos === */
-  /* 1) Acortar el fade de Bootstrap (default 150ms con reflow notable) */
-  .tab-pane.fade { transition: opacity .12s ease-out; }
-  /* 2) Cuando se activa, reservar espacio durante la transicion para evitar el "salto" del scroll */
-  #tabsNotif ~ .tab-content { position: relative; min-height: 200px; }
-  /* 3) El tab activo entra con un pequeno desplazamiento desde abajo (sensacion mas fluida) */
-  .tab-pane.fade.show.active {
-    animation: notif-tab-in .18s ease-out;
-  }
-  @keyframes notif-tab-in {
-    from { opacity: 0; transform: translateY(4px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  /* 4) Suprimir cualquier scroll automatico al activar el tab */
+  /* === Tabs: cambio instantaneo, sin animaciones ni reflows visibles === */
+  /* 1) Cero fade — el tab activo aparece de inmediato */
+  .tab-pane.fade { transition: none !important; }
+  .tab-pane.fade:not(.show) { opacity: 0; }
+  .tab-pane.fade.show { opacity: 1; }
+  /* 2) Sin animacion al activar (evita la sensacion de "carga") */
+  .tab-pane.fade.show.active { animation: none !important; }
+  /* 3) Reservar altura minima para que el contenedor no colapse al cambiar */
+  #tabsNotif ~ .tab-content { min-height: 200px; }
+  /* 4) Sin outline al recibir foco automatico */
   .tab-pane:focus { outline: none; }
 
     /* === Polish global de Notificaciones === */
