@@ -31,7 +31,7 @@
   <div class="col">
     <div class="kpi-card kpi-cobro">
       <div class="kpi-body">
-        <div class="kpi-icon"><i class="bx bx-money-withdraw"></i></div>
+        <div class="kpi-icon"><i class="bx bx-dollar-circle"></i></div>
         <div class="flex-grow-1">
           <small class="kpi-label">Cobrado en <?= $mesActual ?></small>
           <h3 class="kpi-value text-success">$<?= number_format($cobMes, 2) ?></h3>
