@@ -176,8 +176,7 @@ document.addEventListener("DOMContentLoaded", function () {
                   } else if (result.isDenied) {
                     const ruta =
                       base_url +
-                      "facturaelectronica/public/archivos/notaCreditos/ride/" + res.ClaveAcces + ".pdf"o +
-                      ".pdf";
+                      "facturaelectronica/public/archivos/notaCreditos/ride/" + res.ClaveAcceso + ".pdf";
                     window.open(ruta, "_blank");
                   }
                   window.location.reload();
