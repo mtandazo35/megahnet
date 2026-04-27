@@ -849,4 +849,89 @@
   </div>
 </div>
 
+<script>
+(function(){
+  function init() {
+    var modalEl = document.getElementById('modalNuevaPlantilla');
+    var btnOpen = document.getElementById('btnNuevaPlantilla');
+    var btnCrear = document.getElementById('btnCrearPlantilla');
+    var inpKey = document.getElementById('np_key');
+    var inpDesc = document.getElementById('np_desc');
+    if (!modalEl || !btnOpen || !btnCrear || !inpKey || !inpDesc) return;
+    if (btnOpen.dataset.bound === '1') return;
+    btnOpen.dataset.bound = '1';
+
+    inpKey.addEventListener('input', function(){
+      var v = this.value.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_');
+      if (v !== this.value) { var pos = this.selectionStart; this.value = v; this.setSelectionRange(pos, pos); }
+    });
+
+    btnOpen.addEventListener('click', function(){
+      inpKey.value = ''; inpDesc.value = '';
+      var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+      setTimeout(function(){ inpKey.focus(); }, 250);
+    });
+
+    btnCrear.addEventListener('click', function(){
+      var key = (inpKey.value || '').trim();
+      var desc = (inpDesc.value || '').trim();
+      if (!key) {
+        if (typeof Swal !== 'undefined') Swal.fire({icon:'warning', title:'Falta el identificador', text:'Escribe un nombre para la plantilla'});
+        else alert('Escribe un nombre para la plantilla');
+        return;
+      }
+      if (document.querySelector('.plantilla-item[data-key="' + key + '"]')) {
+        if (typeof Swal !== 'undefined') Swal.fire({icon:'error', title:'Ya existe', text:'Ya existe una plantilla con ese identificador'});
+        else alert('Ya existe una plantilla con ese identificador');
+        return;
+      }
+      btnCrear.disabled = true;
+      btnCrear.innerHTML = '<i class="bx bx-loader bx-spin me-1"></i>Creando...';
+      fetch(base_url + 'notificaciones/guardarPlantilla', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: key, descripcion: desc, asunto: '', cuerpo: '' })
+      }).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) {
+          if (typeof Swal !== 'undefined') Swal.fire({icon:'error', title:'Error', text: d.msg || 'No se pudo crear'});
+          else alert(d.msg || 'No se pudo crear');
+          return;
+        }
+        var lista = document.getElementById('plantilla-lista');
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'list-group-item list-group-item-action plantilla-item';
+        btn.dataset.key = key;
+        btn.innerHTML = '<div class="pl-key">' + key + '</div><div class="pl-desc">' + (desc || '') + '</div>';
+        btn.addEventListener('click', function(){
+          document.querySelectorAll('.plantilla-item').forEach(function(b){ b.classList.remove('active'); });
+          btn.classList.add('active');
+          window.plantillaActual = key;
+          document.querySelector('#plantilla-key').textContent = '— ' + key;
+          document.querySelector('#pl_descripcion').value = desc || '';
+          document.querySelector('#pl_asunto').value = '';
+          document.querySelector('#pl_cuerpo').value = '';
+        });
+        lista.appendChild(btn);
+        var cnt = document.getElementById('plantillaCount');
+        if (cnt) cnt.textContent = String((parseInt(cnt.textContent, 10) || 0) + 1);
+        bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        btn.click();
+        if (typeof Swal !== 'undefined') Swal.fire({icon:'success', title:'Plantilla creada', timer:1500, showConfirmButton:false});
+      }).catch(function(e){ alert('Error: ' + e.message); })
+        .finally(function(){
+          btnCrear.disabled = false;
+          btnCrear.innerHTML = '<i class="bx bx-check me-1"></i>Crear';
+        });
+    });
+
+    inpKey.addEventListener('keypress', function(e){ if (e.key === 'Enter') { e.preventDefault(); inpDesc.focus(); } });
+    inpDesc.addEventListener('keypress', function(e){ if (e.key === 'Enter') { e.preventDefault(); btnCrear.click(); } });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+
 <?php include_once 'views/templates/footer.php'; ?>
