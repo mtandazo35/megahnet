@@ -324,27 +324,34 @@ class Productos extends Controller
         $json = file_get_contents('php://input');
         $datos = json_decode($json, true);
         $array['productos'] = array();
-        $totalCompra = 0;
+        $totalCompra = 0;       // CON IVA (lo que el user paga realmente)
+        $totalCompraSinIva = 0; // sin IVA (solo informativo)
         $totalVenta = 0;
         if (!empty($datos)) {
             foreach ($datos as $producto) {
-                //print_r($producto); exit;
                 $result = $this->model->editar($producto['id']);
                 $data['id'] = $result['id'];
-                $data['nombre'] = $producto['nombre']; //$result['descripcion']; eso es el dato de la tabla prodcuto, nombre original con $result es nombre original de $producto es nombre modificado
+                $data['nombre'] = $producto['nombre'];
                 $data['precio_compra']  =  number_format((empty($producto['precio'])) ? 0 : $producto['precio'], 2, '.', '');
                 $data['precio_venta'] = number_format((empty($producto['precio'])) ? 0 : $producto['precio'], 2, '.', '');
                 $data['cantidad'] = $producto['cantidad'];
                 $subTotalCompra =  $data['precio_compra'] * $producto['cantidad'];
                 $subTotalVenta = $data['precio_venta'] * $producto['cantidad'];
-                $data['subTotalCompra'] = number_format($subTotalCompra, 2);
+                // Aplicar IVA por producto si su iva > 0 (15%, 12%, etc segun configuracion)
+                $ivaProd = (float)($result['iva'] ?? 0);
+                $subTotalConIva = ($ivaProd > 0)
+                    ? round($subTotalCompra * (1 + $ivaProd / 100), 2)
+                    : $subTotalCompra;
+                $data['subTotalCompra'] = number_format($subTotalCompra, 2); // sin IVA en la tabla
                 $data['subTotalVenta'] = number_format($subTotalVenta, 2);
                 array_push($array['productos'], $data);
-                $totalCompra += $subTotalCompra;
+                $totalCompra += $subTotalConIva;
+                $totalCompraSinIva += $subTotalCompra;
                 $totalVenta += $subTotalVenta;
             }
         }
-        $array['totalCompra'] = number_format($totalCompra, 2);
+        $array['totalCompra'] = number_format($totalCompra, 2);             // con IVA -> Total a Pagar
+        $array['totalCompraSinIva'] = number_format($totalCompraSinIva, 2); // sin IVA -> referencia
         $array['totalVenta'] = number_format($totalVenta, 2);
         $array['totalVentaHidden'] = $totalVenta;
 

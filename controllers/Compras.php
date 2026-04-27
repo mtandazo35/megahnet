@@ -52,9 +52,15 @@ class Compras extends Controller
                     $data['precio'] = $producto['precio'];
                     $data['cantidad'] = $producto['cantidad'];
                     $data['iva_producto'] = $result['iva'];
-                    $subTotal = $result['precio_compra'] * $producto['cantidad'];
+                    // Usar el precio editado por el user (no el de BD que puede estar desactualizado)
+                    $subTotal = (float)$producto['precio'] * (float)$producto['cantidad'];
+                    // Aplicar IVA si el producto es gravado
+                    $ivaProd = (float)($result['iva'] ?? 0);
+                    $subTotalConIva = ($ivaProd > 0)
+                        ? round($subTotal * (1 + $ivaProd / 100), 2)
+                        : $subTotal;
                     array_push($array['productos'], $data);
-                    $total += $subTotal;
+                    $total += $subTotalConIva;
                 }
                 if ($saldo['saldo'] >= $total) { // esta validacion es para registrar una compra, se necesita tener saldo en la caja para realizar comprar de cantidades alta
                     $datosProductos = json_encode($array['productos'], JSON_UNESCAPED_UNICODE);
@@ -124,19 +130,20 @@ class Compras extends Controller
     {
         $data = $this->model->getCompras();
         for ($i = 0; $i < count($data); $i++) {
-            // Recalcular total real desde el JSON de productos (el campo total en BD puede estar mal)
+            // Recalcular total real desde el JSON de productos (incluye IVA si el producto es gravado)
             $totalReal = 0;
             $cantidadTotal = 0;
             $prods = !empty($data[$i]['productos']) ? json_decode($data[$i]['productos'], true) : [];
             if (is_array($prods)) {
                 foreach ($prods as $p) {
-                    $cant  = (float)($p['cantidad'] ?? 0);
-                    $prec  = (float)($p['precio']   ?? 0);
-                    $totalReal     += $cant * $prec;
+                    $cant   = (float)($p['cantidad'] ?? 0);
+                    $prec   = (float)($p['precio']   ?? 0);
+                    $ivaP   = (float)($p['iva_producto'] ?? 0);
+                    $sub    = $cant * $prec;
+                    $totalReal     += ($ivaP > 0) ? round($sub * (1 + $ivaP/100), 2) : $sub;
                     $cantidadTotal += $cant;
                 }
             }
-            // Si recalculo dio mas que el guardado, usar el real; sino conservar el de BD
             if ($totalReal > 0) $data[$i]['total'] = number_format($totalReal, 2);
             $data[$i]['cantidad_total'] = (int)$cantidadTotal;
 
