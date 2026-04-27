@@ -134,9 +134,13 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelector('#wa-phone').textContent = d.phone || '-';
         if (d.estado === 'open' || d.estado === 'connected') {
           const m = bootstrap.Modal.getInstance(document.querySelector('#modalQrWa'));
+          const wasModalOpen = !!m;
           if (m) m.hide();
-          if (waQrTimer) { clearInterval(waQrTimer); waQrTimer = null; }
-          if (!silencioso) Swal.fire({ icon:'success', title:'WhatsApp vinculado', text:'Numero ' + (d.phone||''), timer: 2500 });
+          if (waQrTimer)   { clearInterval(waQrTimer);   waQrTimer = null; }
+          if (waPollTimer) { clearInterval(waPollTimer); waPollTimer = null; }
+          if (wasModalOpen || !silencioso) {
+            Swal.fire({ icon:'success', title:'WhatsApp vinculado', text:'Numero ' + (d.phone||''), timer: 2500 });
+          }
         }
         return d;
       });
