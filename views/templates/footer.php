@@ -119,14 +119,23 @@
             try {
                 var key = 'DT_state_v4_' + (settings.sTableId || 'default');
                 localStorage.setItem(key, JSON.stringify(data));
-            } catch (e) { /* localStorage lleno o bloqueado */ }
+                if (window.__mhnDtDebug) console.log('[DT save]', key, data);
+            } catch (e) { console.error('[DT save error]', e); }
         },
         stateLoadCallback: function (settings) {
             try {
                 var key = 'DT_state_v4_' + (settings.sTableId || 'default');
                 var raw = localStorage.getItem(key);
+                if (window.__mhnDtDebug) console.log('[DT load]', key, raw ? 'FOUND' : 'EMPTY');
                 return raw ? JSON.parse(raw) : null;
-            } catch (e) { return null; }
+            } catch (e) { console.error('[DT load error]', e); return null; }
+        },
+        // Trigger state save on common events para asegurar persistencia
+        initComplete: function(settings) {
+            var api = this.api();
+            api.on('order.dt search.dt page.dt length.dt column-reorder.dt column-visibility.dt', function(){
+                api.state.save();
+            });
         },
 
         language: {
