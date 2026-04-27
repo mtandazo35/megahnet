@@ -308,6 +308,11 @@ INNER JOIN datos_cabecera_electronica dce ON dce.id=cr.id_electronica";
                         WHEN cr.id_orden_venta IS NOT NULL THEN cl.nombre
                         ELSE ''
                     END AS nombre,
+                    CASE
+                        WHEN cr.id_electronica IS NOT NULL THEN dce.telefono
+                        WHEN cr.id_orden_venta IS NOT NULL THEN cl.telefono
+                        ELSE ''
+                    END AS telefono_cliente,
                     IFNULL((SELECT SUM(a.abono) FROM abonos a WHERE a.id_credito = cr.id), 0) AS abonado
                 FROM creditos cr
                 LEFT JOIN datos_cabecera_electronica dce ON cr.id_electronica = dce.orden_no

@@ -66,7 +66,7 @@
                                 <th>N° Electronica</th>
                                 <th>N° Orden Venta</th>
                                 <th></th>
-                            </tr>
+                            <th>Notificar</th></tr>
                         </thead>
 
                         <tbody>

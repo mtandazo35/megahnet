@@ -43,16 +43,24 @@ class Creditos extends Controller
             $c['venta'] = $c['id_venta'] ? 'N°: ' . $c['id_venta'] : '';
             $c['electronica'] = $c['id_electronica'] ? 'N°: ' . $c['id_electronica'] : '';
             $c['ordenventa'] = $c['id_orden_venta'] ? 'N°: ' . $c['id_orden_venta'] : '';
-            $c['acciones'] = '<a class="btn btn-danger" href="' . BASE_URL . 'creditos/reporte/' . $c['id'] . '" target="_blank"><i class="fas fa-file-pdf"></i></a>';
+            $c['acciones'] = '<a class="btn btn-danger btn-sm" href="' . BASE_URL . 'creditos/reporte/' . $c['id'] . '" target="_blank" title="Reporte PDF"><i class="fas fa-file-pdf"></i></a>';
+            $tieneTelefono = !empty($c['telefono_cliente']);
             if ($c['estado'] == 1) {
                 $c['estado'] = '<span class="badge bg-warning">PENDIENTE</span>';
                 $c['ch'] = '<div class="btn-group-toggle" data-toggle="buttons"><label class="btn btn-primary"><input type="checkbox" id="' . $c['id'] . '" value="' . $restante . '"></label></div>';
+                $c['notif'] = $tieneTelefono
+                    ? '<button class="btn btn-warning btn-sm btn-notif-credito" data-id="' . $c['id'] . '" data-tipo="pendiente" title="Notificar pago pendiente al cliente"><i class="bx bx-bell"></i> Pendiente</button>'
+                    : '<span class="text-muted small" title="Sin telefono">—</span>';
             } else if ($c['estado'] == 2) {
                 $c['estado'] = '<span class="badge bg-danger">ANULADO</span>';
                 $c['ch'] = '';
+                $c['notif'] = '';
             } else {
                 $c['estado'] = '<span class="badge bg-success">COMPLETADO</span>';
                 $c['ch'] = '';
+                $c['notif'] = $tieneTelefono
+                    ? '<button class="btn btn-success btn-sm btn-notif-credito" data-id="' . $c['id'] . '" data-tipo="pagado" title="Confirmar al cliente que su pago fue recibido"><i class="bx bx-check-circle"></i> Pagado</button>'
+                    : '<span class="text-muted small" title="Sin telefono">—</span>';
             }
         }
 
@@ -648,6 +656,130 @@ class Creditos extends Controller
         echo json_encode($res);
         die();
     }
+    public function notificarCliente($idCredito = 0)
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        if (empty($_SESSION['id_usuario'])) { echo json_encode(['ok'=>false,'msg'=>'No autorizado']); exit; }
+        $idCredito = (int)$idCredito;
+        if ($idCredito <= 0) { echo json_encode(['ok'=>false,'msg'=>'ID invalido']); exit; }
+
+        // Cargar datos del credito + cliente
+        $row = $this->model->getCreditosConAbonosPaginado(0, 1, '', 1);
+        // El metodo de arriba filtra por estado=1, no sirve para arbitrario.
+        // Hacemos query directa por id:
+        try {
+            $pdo = new PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, PASSWORD,
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT]);
+            $st = $pdo->prepare("SELECT cr.*,
+                CASE WHEN cr.id_electronica IS NOT NULL THEN dce.cliente
+                     WHEN cr.id_orden_venta IS NOT NULL THEN cl.nombre ELSE '' END AS nombre,
+                CASE WHEN cr.id_electronica IS NOT NULL THEN dce.telefono
+                     WHEN cr.id_orden_venta IS NOT NULL THEN cl.telefono ELSE '' END AS telefono,
+                IFNULL((SELECT SUM(a.abono) FROM abonos a WHERE a.id_credito = cr.id), 0) AS abonado
+                FROM creditos cr
+                LEFT JOIN datos_cabecera_electronica dce ON cr.id_electronica = dce.orden_no
+                LEFT JOIN orden_venta ov ON cr.id_orden_venta = ov.id
+                LEFT JOIN clientes cl ON ov.id_cliente = cl.id
+                WHERE cr.id = ? LIMIT 1");
+            $st->execute([$idCredito]);
+            $r = $st->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            echo json_encode(['ok'=>false,'msg'=>'Error BD: '.$e->getMessage()]); exit;
+        }
+        if (!$r) { echo json_encode(['ok'=>false,'msg'=>'Credito no encontrado']); exit; }
+
+        $tel = preg_replace('/[^0-9]/', '', (string)($r['telefono'] ?? ''));
+        if (empty($tel)) { echo json_encode(['ok'=>false,'msg'=>'Cliente sin telefono']); exit; }
+        // Normalizar a +593 si es local
+        if (strlen($tel) === 10 && $tel[0] === '0') $tel = '593' . substr($tel, 1);
+        elseif (strlen($tel) === 9) $tel = '593' . $tel;
+
+        $estado = (int)$r['estado'];
+        $monto    = (float)$r['monto'];
+        $abonado  = (float)$r['abonado'];
+        $restante = $monto - $abonado;
+
+        // Decidir plantilla segun estado
+        $plantillaKey = ($estado === 1) ? 'whatsapp_recordatorio' : (($estado === 0 || $estado === 3) ? 'whatsapp_pago_recibido' : null);
+        if (!$plantillaKey) { echo json_encode(['ok'=>false,'msg'=>'Estado del credito no notificable']); exit; }
+
+        // Renderizar plantilla
+        $vars = [
+            'cliente_nombre'   => trim($r['nombre'] ?? ''),
+            'cliente_saldo'    => number_format($restante, 2),
+            'cliente_telefono' => $tel,
+            'servicio_meses'   => '',
+        ];
+        if (function_exists('renderPlantilla')) {
+            $tpl = renderPlantilla($plantillaKey, $vars);
+            $cuerpo = is_array($tpl) ? ($tpl['cuerpo'] ?? '') : '';
+        } else {
+            $cuerpo = '';
+        }
+        if (empty($cuerpo)) {
+            // Fallback simple
+            $cuerpo = ($estado === 1)
+                ? '*Recordatorio de pago*' . PHP_EOL . PHP_EOL . 'Estimado/a ' . $vars['cliente_nombre'] . ', tienes un saldo pendiente de $' . $vars['cliente_saldo'] . '.'
+                : '*Pago recibido*' . PHP_EOL . PHP_EOL . 'Estimado/a ' . $vars['cliente_nombre'] . ', confirmamos la recepcion de tu pago. Gracias!';
+        }
+
+        // Resolver URL del WhatsApp API (servicios.json -> alertas-config.json -> default)
+        $waBase = '';
+        if (function_exists('servicioConfig')) {
+            $svc = servicioConfig('whatsapp_api');
+            $waBase = $svc['base_url'] ?? '';
+        }
+        if (empty($waBase)) {
+            $f = ROOT_PATH . '/storage/alertas-config.json';
+            if (file_exists($f)) {
+                $j = @json_decode(@file_get_contents($f), true);
+                $waBase = $j['wa_api']['base_url'] ?? '';
+            }
+        }
+        if (empty($waBase)) $waBase = 'http://127.0.0.1:3005';
+        $waBase = rtrim($waBase, '/');
+
+        // Buscar session_id activa
+        $sessionId = '';
+        $f = ROOT_PATH . '/storage/alertas-config.json';
+        if (file_exists($f)) {
+            $j = @json_decode(@file_get_contents($f), true);
+            $sessionId = $j['wa_api']['session_id'] ?? '';
+        }
+        if (empty($sessionId)) { echo json_encode(['ok'=>false,'msg'=>'No hay sesion WhatsApp vinculada']); exit; }
+
+        // Enviar via WhatsApp API
+        $payload = [
+            'sessionId' => $sessionId,
+            'number'    => $tel,
+            'message'   => $cuerpo,
+        ];
+        $ch = curl_init($waBase . '/api/whatsapp/send?fastMode=true');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+        $resp = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err  = curl_error($ch);
+        curl_close($ch);
+
+        $ok = ($code >= 200 && $code < 300);
+        echo json_encode([
+            'ok' => $ok,
+            'tipo' => ($estado === 1) ? 'pendiente' : 'pagado',
+            'telefono' => $tel,
+            'http' => $code,
+            'error' => $err ?: null,
+        ]);
+        exit;
+    }
+
     public function reporte($idCredito)
     {
         ob_start();

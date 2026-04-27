@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: 'abonado' },
             { data: 'restante' },
             { data: 'estado' },
+            { data: 'notif' },
             { data: 'electronica' },
             { data: 'ordenventa' },
             { data: 'acciones' }
@@ -521,3 +522,39 @@ function eliminarAbono(idAbono) {
 
 }
 
+
+
+// Handler para boton "Notificar pagado/pendiente" en tabla creditos
+$(document).on('click', '.btn-notif-credito', function(){
+    var btn = this;
+    var id = btn.dataset.id;
+    var tipo = btn.dataset.tipo;
+    if (!id) return;
+    var msg = (tipo === 'pagado')
+        ? 'Se enviara confirmacion de pago al cliente via WhatsApp'
+        : 'Se enviara recordatorio de pago pendiente via WhatsApp';
+    Swal.fire({
+        icon: 'question',
+        title: 'Confirmar envio?',
+        text: msg,
+        showCancelButton: true,
+        confirmButtonText: 'Si, enviar',
+        cancelButtonText: 'Cancelar'
+    }).then(function(r){
+        if (!r.isConfirmed) return;
+        btn.disabled = true;
+        var prev = btn.innerHTML;
+        btn.innerHTML = '<i class="bx bx-loader bx-spin"></i>';
+        fetch(base_url + 'creditos/notificarCliente/' + id, { method: 'POST', credentials: 'same-origin' })
+            .then(function(res){ return res.json(); })
+            .then(function(d){
+                if (d.ok) {
+                    Swal.fire({icon:'success', title:'Mensaje enviado', text:'WhatsApp a +' + d.telefono, timer:2200});
+                } else {
+                    Swal.fire({icon:'error', title:'No se pudo enviar', text: d.msg || ('HTTP ' + (d.http || '?'))});
+                }
+            })
+            .catch(function(e){ Swal.fire({icon:'error', title:'Error', text:e.message}); })
+            .finally(function(){ btn.disabled = false; btn.innerHTML = prev; });
+    });
+});

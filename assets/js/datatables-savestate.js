@@ -34,14 +34,14 @@
 
         // Crear el grupo de botones nuestro
         var group = document.createElement('div');
-        group.className = 'btn-group btn-group-sm mhn-dt-savegroup ms-2';
-        group.style.cssText = 'vertical-align: middle; margin-bottom: .35rem;';
+        group.className = 'd-inline-flex align-items-center mhn-dt-savegroup ms-2';
+        group.style.cssText = 'vertical-align: middle; margin-bottom: .35rem; gap: .5rem;';
         group.innerHTML =
-            '<button type="button" class="btn btn-outline-success mhn-dt-save" title="Guardar diseno (orden de columnas, sort, paginacion, busqueda, anchos)">' +
-            '<i class="bx bx-save"></i> Guardar diseno' +
+            '<button type="button" class="btn btn-sm btn-success mhn-dt-save" title="Guardar el orden, sort, paginacion, busqueda y anchos actuales" style="border-radius:8px; padding:.4rem .9rem; font-weight:500; box-shadow:0 2px 4px rgba(16,185,129,.18);">' +
+            '<i class="bx bx-save me-1"></i>Guardar diseño' +
             '</button>' +
-            '<button type="button" class="btn btn-outline-secondary mhn-dt-reset" title="Restaurar diseno por defecto">' +
-            '<i class="bx bx-eraser"></i>' +
+            '<button type="button" class="btn btn-sm btn-outline-secondary mhn-dt-reset" title="Restaurar diseno por defecto" style="border-radius:8px; padding:.4rem .8rem; font-weight:500;">' +
+            '<i class="bx bx-eraser me-1"></i>Resetear' +
             '</button>';
 
         // Insertar despues del primer .dt-buttons o al inicio del wrapper
