@@ -12,7 +12,8 @@ RUN git config --global url."https://github.com/".insteadOf "git@github.com:" \
  && git config --global url."https://".insteadOf "git+ssh://git@" \
  && git config --global url."https://github.com/".insteadOf "git+ssh://git@github.com/"
 COPY package.json package-lock.json ./
-RUN npm ci
+# npm install (no ci) porque el lock esta desincronizado del package.json
+RUN npm install --no-audit --no-fund
 
 FROM node:20-bookworm-slim AS builder
 WORKDIR /app
@@ -29,7 +30,8 @@ RUN git config --global url."https://github.com/".insteadOf "git@github.com:" \
  && git config --global url."https://".insteadOf "git+ssh://git@" \
  && git config --global url."https://github.com/".insteadOf "git+ssh://git@github.com/"
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+# npm install (no ci) porque el lock esta desincronizado del package.json
+RUN npm install --omit=dev --no-audit --no-fund && npm cache clean --force
 
 FROM node:20-bookworm-slim AS runner
 WORKDIR /app
