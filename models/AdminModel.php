@@ -282,12 +282,15 @@ HAVING COUNT(*) > $estado) AS subconsulta";
      */
     public function getCobrosDesglose($yyyymm)
     {
+        // Excluir tipo_pago='RETENCIONES': son montos retenidos al cliente, no cobros reales.
+        // Se muestran aparte en la tarjeta de Retenciones.
         $sql = "SELECT
                     COALESCE(NULLIF(TRIM(tipo_pago), ''), 'SIN ESPECIFICAR') AS tipo_pago,
                     COUNT(*)            AS cantidad,
                     COALESCE(SUM(abono), 0) AS total
                 FROM abonos
                 WHERE LEFT(fecha, 7) = ?
+                  AND UPPER(TRIM(IFNULL(tipo_pago, ''))) <> 'RETENCIONES'
                 GROUP BY tipo_pago
                 ORDER BY total DESC";
         return $this->selectAll($sql, [$yyyymm]);

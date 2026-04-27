@@ -211,9 +211,9 @@
       <!-- Retenciones -->
       <div class="col-lg-6 col-xl-3">
         <div class="border rounded p-3 h-100" style="background:#fefce8;">
-          <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="mb-2">
             <strong class="text-warning"><i class="bx bx-shield-alt-2 me-1"></i>Retenciones</strong>
-            <span class="badge bg-warning text-dark"><?= $fmt($totRetenciones) ?></span>
+            <small class="text-muted d-block">Solo informativo — no afecta el saldo</small>
           </div>
           <?php if (!empty($retencionesD)): ?>
             <table class="table table-sm mb-0" style="font-size:.78rem;">
@@ -276,7 +276,6 @@
           <div class="text-end" style="font-size:.82rem;">
             <div><span class="text-muted">Cobros:</span> <span class="text-success fw-semibold"><?= $fmt($totCobros) ?></span></div>
             <div><span class="text-muted">Egresos:</span> <span class="text-danger fw-semibold"><?= $fmt($totEgresos) ?></span></div>
-            <div><span class="text-muted">Retenciones emitidas:</span> <span class="text-warning fw-semibold"><?= $fmt($totRetenciones) ?></span></div>
           </div>
         </div>
       </div>
