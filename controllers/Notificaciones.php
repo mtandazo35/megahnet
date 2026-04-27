@@ -525,8 +525,7 @@ class Notificaciones extends Controller
             $payload = [
                 'sessionId' => $sessionId,
                 'number'    => $tel,
-                'url'       => (string)$bodyIn['mediaUrl'],
-                'fileName'  => (string)($bodyIn['fileName'] ?? 'archivo.pdf'),
+                'mediaUrl'  => (string)$bodyIn['mediaUrl'],
                 'caption'   => (string)($bodyIn['message'] ?? ''),
             ];
             $ch = curl_init(rtrim($base,'/') . '/api/whatsapp/send-media/url');
