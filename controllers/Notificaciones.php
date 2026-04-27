@@ -510,8 +510,57 @@ class Notificaciones extends Controller
 
     public function waEnviarPrueba()
     {
-        // Soporte para envio de media (PDF, imagen) cuando se pasa mediaUrl en el body
+        // Soporte para envio de media (PDF, imagen)
+        // Si se pasa mediaPath -> upload multipart directo (evita problemas con CF/red)
+        // Si se pasa mediaUrl  -> intentar extraer ruta local del propio dominio, sino mandar URL
         $bodyIn = json_decode(file_get_contents('php://input'), true) ?: [];
+        $mediaLocalPath = '';
+        if (!empty($bodyIn['mediaPath'])) {
+            $mp = ROOT_PATH . '/' . ltrim((string)$bodyIn['mediaPath'], '/');
+            if (file_exists($mp) && is_file($mp)) $mediaLocalPath = $mp;
+        }
+        if (empty($mediaLocalPath) && !empty($bodyIn['mediaUrl'])) {
+            // Intentar mapear URL publica a path local del filesystem
+            $u = parse_url((string)$bodyIn['mediaUrl']);
+            $hostUrl = parse_url(defined('BASE_URL') ? BASE_URL : '');
+            if (!empty($u['path']) && (!isset($u['host']) || (isset($hostUrl['host']) && $u['host'] === $hostUrl['host']))) {
+                $candidate = ROOT_PATH . $u['path'];
+                if (file_exists($candidate) && is_file($candidate)) $mediaLocalPath = $candidate;
+            }
+        }
+        // Caso: tenemos archivo local -> upload multipart al WA API
+        if (!empty($mediaLocalPath)) {
+            header('Content-Type: application/json; charset=utf-8');
+            $tel = preg_replace('/[^0-9]/', '', (string)($bodyIn['number'] ?? ''));
+            if (empty($tel)) { echo json_encode(['ok'=>false,'msg'=>'Sin numero']); exit; }
+            if (strlen($tel) === 10 && $tel[0] === '0') $tel = '593' . substr($tel, 1);
+            elseif (strlen($tel) === 9) $tel = '593' . $tel;
+            $base = $this->waBaseUrl();
+            $cfg = $this->cargarConfig();
+            $sessionId = $cfg['wa_api']['session_id'] ?? '';
+            if (empty($base) || empty($sessionId)) { echo json_encode(['ok'=>false,'msg'=>'WhatsApp no configurado']); exit; }
+
+            $cfile = new CURLFile($mediaLocalPath, mime_content_type($mediaLocalPath) ?: 'application/octet-stream', basename($mediaLocalPath));
+            $payload = [
+                'sessionId' => $sessionId,
+                'number'    => $tel,
+                'caption'   => (string)($bodyIn['message'] ?? ''),
+                'files'     => $cfile,
+            ];
+            $ch = curl_init(rtrim($base,'/') . '/api/whatsapp/send-media/file');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => $payload,
+                CURLOPT_TIMEOUT => 60, CURLOPT_SSL_VERIFYPEER => false,
+            ]);
+            $resp = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $err  = curl_error($ch);
+            curl_close($ch);
+            echo json_encode(['ok'=>($code>=200 && $code<300), 'http'=>$code, 'error'=>$err ?: null, 'sample'=> is_string($resp) ? mb_substr($resp,0,200) : null]);
+            exit;
+        }
+        // Fallback antiguo: mediaUrl externa (puede fallar si pasa por CF)
         if (!empty($bodyIn['mediaUrl'])) {
             header('Content-Type: application/json; charset=utf-8');
             $tel = preg_replace('/[^0-9]/', '', (string)($bodyIn['number'] ?? ''));
