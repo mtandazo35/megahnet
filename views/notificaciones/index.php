@@ -243,7 +243,7 @@
         <div class="row g-3">
           <div class="col-lg-7">
             <label class="form-label fw-semibold mb-1" for="cfg_destinatarios">Destinatarios</label>
-            <textarea id="cfg_destinatarios" class="form-control" rows="4" placeholder="admin@empresa.com&#10;contador@empresa.com"><?php echo htmlspecialchars(implode("\n", $data['config']['destinatarios'] ?? [])); ?></textarea>
+            <textarea id="cfg_destinatarios" class="form-control" rows="2" style="resize:vertical;min-height:42px;" placeholder="admin@empresa.com&#10;contador@empresa.com"><?php echo htmlspecialchars(implode("\n", $data['config']['destinatarios'] ?? [])); ?></textarea>
             <small class="cfg-help">Uno por linea o separados por coma. Si esta vacio se usa <code>USER_SMTP</code> por defecto.</small>
           </div>
           <div class="col-lg-5">
