@@ -707,14 +707,54 @@ class Creditos extends Controller
         $abonado  = (float)$r['abonado'];
         $restante = $monto - $abonado;
 
+        // Calcular SALDO TOTAL REAL del cliente: suma de restantes de TODOS sus creditos pendientes
+        // Esto es lo que el cliente realmente debe en este momento.
+        $saldoTotalCliente = $restante;
+        try {
+            // Identificar al cliente segun el origen del credito
+            $clienteIdentidad = null;
+            if (!empty($r['id_orden_venta'])) {
+                $stCli = $pdo->prepare("SELECT cl.id FROM orden_venta ov INNER JOIN clientes cl ON cl.id = ov.id_cliente WHERE ov.id = ? LIMIT 1");
+                $stCli->execute([$r['id_orden_venta']]);
+                $cliRow = $stCli->fetch(PDO::FETCH_ASSOC);
+                if ($cliRow) $clienteIdentidad = ['tipo'=>'idCliente', 'val'=>$cliRow['id']];
+            } elseif (!empty($r['id_electronica'])) {
+                $stCli = $pdo->prepare("SELECT ruc FROM datos_cabecera_electronica WHERE orden_no = ? LIMIT 1");
+                $stCli->execute([$r['id_electronica']]);
+                $cliRow = $stCli->fetch(PDO::FETCH_ASSOC);
+                if ($cliRow) $clienteIdentidad = ['tipo'=>'ruc', 'val'=>$cliRow['ruc']];
+            }
+            if ($clienteIdentidad) {
+                if ($clienteIdentidad['tipo'] === 'idCliente') {
+                    $sql = "SELECT SUM(cr.monto - IFNULL((SELECT SUM(a.abono) FROM abonos a WHERE a.id_credito = cr.id), 0)) AS saldo_total
+                            FROM creditos cr
+                            INNER JOIN orden_venta ov ON ov.id = cr.id_orden_venta
+                            WHERE ov.id_cliente = ? AND cr.estado = 1";
+                    $stT = $pdo->prepare($sql);
+                    $stT->execute([$clienteIdentidad['val']]);
+                } else {
+                    $sql = "SELECT SUM(cr.monto - IFNULL((SELECT SUM(a.abono) FROM abonos a WHERE a.id_credito = cr.id), 0)) AS saldo_total
+                            FROM creditos cr
+                            INNER JOIN datos_cabecera_electronica dce ON dce.orden_no = cr.id_electronica
+                            WHERE dce.ruc = ? AND cr.estado = 1";
+                    $stT = $pdo->prepare($sql);
+                    $stT->execute([$clienteIdentidad['val']]);
+                }
+                $rt = $stT->fetch(PDO::FETCH_ASSOC);
+                if ($rt && $rt['saldo_total'] !== null) {
+                    $saldoTotalCliente = (float)$rt['saldo_total'];
+                }
+            }
+        } catch (\Throwable $e) { /* fallback al restante de este credito */ }
+
         // Decidir plantilla segun estado
         $plantillaKey = ($estado === 1) ? 'whatsapp_recordatorio' : (($estado === 0 || $estado === 3) ? 'whatsapp_pago_recibido' : null);
         if (!$plantillaKey) { echo json_encode(['ok'=>false,'msg'=>'Estado del credito no notificable']); exit; }
 
-        // Renderizar plantilla
+        // Renderizar plantilla con SALDO TOTAL REAL del cliente
         $vars = [
             'cliente_nombre'   => trim($r['nombre'] ?? ''),
-            'cliente_saldo'    => number_format($restante, 2),
+            'cliente_saldo'    => number_format(max(0, $saldoTotalCliente), 2),
             'cliente_telefono' => $tel,
             'servicio_meses'   => '',
         ];
