@@ -82,7 +82,7 @@ $dias = ($firmaFinalSegundos !== false)
                         <div class="col-md-7">
                             <label>Buscar Clave de Acceso</label>
                             <div class="input-group mb-2">
-                                <input class="form-control" type="text" id="buscarFacturaNC" placeholder="Ingrese número de factura o clave de acceso">
+                                <input class="form-control" type="text" id="buscarFacturaNC" placeholder="Clave de acceso (49 dig), N° de orden o secuencial">
                                 <button class="btn btn-secondary" type="button" id="btnBuscarFacturaNC"><i class="fas fa-search"></i></button>
                                 <input type="hidden" name="orden_no" id="orden_no">
                                 <input type="hidden" name="idCliente" id="idCliente">

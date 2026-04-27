@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Tomamos la primera coincidencia
             const factura = data[0];
-            buscarFacturaNC.vaue = factura.claveAcceso;
+            buscarFacturaNC.value = factura.claveAcceso;
             document.querySelector("#clienteNC").value = factura.cliente;
             document.querySelector("#fechaFacturaNC").value =
               factura.fechaFactura;

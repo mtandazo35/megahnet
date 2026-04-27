@@ -17,11 +17,42 @@ class notaCreditoModel extends Query
         return $this->select($sql);
     }
 
-    public function buscarPorClaveAcceso($claveAcceso)
+    public function buscarPorClaveAcceso($valor)
     {
-        $sql = "SELECT id,fecha,orden_no,cliente,ruc,id_cliente,tipo_identificacion,establecimiento,punto_emi,obligado,totalfactura,claveacceso,secuencial FROM datos_cabecera_electronica 
-        WHERE claveacceso = '$claveAcceso'";
-        return $this->select($sql);
+        // Normalizar: quitar espacios y guiones que el user puede haber pegado
+        $clean = preg_replace('/[^0-9]/', '', (string)$valor);
+        $cols  = "id,fecha,orden_no,cliente,ruc,id_cliente,tipo_identificacion,establecimiento,punto_emi,obligado,totalfactura,claveacceso,secuencial";
+
+        // 1) Match exacto por clave de acceso (49 digitos)
+        if (strlen($clean) === 49) {
+            $sql = "SELECT $cols FROM datos_cabecera_electronica WHERE claveacceso = ? LIMIT 1";
+            $r = $this->select($sql, [$clean]);
+            if (!empty($r)) return $r;
+        }
+
+        // 2) Match por orden_no
+        if ($clean !== '' && ctype_digit($clean)) {
+            $sql = "SELECT $cols FROM datos_cabecera_electronica WHERE orden_no = ? LIMIT 1";
+            $r = $this->select($sql, [(int)$clean]);
+            if (!empty($r)) return $r;
+
+            // 3) Match por secuencial (con o sin ceros)
+            $sql = "SELECT $cols FROM datos_cabecera_electronica
+                    WHERE secuencial = ? OR CAST(secuencial AS UNSIGNED) = ?
+                    ORDER BY id DESC LIMIT 1";
+            $r = $this->select($sql, [$clean, (int)$clean]);
+            if (!empty($r)) return $r;
+        }
+
+        // 4) Match parcial: la clave termina con lo ingresado
+        if ($clean !== '' && strlen($clean) >= 4) {
+            $sql = "SELECT $cols FROM datos_cabecera_electronica
+                    WHERE claveacceso LIKE ? ORDER BY id DESC LIMIT 1";
+            $r = $this->select($sql, ['%' . $clean]);
+            if (!empty($r)) return $r;
+        }
+
+        return null;
     }
     public function getFacturaDetalle($orden_no)
     {
