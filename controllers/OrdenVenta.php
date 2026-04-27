@@ -135,29 +135,12 @@ class OrdenVenta extends Controller
                     // la respuesta debe reportar exito.
                     $res = array('msg' => 'ORDEN VENTA EMITIDA EXITOSAMENTE', 'type' => 'success', 'idOrdenVenta' => $ordenventa);
 
-                    try { $this->ordenVentaPDF('facturas', $ordenventa); } catch (\Throwable $e) { error_log('PDF orden falla: ' . $e->getMessage()); }
-
-                    try {
-                        $getordenVenta = $this->model->getOrdenVenta($ordenventa);
-                        if ($getordenVenta) {
-                            $dataInfo = array(
-                                'ruc' => $getordenVenta['num_identidad'],
-                                'email' => $getordenVenta['correo'],
-                                'fecha' => $getordenVenta['fecha'],
-                                'totalfactura' => $getordenVenta['total'],
-                                'cliente' => $getordenVenta['nombre'],
-                                'empresa' => $empresa['nombre'],
-                                'factura' => $ordenventa,
-                                'enviroment' => ENVIROMENT,
-                                'emailremitente' => $empresa['correo'],
-                                'establecimiento' => $empresa['establecimiento'],
-                                'puntoemi' => $empresa['puntoemi'],
-                                'tipo' => 'orden',
-                                'asunto' => 'Adjuntamos Comprobante'
-                            );
-                            sendEmailOrden($dataInfo, 'email_facturaelectronica');
-                        }
-                    } catch (\Throwable $e) { error_log('Email orden falla: ' . $e->getMessage()); }
+                    // PDF y email diferidos a post-response (ver bloque al final)
+                    $deferOrdenId = $ordenventa;
+                    $deferEmpresaNombre = $empresa['nombre'];
+                    $deferEmpresaCorreo = $empresa['correo'];
+                    $deferEstablecimiento = $empresa['establecimiento'];
+                    $deferPuntoemi = $empresa['puntoemi'];
 
                 } else {
                     $res = array('msg' => 'ERROR AL GENERAR ORDEN VENTA', 'type' => 'error');
@@ -170,7 +153,40 @@ class OrdenVenta extends Controller
     }
         if (ob_get_level()) { @ob_end_clean(); }
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($res);
+        $jsonOut = json_encode($res);
+        // Enviar respuesta YA al cliente y continuar tareas pesadas en background
+        header('Content-Length: ' . strlen($jsonOut));
+        echo $jsonOut;
+        if (function_exists('fastcgi_finish_request')) {
+            @fastcgi_finish_request();
+        } elseif (function_exists('flush')) {
+            @flush();
+        }
+        // Tareas diferidas: solo si la orden se creo bien
+        if (!empty($deferOrdenId)) {
+            try { $this->ordenVentaPDF('facturas', $deferOrdenId); } catch (\Throwable $e) { error_log('PDF orden falla: ' . $e->getMessage()); }
+            try {
+                $getordenVenta = $this->model->getOrdenVenta($deferOrdenId);
+                if ($getordenVenta) {
+                    $dataInfo = array(
+                        'ruc'             => $getordenVenta['num_identidad'],
+                        'email'           => $getordenVenta['correo'],
+                        'fecha'           => $getordenVenta['fecha'],
+                        'totalfactura'    => $getordenVenta['total'],
+                        'cliente'         => $getordenVenta['nombre'],
+                        'empresa'         => $deferEmpresaNombre,
+                        'factura'         => $deferOrdenId,
+                        'enviroment'      => ENVIROMENT,
+                        'emailremitente'  => $deferEmpresaCorreo,
+                        'establecimiento' => $deferEstablecimiento,
+                        'puntoemi'        => $deferPuntoemi,
+                        'tipo'            => 'orden',
+                        'asunto'          => 'Adjuntamos Comprobante'
+                    );
+                    sendEmailOrden($dataInfo, 'email_facturaelectronica');
+                }
+            } catch (\Throwable $e) { error_log('Email orden falla: ' . $e->getMessage()); }
+        }
         die();
     }
 
