@@ -117,14 +117,18 @@
         // asi sobrevive cambios de pagina y cierres de sesion.
         stateSaveCallback: function (settings, data) {
             try {
-                var key = 'DT_state_v4_' + (settings.sTableId || 'default');
+                // Key incluye el path para evitar colisiones entre modulos
+                // que usan el mismo id de tabla (ej. multiples paginas con #tblHistorial)
+                var path = (location.pathname || '/').replace(/[^a-zA-Z0-9]+/g, '_');
+                var key = 'DT_state_v5_' + path + '_' + (settings.sTableId || 'default');
                 localStorage.setItem(key, JSON.stringify(data));
                 if (window.__mhnDtDebug) console.log('[DT save]', key, data);
             } catch (e) { console.error('[DT save error]', e); }
         },
         stateLoadCallback: function (settings) {
             try {
-                var key = 'DT_state_v4_' + (settings.sTableId || 'default');
+                var path = (location.pathname || '/').replace(/[^a-zA-Z0-9]+/g, '_');
+                var key = 'DT_state_v5_' + path + '_' + (settings.sTableId || 'default');
                 var raw = localStorage.getItem(key);
                 if (window.__mhnDtDebug) console.log('[DT load]', key, raw ? 'FOUND' : 'EMPTY');
                 return raw ? JSON.parse(raw) : null;

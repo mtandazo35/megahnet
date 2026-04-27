@@ -76,6 +76,10 @@
         group.querySelector('.mhn-dt-reset').addEventListener('click', function () {
             var doIt = function () {
                 try {
+                    var path = (location.pathname || '/').replace(/[^a-zA-Z0-9]+/g, '_');
+                    localStorage.removeItem('DT_state_v5_' + path + '_' + tableId);
+                    localStorage.removeItem('DT_widths_v2_' + path + '_' + tableId);
+                    // Backward compat: tambien limpiar keys viejas si existieran
                     localStorage.removeItem('DT_state_v4_' + tableId);
                     localStorage.removeItem('DT_widths_v1_' + tableId);
                 } catch (e) {}

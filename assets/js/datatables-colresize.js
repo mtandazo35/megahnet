@@ -16,7 +16,10 @@
 (function () {
     if (typeof $ === 'undefined' || !$.fn.dataTable) return;
 
-    var STORAGE_PREFIX = 'DT_widths_v1_';
+    var STORAGE_PREFIX = 'DT_widths_v2_';
+    function pathPrefix() {
+        return (location.pathname || '/').replace(/[^a-zA-Z0-9]+/g, '_');
+    }
     var MIN_WIDTH = 60;   // px — ancho mínimo de columna
     var HANDLE_W  = 6;    // px — ancho del handle de drag
 
@@ -59,14 +62,14 @@
 
     function loadWidths(tableId) {
         try {
-            var raw = localStorage.getItem(STORAGE_PREFIX + tableId);
+            var raw = localStorage.getItem(STORAGE_PREFIX + pathPrefix() + '_' + tableId);
             return raw ? JSON.parse(raw) : {};
         } catch (e) { return {}; }
     }
 
     function saveWidths(tableId, widths) {
         try {
-            localStorage.setItem(STORAGE_PREFIX + tableId, JSON.stringify(widths));
+            localStorage.setItem(STORAGE_PREFIX + pathPrefix() + '_' + tableId, JSON.stringify(widths));
         } catch (e) { /* localStorage lleno o bloqueado */ }
     }
 
