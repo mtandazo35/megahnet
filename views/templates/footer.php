@@ -130,13 +130,7 @@
                 return raw ? JSON.parse(raw) : null;
             } catch (e) { console.error('[DT load error]', e); return null; }
         },
-        // Trigger state save on common events para asegurar persistencia
-        initComplete: function(settings) {
-            var api = this.api();
-            api.on('order.dt search.dt page.dt length.dt column-reorder.dt column-visibility.dt', function(){
-                api.state.save();
-            });
-        },
+
 
         language: {
             searchPlaceholder: 'Buscar...',
