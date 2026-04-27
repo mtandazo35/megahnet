@@ -256,6 +256,100 @@ class OrdenVenta extends Controller
         //$dompdf->stream('Facturable' . $idOrdenVenta . '.pdf', array('Attachment' => false));
     }
 
+    public function enviarPorWhatsApp($idOrden = 0)
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        if (empty($_SESSION['id_usuario'])) { echo json_encode(['ok'=>false,'msg'=>'No autorizado']); exit; }
+        $idOrden = (int)$idOrden;
+        if ($idOrden <= 0) { echo json_encode(['ok'=>false,'msg'=>'ID invalido']); exit; }
+
+        $body = json_decode(file_get_contents('php://input'), true) ?: [];
+        $tel  = preg_replace('/[^0-9]/', '', (string)($body['telefono'] ?? ''));
+
+        // Si no se especifica, intentar tomar del cliente
+        if (empty($tel)) {
+            try {
+                $pdo = new PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, PASSWORD,
+                    [PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT]);
+                $st = $pdo->prepare("SELECT cl.telefono FROM orden_venta ov INNER JOIN clientes cl ON cl.id = ov.id_cliente WHERE ov.id = ? LIMIT 1");
+                $st->execute([$idOrden]);
+                $r = $st->fetch(PDO::FETCH_ASSOC);
+                $tel = preg_replace('/[^0-9]/', '', (string)($r['telefono'] ?? ''));
+            } catch (\Throwable $e) {}
+        }
+        if (empty($tel)) { echo json_encode(['ok'=>false,'msg'=>'Sin telefono']); exit; }
+        if (strlen($tel) === 10 && $tel[0] === '0') $tel = '593' . substr($tel, 1);
+        elseif (strlen($tel) === 9) $tel = '593' . $tel;
+
+        // Verificar PDF en disco
+        $pdfPath = ROOT_PATH . '/facturaelectronica/public/archivos/facturables/Facturable_' . $idOrden . '.pdf';
+        if (!file_exists($pdfPath)) {
+            // Generarlo si no existe
+            try { $this->ordenVentaPDF('facturas', $idOrden); } catch (\Throwable $e) {}
+        }
+        if (!file_exists($pdfPath)) { echo json_encode(['ok'=>false,'msg'=>'No se pudo generar el PDF']); exit; }
+
+        // URL publica del PDF (la WA API la descarga directamente)
+        $base = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
+        $pdfUrl = $base . '/facturaelectronica/public/archivos/facturables/Facturable_' . $idOrden . '.pdf';
+
+        // WhatsApp API base + sesion
+        $waBase = '';
+        if (function_exists('servicioConfig')) {
+            $svc = servicioConfig('whatsapp_api');
+            $waBase = $svc['base_url'] ?? '';
+        }
+        if (empty($waBase)) {
+            $f = ROOT_PATH . '/storage/alertas-config.json';
+            if (file_exists($f)) {
+                $j = @json_decode(@file_get_contents($f), true);
+                $waBase = $j['wa_api']['base_url'] ?? '';
+            }
+        }
+        if (empty($waBase)) $waBase = 'http://127.0.0.1:3005';
+        $waBase = rtrim($waBase, '/');
+
+        $sessionId = '';
+        $f = ROOT_PATH . '/storage/alertas-config.json';
+        if (file_exists($f)) {
+            $j = @json_decode(@file_get_contents($f), true);
+            $sessionId = $j['wa_api']['session_id'] ?? '';
+        }
+        if (empty($sessionId)) { echo json_encode(['ok'=>false,'msg'=>'No hay sesion WhatsApp vinculada']); exit; }
+
+        $caption = isset($body['mensaje']) ? (string)$body['mensaje'] : ('Adjunto orden de venta #' . $idOrden);
+
+        $payload = [
+            'sessionId' => $sessionId,
+            'number'    => $tel,
+            'url'       => $pdfUrl,
+            'fileName'  => 'OrdenVenta_' . $idOrden . '.pdf',
+            'caption'   => $caption,
+        ];
+        $ch = curl_init($waBase . '/api/whatsapp/send-media/url');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+        $resp = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err  = curl_error($ch);
+        curl_close($ch);
+
+        echo json_encode([
+            'ok' => ($code >= 200 && $code < 300),
+            'http' => $code,
+            'telefono' => $tel,
+            'error' => $err ?: null,
+        ]);
+        exit;
+    }
+
     public function listar()
     {
         $data = $this->model->getOrdenVentas();
