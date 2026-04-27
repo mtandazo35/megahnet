@@ -72,8 +72,20 @@ document.addEventListener('DOMContentLoaded', function () {
             }));
             //verificar estados
             http.onreadystatechange = function () {
-                if (this.readyState == 4 && this.status == 200) {
-                    const res = JSON.parse(this.responseText);
+                if (this.readyState !== 4) return;
+                if (this.status !== 200) {
+                    alertaPersonalizada('error', 'Error del servidor (HTTP ' + this.status + '). Revisa la serie y el saldo de caja.');
+                    console.error('compras/registrarCompra fallo:', this.status, this.responseText);
+                    return;
+                }
+                let res;
+                try { res = JSON.parse(this.responseText); }
+                catch (e) {
+                    alertaPersonalizada('error', 'Respuesta invalida del servidor. Revisa los datos ingresados.');
+                    console.error('JSON parse fail:', e, this.responseText);
+                    return;
+                }
+                if (true) {
                     console.log(this.responseText);
                     alertaPersonalizada(res.type, res.msg);
                     if (res.type == 'success') {

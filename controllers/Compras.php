@@ -33,16 +33,16 @@ class Compras extends Controller
         $array['productos'] = array();
         $total = 0;
         if (!empty($datos['productos'])) {
-            $indice = $datos['serie'];
-            $numberSerie = $this->generate_numbers($indice, 1, 8);
+            // Sanitizar serie: aceptar solo digitos para evitar loop infinito en generate_numbers
+            $indice = (int) preg_replace('/[^0-9]/', '', (string)($datos['serie'] ?? ''));
             $fecha = date('Y-m-d');
             $hora = date('H:i:s');
-            $serie = trim($numberSerie[0]);
+            $serie = ($indice > 0) ? trim($this->generate_numbers($indice, 1, 8)[0]) : '';
             $idproveedor = $datos['idProveedor'];
             if (empty($idproveedor)) {
                 $res = array('msg' => 'EL PROVEEDOR ES REQUERIDO', 'type' => 'warning');
             } else if (empty($serie)) {
-                $res = array('msg' => 'LA SERIE ES REQUERIDO', 'type' => 'warning');
+                $res = array('msg' => 'LA SERIE DEBE CONTENER NUMEROS', 'type' => 'warning');
             } else {
                 $saldo = $this->caja->getDatos();
                 foreach ($datos['productos'] as $producto) {
