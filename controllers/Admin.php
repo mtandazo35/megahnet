@@ -754,6 +754,59 @@ class Admin extends Controller
         echo json_encode(['ok'=>true, 'count'=>count($ocultos)]);
     }
 
+    public function roles()
+    {
+        if (empty($_SESSION['id_usuario']) || ($_SESSION['rol'] ?? 0) != 1) {
+            header('Location: ' . BASE_URL); exit;
+        }
+        $data['title'] = 'Roles de usuarios';
+        // Cargar usuarios agrupados por rol
+        try {
+            $pdo = new PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, PASSWORD,
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT]);
+            $rs = $pdo->query("SELECT id, CONCAT(nombre,' ',apellido) AS nombres, correo, rol, estado FROM usuarios ORDER BY rol, nombre");
+            $usuarios = $rs ? $rs->fetchAll(PDO::FETCH_ASSOC) : [];
+        } catch (\Throwable $e) { $usuarios = []; }
+        $data['usuarios'] = $usuarios;
+        $this->views->getView('admin', 'roles', $data);
+    }
+
+    public function cambiarRolUsuario()
+    {
+        header('Content-Type: application/json');
+        if (empty($_SESSION['id_usuario']) || ($_SESSION['rol'] ?? 0) != 1) {
+            echo json_encode(['ok'=>false,'msg'=>'No autorizado']); exit;
+        }
+        $body = json_decode(file_get_contents('php://input'), true);
+        $id  = (int)($body['id'] ?? 0);
+        $rol = (int)($body['rol'] ?? 0);
+        if ($id <= 0 || !in_array($rol, [1,2,3], true)) {
+            echo json_encode(['ok'=>false,'msg'=>'Datos invalidos']); exit;
+        }
+        // Proteccion: no degradar al ultimo administrador
+        if ($rol !== 1) {
+            try {
+                $pdo = new PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, PASSWORD,
+                    [PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT]);
+                $rs = $pdo->prepare("SELECT COUNT(*) AS n FROM usuarios WHERE rol = 1 AND estado = 1 AND id != ?");
+                $rs->execute([$id]);
+                $rest = (int)($rs->fetch(PDO::FETCH_ASSOC)['n'] ?? 0);
+                if ($rest === 0) {
+                    echo json_encode(['ok'=>false,'msg'=>'No puedes degradar al unico administrador activo']); exit;
+                }
+            } catch (\Throwable $e) { /* sigue */ }
+        }
+        try {
+            $pdo = new PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, PASSWORD,
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT]);
+            $u = $pdo->prepare("UPDATE usuarios SET rol = ? WHERE id = ?");
+            $u->execute([$rol, $id]);
+            echo json_encode(['ok'=>true]);
+        } catch (\Throwable $e) {
+            echo json_encode(['ok'=>false,'msg'=>$e->getMessage()]);
+        }
+    }
+
     public function permisos()
     {
         $data['title'] = 'Permisos';

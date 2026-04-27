@@ -93,6 +93,7 @@
       'Administracion' => [
           ['usuarios', 'Usuarios', 'bx-user'],
           ['admin/datos', 'Configuracion', 'bx-buildings'],
+          ['admin/roles', 'Roles de usuarios', 'bx-id-card'],
           ['sucursales', 'Sucursales', 'bx-store-alt'],
           ['admin/logs', 'Log de Acceso', 'bx-history'],
           ['admin/respaldos', 'Respaldos BD', 'bx-cloud-download'],
