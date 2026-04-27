@@ -190,20 +190,6 @@
   .swal2-styled { padding: .45rem 1.4rem !important; font-size: .88rem !important; border-radius: 8px !important; font-weight: 500 !important; }
   .swal2-styled.swal2-confirm { box-shadow: 0 2px 6px rgba(99,102,241,.3) !important; }
   /* Icon: tamano 64px con su SVG escalado proporcionalmente */
-  .swal2-icon { width: 64px !important; height: 64px !important; margin: .25rem auto .75rem !important; border-width: 3px !important; }
-  .swal2-icon.swal2-success [class^=swal2-success-line] { height: 4px !important; }
-  .swal2-icon.swal2-success .swal2-success-line-tip { top: 38px !important; left: 12px !important; width: 20px !important; }
-  .swal2-icon.swal2-success .swal2-success-line-long { top: 32px !important; right: 8px !important; width: 36px !important; }
-  .swal2-icon.swal2-success .swal2-success-ring { width: 64px !important; height: 64px !important; top: -3px !important; left: -3px !important; border-width: 3px !important; }
-  .swal2-icon.swal2-success .swal2-success-fix { top: 8px !important; left: 22px !important; width: 6px !important; height: 50px !important; }
-  .swal2-icon.swal2-success [class^=swal2-success-circular-line] { border-radius: 50% !important; }
-  .swal2-icon.swal2-success .swal2-success-circular-line-left { top: -3px !important; left: -27px !important; width: 47px !important; height: 70px !important; border-radius: 70px 0 0 70px !important; transform-origin: 47px 35px !important; }
-  .swal2-icon.swal2-success .swal2-success-circular-line-right { top: -7px !important; left: 30px !important; width: 47px !important; height: 76px !important; border-radius: 0 70px 70px 0 !important; transform-origin: 0 35px !important; }
-  .swal2-icon.swal2-error .swal2-x-mark { top: 0 !important; }
-  .swal2-icon.swal2-error [class^=swal2-x-mark-line] { top: 30px !important; height: 4px !important; }
-  .swal2-icon.swal2-error .swal2-x-mark-line-left { left: 12px !important; width: 40px !important; }
-  .swal2-icon.swal2-error .swal2-x-mark-line-right { right: 12px !important; width: 40px !important; }
-  .swal2-icon.swal2-warning, .swal2-icon.swal2-info, .swal2-icon.swal2-question { font-size: 2.2rem !important; line-height: 60px !important; }
   .swal2-actions { margin-top: 1rem !important; gap: .5rem !important; }
   .swal2-styled { padding: .45rem 1.2rem !important; font-size: .88rem !important; border-radius: 8px !important; }
 </style>
