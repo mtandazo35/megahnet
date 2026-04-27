@@ -298,16 +298,27 @@
           <i class="bx bx-envelope text-primary me-2" style="font-size:18px;"></i>
           <h6 class="fw-semibold text-dark">Servidor SMTP <span class="text-muted fw-normal" style="font-size:.78rem;">— credenciales para enviar correos de notificacion</span></h6>
         </div>
-        <div class="d-flex gap-1 flex-wrap">
-          <button type="button" class="btn btn-sm btn-light border smtp-preset" data-preset="cpanel" title="Servidor del propio dominio (mail.tu-dominio.com)"><i class="bx bx-buildings me-1"></i>Corporativo (cPanel)</button>
-          <button type="button" class="btn btn-sm btn-light border smtp-preset" data-preset="m365" title="Microsoft 365 / Office 365">M365</button>
-          <button type="button" class="btn btn-sm btn-light border smtp-preset" data-preset="hostinger">Hostinger</button>
-          <button type="button" class="btn btn-sm btn-light border smtp-preset" data-preset="gmail">Gmail</button>
-          <button type="button" class="btn btn-sm btn-light border smtp-preset" data-preset="outlook">Outlook</button>
-          <button type="button" class="btn btn-sm btn-light border smtp-preset" data-preset="zoho">Zoho</button>
-          <button type="button" class="btn btn-sm btn-light border smtp-preset" data-preset="sendgrid">SendGrid</button>
-          <button type="button" class="btn btn-sm btn-light border smtp-preset" data-preset="mailgun">Mailgun</button>
-          <button type="button" class="btn btn-sm btn-outline-secondary smtp-preset" data-preset="clear" title="Limpiar todos los campos"><i class="bx bx-eraser"></i></button>
+        <div class="dropdown">
+          <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bx bx-list-plus me-1"></i>Cargar preset
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" style="min-width: 240px;">
+            <li><h6 class="dropdown-header"><i class="bx bx-buildings me-1"></i>Corporativo</h6></li>
+            <li><a class="dropdown-item smtp-preset" href="#" data-preset="cpanel"><i class="bx bx-server me-2 text-primary"></i>cPanel / WHM <small class="text-muted d-block ps-4">mail.tu-dominio.com (auto)</small></a></li>
+            <li><a class="dropdown-item smtp-preset" href="#" data-preset="m365"><i class="bx bxl-microsoft me-2 text-primary"></i>Microsoft 365 <small class="text-muted d-block ps-4">smtp.office365.com:587</small></a></li>
+            <li><a class="dropdown-item smtp-preset" href="#" data-preset="hostinger"><i class="bx bx-cloud me-2 text-warning"></i>Hostinger <small class="text-muted d-block ps-4">smtp.hostinger.com:465</small></a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><h6 class="dropdown-header"><i class="bx bx-user me-1"></i>Publicos</h6></li>
+            <li><a class="dropdown-item smtp-preset" href="#" data-preset="gmail"><i class="bx bxl-google me-2 text-danger"></i>Gmail <small class="text-muted d-block ps-4">smtp.gmail.com:465</small></a></li>
+            <li><a class="dropdown-item smtp-preset" href="#" data-preset="outlook"><i class="bx bxl-microsoft me-2 text-info"></i>Outlook <small class="text-muted d-block ps-4">smtp.office365.com:587</small></a></li>
+            <li><a class="dropdown-item smtp-preset" href="#" data-preset="zoho"><i class="bx bx-mail-send me-2 text-warning"></i>Zoho <small class="text-muted d-block ps-4">smtp.zoho.com:465</small></a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><h6 class="dropdown-header"><i class="bx bx-paper-plane me-1"></i>Transaccionales</h6></li>
+            <li><a class="dropdown-item smtp-preset" href="#" data-preset="sendgrid"><i class="bx bx-send me-2 text-success"></i>SendGrid <small class="text-muted d-block ps-4">smtp.sendgrid.net:587</small></a></li>
+            <li><a class="dropdown-item smtp-preset" href="#" data-preset="mailgun"><i class="bx bx-broadcast me-2 text-success"></i>Mailgun <small class="text-muted d-block ps-4">smtp.mailgun.org:587</small></a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger smtp-preset" href="#" data-preset="clear"><i class="bx bx-eraser me-2"></i>Limpiar campos</a></li>
+          </ul>
         </div>
       </div>
       <div class="card-body">
@@ -393,7 +404,8 @@
           mailgun:  { host: 'smtp.mailgun.org',     port: 587, secure: 0 }
         };
         document.querySelectorAll('.smtp-preset').forEach(function(b){
-          b.addEventListener('click', function(){
+          b.addEventListener('click', function(e){
+            e.preventDefault();
             var key = b.dataset.preset;
             // Especiales: cPanel deduce host del dominio del usuario; clear vacia todo
             if (key === 'cpanel') {
