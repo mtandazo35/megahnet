@@ -357,7 +357,7 @@
       .pl-list .list-group-item .pl-desc { font-size: .72rem; color: #6b7280; line-height: 1.25; }
       .pl-list .list-group-item.active { background: #eff6ff !important; color: inherit !important; }
       .pl-list .list-group-item.active .pl-key { color: #1e40af; }
-      .pl-card .card-body { padding: 1rem 1.15rem; }
+      .pl-card .card-body { padding: 1rem 1.25rem 1.15rem; }
       .pl-card label.form-label { margin-bottom: .25rem; font-size: .82rem; }
       .pl-card .form-control { font-size: .88rem; }
       .pl-card #pl_cuerpo { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .85rem; line-height: 1.45; }
@@ -400,32 +400,32 @@
         </div>
       </div>
 
-      <div class="col-lg-9">
+      <div class="col-lg-7">
         <div class="card pl-card mb-2">
           <div class="card-body">
-            <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
               <h6 class="text-primary fw-semibold mb-0"><i class="bx bx-edit-alt me-1"></i>Editor <small class="text-muted ms-1" id="plantilla-key">— selecciona una a la izquierda</small></h6>
-              <div class="d-flex pl-actions">
+              <div class="d-flex gap-2">
                 <button class="btn btn-sm btn-outline-secondary" id="btnPreviewPlantilla" type="button"><i class="bx bx-show me-1"></i>Previsualizar</button>
                 <button class="btn btn-sm btn-primary" id="btnGuardarPlantilla" type="button"><i class="bx bx-save me-1"></i>Guardar</button>
               </div>
             </div>
 
-            <div class="row g-2">
+            <div class="row g-3 mb-3">
               <div class="col-md-5">
-                <label class="form-label fw-semibold" for="pl_descripcion">Descripcion</label>
+                <label class="form-label fw-semibold mb-1" for="pl_descripcion">Descripcion</label>
                 <input type="text" id="pl_descripcion" class="form-control form-control-sm" placeholder="Cuando se usa esta plantilla">
               </div>
               <div class="col-md-7">
-                <label class="form-label fw-semibold" for="pl_asunto">Asunto / Titulo <span class="text-muted fw-normal">(solo email)</span></label>
+                <label class="form-label fw-semibold mb-1" for="pl_asunto">Asunto / Titulo <span class="text-muted fw-normal">(solo email)</span></label>
                 <input type="text" id="pl_asunto" class="form-control form-control-sm" placeholder="WhatsApp lo ignora">
               </div>
             </div>
 
-            <div class="mt-2">
-              <label class="form-label fw-semibold" for="pl_cuerpo">Cuerpo</label>
-              <textarea id="pl_cuerpo" class="form-control" rows="9"></textarea>
-              <small class="pl-help">WhatsApp: <code>*texto*</code> negrita · <code>_texto_</code> italica · <code>\n</code> salto de linea.</small>
+            <div>
+              <label class="form-label fw-semibold mb-1" for="pl_cuerpo">Cuerpo</label>
+              <textarea id="pl_cuerpo" class="form-control" rows="10"></textarea>
+              <small class="pl-help mt-1">WhatsApp: <code>*texto*</code> negrita · <code>_texto_</code> italica · <code>\n</code> salto de linea.</small>
             </div>
           </div>
         </div>
