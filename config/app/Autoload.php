@@ -35,4 +35,22 @@ spl_autoload_register(function ($class) {
             return;
         }
     }
+
+    // Fallback case-insensitive en models/ y controllers/
+    static $idx = null;
+    if ($idx === null) {
+        $idx = [];
+        foreach (['models', 'controllers'] as $dir) {
+            $abs = $basePath . '/' . $dir;
+            if (!is_dir($abs)) continue;
+            foreach (glob($abs . '/*.php') as $f) {
+                $idx[strtolower(basename($f, '.php'))] = $f;
+            }
+        }
+    }
+    $needle = strtolower($class);
+    if (isset($idx[$needle])) {
+        require_once $idx[$needle];
+        return;
+    }
 });

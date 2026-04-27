@@ -35,6 +35,23 @@ if (!empty($array[2])) {
 require_once 'config/app/Autoload.php';
 $dirControllorer = 'controllers/' . $controller . '.php';
 
+// Fallback case-insensitive: si el filename exacto no existe, busca un match
+// case-insensitive en el directorio. Permite eliminar los duplicados de
+// controladores que existian solo por diferencias de mayusculas/minusculas.
+if (!file_exists($dirControllorer)) {
+    static $controllersIdx = null;
+    if ($controllersIdx === null) {
+        $controllersIdx = [];
+        foreach (glob('controllers/*.php') as $f) {
+            $controllersIdx[strtolower(basename($f))] = $f;
+        }
+    }
+    $needle = strtolower($controller . '.php');
+    if (isset($controllersIdx[$needle])) {
+        $dirControllorer = $controllersIdx[$needle];
+    }
+}
+
 if (file_exists($dirControllorer)) {
     require_once $dirControllorer;
     $controller = new $controller();
