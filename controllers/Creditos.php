@@ -380,7 +380,7 @@ class Creditos extends Controller
                         $resWathsapp = 'https://web.whatsapp.com/send?phone=593' . $getInfoClientes['telefono'] . '&text=Buen%20d%C3%ADa%20estimado%2Fa%20cliente%0A%20%20%20%20%20%20%20%20%20%20*MEGAHNET*%0A%20%20%20*GRACIAS%20POR%20SU%20PAGO*%0A%0A%20%20su%20saldo%20a%20la%20fecha%20es%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20%24' . $restante . '%0Aincluido%20*SERVICIO%20' . $mesActualLetra . '*%0A*' . $datosCliente['nombre'] . '*';
                     }
 
-                    $res = array('msg' => 'ABONO REGISTRADO EXITOSAMENTE', 'type' => 'success', 'whatsapp' => $resWathsapp);
+                    $res = array('msg' => 'ABONO REGISTRADO EXITOSAMENTE', 'type' => 'success', 'whatsapp' => $resWathsapp, 'idCredito' => isset($idCredito) ? $idCredito : (isset($idcredito) ? $idcredito : 0), 'telefonoCliente' => $getInfoClientes['telefono'] ?? '');
                 } else {
                     $res = array('msg' => 'ERROR AL REGISTRAR', 'type' => 'error');
                 }
@@ -510,7 +510,7 @@ class Creditos extends Controller
                         $resWathsapp = 'https://web.whatsapp.com/send?phone=593' . $getInfoClientes['telefono'] . '&text=Buen%20d%C3%ADa%20estimado%2Fa%20cliente%0A*MEGAHNET*%0A*GRACIAS%20POR%20SU%20PAGO*%0A%0ASu%20saldo%20a%20la%20fecha%20es%3A%20$' . $restante . '%0AIncluido%20servicio%20de%20*' . $mesActualLetra . '*%0A*' . $datosCliente['nombre'] . '*';
                     }
 
-                    $res = array('msg' => 'ABONO REGISTRADO EXITOSAMENTE', 'type' => 'success', 'whatsapp' => $resWathsapp);
+                    $res = array('msg' => 'ABONO REGISTRADO EXITOSAMENTE', 'type' => 'success', 'whatsapp' => $resWathsapp, 'idCredito' => isset($idCredito) ? $idCredito : (isset($idcredito) ? $idcredito : 0), 'telefonoCliente' => $getInfoClientes['telefono'] ?? '');
                 } else {
                     $res = array('msg' => 'ERROR AL REGISTRAR', 'type' => 'error');
                 }
@@ -646,7 +646,7 @@ class Creditos extends Controller
                         $resWathsapp = 'https://web.whatsapp.com/send?phone=593' . $getInfoClientes['telefono'] . '&text=Buen%20d%C3%ADa%20estimado%2Fa%20cliente%0A%20%20%20%20%20%20%20%20%20%20*MEGAHNET*%0A%20%20%20*GRACIAS%20POR%20SU%20PAGO*%0A%0A%20%20su%20saldo%20a%20la%20fecha%20es%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20%24' . $restante . '%0Aincluido%20*SERVICIO%20' . $mesActualLetra . '*%0A*' . $nombreCliente . '*';
                     }
 
-                    $res = array('msg' => 'ABONO REGISTRADO EXITOSAMENTE', 'type' => 'success', 'whatsapp' => $resWathsapp);
+                    $res = array('msg' => 'ABONO REGISTRADO EXITOSAMENTE', 'type' => 'success', 'whatsapp' => $resWathsapp, 'idCredito' => isset($idCredito) ? $idCredito : (isset($idcredito) ? $idcredito : 0), 'telefonoCliente' => $getInfoClientes['telefono'] ?? '');
                 } else {
                     $res = array('msg' => 'ERROR AL REGISTRAR', 'type' => 'error');
                 }
