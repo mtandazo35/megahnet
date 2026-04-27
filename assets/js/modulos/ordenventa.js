@@ -464,11 +464,19 @@ function mostrarOrdenCreadaModal(idOrden) {
         btnWa.disabled = true;
         var prev = btnWa.innerHTML;
         btnWa.innerHTML = '<i class="bx bx-loader bx-spin me-1"></i>Enviando...';
-        fetch(base_url + 'ordenventa/enviarPorWhatsApp/' + idOrden, {
-            method: 'POST', credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ telefono: tel, mensaje: 'Adjunto orden de venta #' + idOrden })
-        }).then(function(r){ return r.json(); }).then(function(d){
+        var qs = '?telefono=' + encodeURIComponent(tel) + '&mensaje=' + encodeURIComponent('Adjunto orden de venta #' + idOrden);
+        fetch(base_url + 'notificaciones/enviarOrdenWa/' + idOrden + qs, {
+            method: 'GET', credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        }).then(function(r){ return r.text(); }).then(function(text){
+            var d;
+            try { d = JSON.parse(text); }
+            catch(e){
+                Swal.fire({icon:'error', title:'Respuesta invalida del servidor', html:'<small>El servidor o Cloudflare devolvio HTML en vez de JSON.</small>'});
+                throw e;
+            }
+            return d;
+        }).then(function(d){
             if (d.ok) {
                 Swal.fire({icon:'success', title:'PDF enviado', text:'WhatsApp a +' + d.telefono, timer:2200, showConfirmButton:false});
             } else {
