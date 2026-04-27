@@ -1,4 +1,8 @@
 <?php include_once 'views/templates/header.php'; ?>
+<style>
+  .ui-autocomplete { z-index: 99999 !important; }
+  .ui-menu-item { cursor: pointer; }
+</style>
 
 <div class="card">
     <div class="card-body">
