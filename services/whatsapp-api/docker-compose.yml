@@ -1,0 +1,72 @@
+name: whatsapp-api
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [internal]
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: whatsapp-api:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PORT: 3005
+      STAGE: prod
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_SSL: "false"
+      DB_SYNC: ${DB_SYNC:-true}
+      JWT_SECRET: ${JWT_SECRET}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      HOST_WEBSOCKET: ${HOST_WEBSOCKET:-}
+    ports:
+      - "127.0.0.1:3005:3005"
+    volumes:
+      - ./sesiones:/app/sesiones
+      - ./static:/app/static
+      - ./backups:/app/backups
+    networks: [internal]
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  internal:
+    driver: bridge
