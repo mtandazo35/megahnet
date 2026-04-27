@@ -747,17 +747,84 @@
       </div>
       <div class="col-lg-6 mb-3">
         <div class="card h-100"><div class="card-body">
-          <h6 class="text-primary fw-semibold mb-2"><i class="bx bx-cog me-1"></i>Configuracion API</h6>
-          <div class="mb-2">
-            <label class="form-label fw-semibold mb-1">Telefonos para alertas administrativas</label>
-            <textarea id="wa_phones_alerta" class="form-control form-control-sm" rows="3" placeholder="0991234567&#10;0987654321"><?php echo htmlspecialchars(implode("\n", $data['config']['wa_api']['phones_alerta'] ?? [])); ?></textarea>
-            <small class="text-muted">Uno por linea. Se les enviara WhatsApp cuando ocurra una alerta tipo error/factura rechazada.</small>
-          </div>
-          <div class="text-end">
-            <button class="btn btn-primary btn-sm" id="btnGuardarWaCfg" type="button"><i class="bx bx-save"></i> Guardar</button>
+          <h6 class="text-success fw-semibold mb-2"><i class="bx bxl-whatsapp me-1"></i>Notificar por WhatsApp</h6>
+          <p class="text-muted mb-2" style="font-size:.78rem;">Telefonos que reciben alertas (errores, facturas rechazadas, etc.).</p>
+
+          <div id="wa-phones-list" class="mb-2"></div>
+
+          <button type="button" class="btn btn-sm btn-outline-success w-100" id="btnAddPhone">
+            <i class="bx bx-plus me-1"></i>Agregar numero
+          </button>
+
+          <!-- Hidden textarea: el guardar handler existente lo lee. JS lo sincroniza desde los inputs. -->
+          <textarea id="wa_phones_alerta" class="d-none"><?php echo htmlspecialchars(implode("\n", $data['config']['wa_api']['phones_alerta'] ?? [])); ?></textarea>
+
+          <div class="text-end mt-3">
+            <button class="btn btn-primary btn-sm" id="btnGuardarWaCfg" type="button"><i class="bx bx-save me-1"></i>Guardar</button>
           </div>
         </div></div>
       </div>
+
+      <script>
+      (function(){
+        function init() {
+          var list = document.getElementById('wa-phones-list');
+          var hidden = document.getElementById('wa_phones_alerta');
+          var btnAdd = document.getElementById('btnAddPhone');
+          if (!list || !hidden || !btnAdd) return;
+          if (btnAdd.dataset.bound === '1') return;
+          btnAdd.dataset.bound = '1';
+
+          function syncHidden() {
+            var vals = Array.from(list.querySelectorAll('.wa-phone-input'))
+              .map(function(i){ return i.value.replace(/[^0-9]/g, ''); })
+              .filter(Boolean);
+            hidden.value = vals.join('\n');
+          }
+
+          function buildRow(value) {
+            var row = document.createElement('div');
+            row.className = 'input-group input-group-sm mb-2';
+            row.innerHTML =
+              '<span class="input-group-text" style="background:#f8fafc;border-color:#e5e7eb;"><i class="bx bx-phone text-muted"></i></span>' +
+              '<input type="tel" class="form-control wa-phone-input" placeholder="0991234567" inputmode="numeric" maxlength="13" value="' + (value || '').replace(/[^0-9]/g, '') + '">' +
+              '<button class="btn btn-outline-danger btn-remove-phone" type="button" title="Quitar"><i class="bx bx-x"></i></button>';
+            var inp = row.querySelector('.wa-phone-input');
+            inp.addEventListener('input', function(){
+              this.value = this.value.replace(/[^0-9]/g, '');
+              syncHidden();
+            });
+            row.querySelector('.btn-remove-phone').addEventListener('click', function(){
+              row.remove();
+              if (list.children.length === 0) addRow('');
+              syncHidden();
+            });
+            list.appendChild(row);
+            return inp;
+          }
+
+          function addRow(value) {
+            return buildRow(value);
+          }
+
+          // Cargar valores iniciales del textarea hidden
+          var initial = (hidden.value || '').split(/\n/).map(function(s){ return s.trim(); }).filter(Boolean);
+          if (initial.length === 0) {
+            addRow('');
+          } else {
+            initial.forEach(function(v){ addRow(v); });
+          }
+          syncHidden();
+
+          btnAdd.addEventListener('click', function(){
+            var inp = addRow('');
+            inp.focus();
+          });
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+        else init();
+      })();
+      </script>
     </div>
   </div>
 </div>
