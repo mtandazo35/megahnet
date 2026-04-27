@@ -1,25 +1,158 @@
 <?php include_once 'views/templates/header.php'; ?>
 
-<div class="page-header d-flex justify-content-between align-items-center mb-3">
-  <div>
-    <h4 class="mb-1 fw-semibold"><i class="bx bx-bell text-primary me-1"></i>Notificaciones</h4>
-    <small class="text-muted">Historial de alertas, configuracion y plantillas de mensajes</small>
+<div class="notif-header d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex align-items-center">
+    <div class="notif-header-icon"><i class="bx bx-bell"></i></div>
+    <div class="ms-3">
+      <h4 class="mb-0 fw-semibold notif-header-title">Notificaciones</h4>
+      <small class="text-muted">Historial de alertas, configuracion y plantillas de mensajes</small>
+    </div>
   </div>
-  <div>
-    <button class="btn btn-outline-info" id="btnProbarAlerta" type="button"><i class="bx bx-paper-plane"></i> Enviar prueba</button>
-    <button class="btn btn-outline-danger" id="btnVaciarHist" type="button"><i class="bx bx-trash"></i> Vaciar historial</button>
+  <div class="d-flex gap-2">
+    <button class="btn btn-sm btn-outline-info notif-action-btn" id="btnProbarAlerta" type="button"><i class="bx bx-paper-plane me-1"></i>Enviar prueba</button>
+    <button class="btn btn-sm btn-outline-danger notif-action-btn" id="btnVaciarHist" type="button"><i class="bx bx-trash me-1"></i>Vaciar historial</button>
   </div>
 </div>
 
-<ul class="nav nav-tabs mb-3" id="tabsNotif" role="tablist">
-  <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#nav-historial" type="button">Historial</button></li>
-  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-config" type="button">Configuracion</button></li>
-  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-plantillas" type="button">Plantillas</button></li>
-  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-correo" type="button"><i class="bx bx-envelope text-primary"></i> Correo</button></li>
-  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-whatsapp" type="button"><i class="bx bxl-whatsapp text-success"></i> WhatsApp</button></li>
+<ul class="nav notif-tabs mb-3" id="tabsNotif" role="tablist">
+  <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#nav-historial" type="button"><i class="bx bx-history me-1"></i>Historial</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-config" type="button"><i class="bx bx-cog me-1"></i>Configuracion</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-plantillas" type="button"><i class="bx bx-file me-1"></i>Plantillas</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-correo" type="button"><i class="bx bx-envelope me-1"></i>Correo</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-whatsapp" type="button"><i class="bx bxl-whatsapp me-1"></i>WhatsApp</button></li>
 </ul>
 
 <style>
+  /* === Polish global de Notificaciones === */
+  .notif-header-icon {
+    width: 44px; height: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    color: #fff; border-radius: 12px; font-size: 22px;
+    box-shadow: 0 4px 10px rgba(37,99,235,.25);
+  }
+  .notif-header-title { font-size: 1.35rem; color: #111827; letter-spacing: -.01em; }
+  .notif-action-btn { font-weight: 500; border-radius: 8px; }
+
+  /* Tabs estilo pill */
+  .notif-tabs {
+    background: #f3f5fa;
+    border-radius: 12px;
+    padding: 4px;
+    gap: 2px;
+    border: 1px solid #e5e7eb;
+  }
+  .notif-tabs .nav-link {
+    color: #4b5563;
+    border: 0 !important;
+    background: transparent;
+    border-radius: 9px !important;
+    padding: .5rem .9rem;
+    font-size: .87rem;
+    font-weight: 500;
+    transition: background .15s, color .15s, box-shadow .15s;
+  }
+  .notif-tabs .nav-link:hover { color: #2563eb; background: rgba(255,255,255,.7); }
+  .notif-tabs .nav-link.active {
+    color: #2563eb !important;
+    background: #fff !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,.06);
+    font-weight: 600;
+  }
+  .notif-tabs .nav-link i { font-size: 1.05rem; vertical-align: -2px; }
+
+  /* Cards con shadow sutil y border-radius mayor */
+  #nav-historial .card,
+  #nav-config .card,
+  #nav-plantillas .card,
+  #nav-correo .card,
+  #nav-whatsapp .card {
+    border: 1px solid #e9ecef !important;
+    border-radius: 12px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    background: #fff;
+  }
+
+  /* Tablas mas modernas */
+  #nav-historial .table {
+    border: 0 !important;
+    margin: 0;
+  }
+  #nav-historial .table thead th {
+    border-top: 0 !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    background: transparent;
+    color: #6b7280;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    padding: .85rem .75rem;
+  }
+  #nav-historial .table tbody td {
+    border-color: #f1f3f7 !important;
+    padding: .75rem;
+    font-size: .87rem;
+    color: #374151;
+    vertical-align: middle;
+  }
+  #nav-historial .table tbody tr:hover td { background: #f9fafb; }
+  #nav-historial .table .badge { font-weight: 500; padding: .35em .65em; border-radius: 6px; }
+
+  /* WhatsApp tab: hero card mas vivo */
+  #nav-whatsapp .card { padding: 0; }
+  #wa-status-area { padding: 1.25rem; border-radius: 10px; background: #f9fafb; margin-bottom: 1rem; }
+  #wa-status-badge { font-size: .75rem; padding: .35em .85em; border-radius: 999px; font-weight: 600; letter-spacing: .3px; }
+  #wa-status-badge.bg-success::before {
+    content: ""; display: inline-block; width: 7px; height: 7px;
+    border-radius: 50%; background: #fff; margin-right: 6px; vertical-align: 1px;
+    animation: wa-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes wa-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .35; }
+  }
+  #wa-phone { font-size: 1.05rem; color: #111827; letter-spacing: .02em; }
+  #wa-sess-name { color: #6b7280; font-size: .8rem; font-family: ui-monospace, Menlo, monospace; }
+  #btnVincularWa, #btnCerrarWa { border-radius: 10px; padding: .6rem 1.1rem; font-weight: 500; }
+  #btnVincularWa { box-shadow: 0 4px 12px rgba(34,197,94,.25); }
+
+  /* Inputs mas finos en toda la pagina */
+  #nav-config .form-control,
+  #nav-config .form-select,
+  #nav-correo .form-control,
+  #nav-correo .form-select,
+  #nav-whatsapp .form-control,
+  #nav-whatsapp .form-select {
+    border-color: #e5e7eb;
+    border-radius: 8px;
+    transition: border-color .12s, box-shadow .12s;
+  }
+  #nav-config .form-control:focus,
+  #nav-config .form-select:focus,
+  #nav-correo .form-control:focus,
+  #nav-correo .form-select:focus,
+  #nav-whatsapp .form-control:focus,
+  #nav-whatsapp .form-select:focus {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+  }
+
+  /* Botones primarios con shadow sutil */
+  #nav-config .btn-primary,
+  #nav-correo .btn-primary,
+  #nav-plantillas .btn-primary {
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(37,99,235,.2);
+    font-weight: 500;
+  }
+  #nav-config .btn-primary:hover,
+  #nav-correo .btn-primary:hover,
+  #nav-plantillas .btn-primary:hover {
+    box-shadow: 0 4px 10px rgba(37,99,235,.3);
+    transform: translateY(-1px);
+  }
+
   /* Modales mas compactos en notificaciones */
   #nav-historial .modal .modal-dialog,
   #nav-config .modal .modal-dialog,
