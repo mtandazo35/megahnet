@@ -187,6 +187,72 @@
 <?php if (!empty($data['validacion'])) { ?>
     <script src="<?php echo BASE_URL . 'assets/js/' . $data['validacion']; ?>?v=<?php echo function_exists('asset_v') ? asset_v('assets/js/' . $data['validacion']) : ''; ?>"></script>
 <?php } ?>
+
+<script>
+// =============================================================================
+// Captura global de errores JS — los manda al endpoint notificaciones/logClientError
+// con throttle por firma (5 min) en sessionStorage para no inundar.
+// =============================================================================
+(function(){
+    if (typeof base_url === 'undefined') return;
+    var THROTTLE_MS = 5 * 60 * 1000;
+    function shouldSend(sig){
+        try {
+            var key = '__alertSig_' + sig;
+            var last = parseInt(sessionStorage.getItem(key) || '0', 10);
+            var now = Date.now();
+            if (now - last < THROTTLE_MS) return false;
+            sessionStorage.setItem(key, String(now));
+            return true;
+        } catch(_){ return true; }
+    }
+    function sigOf(msg, src, line){
+        var s = (msg||'') + '|' + (src||'') + '|' + (line||'');
+        var h = 0; for (var i=0; i<s.length; i++) { h = ((h<<5)-h) + s.charCodeAt(i); h |= 0; }
+        return Math.abs(h).toString(36);
+    }
+    window.mhnLogClientError = function(payload){
+        if (!payload || !payload.message) return;
+        var sig = sigOf(payload.message, payload.source, payload.line);
+        if (!shouldSend(sig)) return;
+        try {
+            fetch(base_url + 'notificaciones/logClientError', {
+                method: 'POST', credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(function(){});
+        } catch(_){}
+    };
+    window.addEventListener('error', function(ev){
+        // ignorar errores de recursos (img, script load) — solo runtime errors
+        if (ev && ev.message) {
+            window.mhnLogClientError({
+                kind:'JS_ERROR',
+                message: ev.message,
+                source:  ev.filename || '',
+                line:    ev.lineno   || 0,
+                col:     ev.colno    || 0,
+                stack:   (ev.error && ev.error.stack) ? String(ev.error.stack).substring(0, 2000) : '',
+                page:    location.pathname
+            });
+        }
+    });
+    window.addEventListener('unhandledrejection', function(ev){
+        var r = ev && ev.reason;
+        var msg = r && (r.message || String(r)) || 'Promise rejection';
+        window.mhnLogClientError({
+            kind: 'JS_PROMISE',
+            message: msg,
+            source:  '',
+            line:    0,
+            col:     0,
+            stack:   (r && r.stack) ? String(r.stack).substring(0, 2000) : '',
+            page:    location.pathname
+        });
+    });
+})();
+</script>
+
 </body>
 
 </html>

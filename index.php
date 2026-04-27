@@ -1,6 +1,7 @@
 <?php
 require_once 'config/Config.php';
 require_once 'config/Helpers.php';
+require_once 'config/ErrorAlerts.php';
 //require_once 'config/cacheWarmer.php';
 
 

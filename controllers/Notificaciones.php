@@ -747,4 +747,29 @@ class Notificaciones extends Controller
         }
         echo json_encode(['ok' => true, 'asunto' => $asunto, 'cuerpo' => $cuerpo], JSON_UNESCAPED_UNICODE);
     }
+
+    public function logClientError()
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        if (empty($_SESSION['id_usuario'])) { echo json_encode(['ok'=>false]); exit; }
+        $body = json_decode(file_get_contents('php://input'), true) ?: [];
+        $msg  = trim((string)($body['message'] ?? ''));
+        $src  = trim((string)($body['source'] ?? ''));
+        $line = (int)($body['line'] ?? 0);
+        $col  = (int)($body['col'] ?? 0);
+        $stk  = trim((string)($body['stack'] ?? ''));
+        $page = trim((string)($body['page'] ?? ''));
+        $tipo = trim((string)($body['kind'] ?? 'JS_ERROR'));
+        if ($msg === '') { echo json_encode(['ok'=>false]); exit; }
+        if (function_exists('registrarFalla')) {
+            registrarFalla(
+                $tipo,
+                'Error frontend: ' . substr($msg, 0, 80),
+                $msg . "\n" . $src . ':' . $line . ':' . $col . ($stk ? ("\n\n" . $stk) : ''),
+                array_merge(function_exists('alertaContextoRequest') ? alertaContextoRequest() : [], ['page' => $page])
+            );
+        }
+        echo json_encode(['ok'=>true]);
+        exit;
+    }
 }
