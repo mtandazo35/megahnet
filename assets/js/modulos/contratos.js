@@ -493,6 +493,7 @@ document.addEventListener('DOMContentLoaded', function () {
   $('#tblHistorial').DataTable({
     deferRender: true,
     pageLength: 25,
+    lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
     colReorder: true,
     stateSave: true,
     stateDuration: 60 * 60 * 24 * 30,
@@ -532,6 +533,7 @@ document.addEventListener('DOMContentLoaded', function () {
   /*tblHistorial = $('#tblHistorial').DataTable({
     deferRender: true,
     pageLength: 25,
+    lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
     
     ajax: {
       url: base_url + 'contratos/listar',
@@ -560,6 +562,7 @@ document.addEventListener('DOMContentLoaded', function () {
   tblcontratosSuspender = $('#tblcontratosSuspender').DataTable({
     deferRender: true,
     pageLength: 25,
+    lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
     processing: true,
     serverSide: true,
     ajax: {
