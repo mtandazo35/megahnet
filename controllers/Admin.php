@@ -856,6 +856,8 @@ class Admin extends Controller
         if (empty($_SESSION['id_usuario']) || ($_SESSION['rol'] ?? 0) != 1) {
             echo json_encode(['ok'=>false,'msg'=>'No autorizado']); exit;
         }
+        // Liberar lock de sesion para no bloquear otras requests del mismo usuario
+        if (function_exists('session_write_close')) @session_write_close();
         $body = json_decode(file_get_contents('php://input'), true) ?: [];
         $url = trim((string)($body['url'] ?? ''));
         $type = trim((string)($body['type'] ?? ''));
