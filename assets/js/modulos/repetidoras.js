@@ -168,6 +168,7 @@ function editarRepetidoras(idRepetidoras) {
             const res = JSON.parse(this.responseText);
             id.value = res.id;
             marca.value = res.marca;
+            var sm = document.getElementById('id_mikrotik'); if (sm) sm.value = (res.id_mikrotik !== null && res.id_mikrotik !== undefined) ? res.id_mikrotik : '';
             ssid.value = res.ssid;
             ip.value = res.ip;
             canal.value = res.canal;

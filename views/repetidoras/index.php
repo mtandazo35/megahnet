@@ -44,6 +44,18 @@
             <form id="formulario" autocomplete="off">
                 <div class="modal-body">
                     <input type="hidden" id="id" name="id">
+                    <div class="mb-3">
+                        <label class="form-label small mb-1" for="id_mikrotik">Mikrotik <span class="text-muted fw-normal">(opcional, para filtrar en contratos)</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bx bx-server"></i></span>
+                            <select id="id_mikrotik" name="id_mikrotik" class="form-select">
+                                <option value="">Seleccionar</option>
+                                <?php foreach (($data['mikrotiks'] ?? []) as $mk): ?>
+                                    <option value="<?php echo (int)$mk['id']; ?>"><?php echo htmlspecialchars($mk['nombre']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label small mb-1" for="marca">Marca <span class="text-danger">*</span></label>

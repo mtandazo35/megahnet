@@ -1149,3 +1149,59 @@ function restaurarContrato(idContrato) {
   const url = base_url + 'contratos/restaurar/' + idContrato;
   restaurarRegistros(url, tblHistorial);
 }
+
+// Cascading: al cambiar Mikrotik repoblar Zona y Repetidoras
+(function cascadingMikrotik(){
+    var sel = document.getElementById('idMikrotik');
+    var zonaSel = document.getElementById('idZonas');
+    var repSel = document.getElementById('repetidora');
+    if (!sel || !zonaSel || !repSel) return;
+
+    function fillSelect(selectEl, items, getVal, getLabel) {
+        var prev = selectEl.value;
+        selectEl.innerHTML = '<option value="">Seleccionar</option>';
+        items.forEach(function(it){
+            var opt = document.createElement('option');
+            opt.value = getVal(it);
+            opt.textContent = getLabel(it);
+            selectEl.appendChild(opt);
+        });
+        // Mantener valor previo si sigue valido
+        if (prev && [...selectEl.options].some(function(o){ return o.value == prev; })) {
+            selectEl.value = prev;
+        }
+    }
+
+    function updateFromMikrotik(idMk) {
+        if (!idMk) {
+            zonaSel.innerHTML = '<option value="">Selecciona un Mikrotik primero</option>';
+            repSel.innerHTML  = '<option value="">Selecciona un Mikrotik primero</option>';
+            return;
+        }
+        zonaSel.innerHTML = '<option value="">Cargando...</option>';
+        repSel.innerHTML  = '<option value="">Cargando...</option>';
+        fetch(base_url + 'contratos/zonasPorMikrotik/' + idMk, {credentials:'same-origin'})
+            .then(function(r){ return r.json(); })
+            .then(function(zonas){
+                if (!zonas || zonas.length === 0) {
+                    zonaSel.innerHTML = '<option value="">Sin zonas asignadas a este Mikrotik</option>';
+                } else {
+                    fillSelect(zonaSel, zonas, function(z){ return z.id; }, function(z){ return z.descripcion; });
+                }
+            }).catch(function(){ zonaSel.innerHTML = '<option value="">Error cargando zonas</option>'; });
+        fetch(base_url + 'contratos/repetidorasPorMikrotik/' + idMk, {credentials:'same-origin'})
+            .then(function(r){ return r.json(); })
+            .then(function(reps){
+                if (!reps || reps.length === 0) {
+                    repSel.innerHTML = '<option value="">Sin repetidoras asignadas a este Mikrotik</option>';
+                } else {
+                    // El value del repetidora va por SSID en el form actual (revisar)
+                    fillSelect(repSel, reps, function(r){ return r.ssid; }, function(r){ return r.ssid; });
+                }
+            }).catch(function(){ repSel.innerHTML = '<option value="">Error cargando repetidoras</option>'; });
+    }
+
+    sel.addEventListener('change', function(){ updateFromMikrotik(this.value); });
+    // Inicializar segun el valor actual (caso edicion)
+    if (sel.value) updateFromMikrotik(sel.value);
+})();

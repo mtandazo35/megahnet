@@ -874,6 +874,23 @@ class Contratos extends Controller
         $data['script'] = 'contratos-inactivos.js';
         $this->views->getView('contratos', 'inactivos', $data);
     }
+    public function zonasPorMikrotik($idMikrotik = 0)
+    {
+        header('Content-Type: application/json');
+        $idMikrotik = (int)$idMikrotik;
+        if ($idMikrotik <= 0) { echo json_encode([]); exit; }
+        echo json_encode($this->model->zonasPorMikrotik($idMikrotik), JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    public function repetidorasPorMikrotik($idMikrotik = 0)
+    {
+        header('Content-Type: application/json');
+        $idMikrotik = (int)$idMikrotik;
+        if ($idMikrotik <= 0) { echo json_encode([]); exit; }
+        echo json_encode($this->model->repetidorasPorMikrotik($idMikrotik), JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     public function listarInactivos()
     {
         $data = $this->model->getContratos(0);

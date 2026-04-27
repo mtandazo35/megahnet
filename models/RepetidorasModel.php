@@ -5,16 +5,23 @@ class RepetidorasModel extends Query{
     }
     public function getRepetidoras($estado)
     {
-        $sql = "SELECT * FROM repetidoras WHERE estado = $estado";
+        $sql = "SELECT r.*, m.nombre AS mikrotik_nombre
+                FROM repetidoras r
+                LEFT JOIN mikrotik m ON m.id = r.id_mikrotik
+                WHERE r.estado = $estado";
         return $this->selectAll($sql);
     }
-    public function registrar($marca,$ssid,$ip,$canal,$seguridad,$frecuencia)
-        {
-        $sql = "INSERT INTO repetidoras (marca,ssid,ip,canal,seguridad,frecuencia) VALUES (?,?,?,?,?,?)";
-        $array = array($marca,$ssid,$ip,$canal,$seguridad,$frecuencia);
+    public function getMikrotiks()
+    {
+        $sql = "SELECT id, nombre FROM mikrotik WHERE estado = 1 ORDER BY nombre";
+        return $this->selectAll($sql);
+    }
+    public function registrar($marca,$ssid,$ip,$canal,$seguridad,$frecuencia,$idMikrotik=null)
+    {
+        $sql = "INSERT INTO repetidoras (marca,ssid,ip,canal,seguridad,frecuencia,id_mikrotik) VALUES (?,?,?,?,?,?,?)";
+        $array = array($marca,$ssid,$ip,$canal,$seguridad,$frecuencia, $idMikrotik !== '' ? $idMikrotik : null);
         return $this->insertar($sql, $array);
     }
-
     public function getValidar($campo, $valor, $accion, $id)
     {
         if ($accion == 'registrar' && $id == 0) {
@@ -24,7 +31,6 @@ class RepetidorasModel extends Query{
         }
         return $this->select($sql);
     }
-
     public function eliminar($estado, $idRepetidora)
     {
         $sql = "UPDATE repetidoras SET estado = ? WHERE id = ?";
@@ -36,11 +42,10 @@ class RepetidorasModel extends Query{
         $sql = "SELECT * FROM repetidoras WHERE id = $idRepetidora";
         return $this->select($sql);
     }
-
-    public function actualizar($marca,$ssid,$ip,$canal,$seguridad,$frecuencia, $id)
+    public function actualizar($marca,$ssid,$ip,$canal,$seguridad,$frecuencia, $id, $idMikrotik=null)
     {
-        $sql = "UPDATE repetidoras SET marca=?, ssid=?, ip=?, canal=?, seguridad=?,frecuencia=? WHERE id=?";
-        $array = array($marca,$ssid,$ip,$canal,$seguridad,$frecuencia, $id);
+        $sql = "UPDATE repetidoras SET marca=?, ssid=?, ip=?, canal=?, seguridad=?,frecuencia=?,id_mikrotik=? WHERE id=?";
+        $array = array($marca,$ssid,$ip,$canal,$seguridad,$frecuencia, $idMikrotik !== '' ? $idMikrotik : null, $id);
         return $this->save($sql, $array);
     }
     public function buscarPorNombre($valor)
@@ -50,5 +55,4 @@ class RepetidorasModel extends Query{
         return $this->selectAll($sql, [$like, $like]);
     }
 }
-
 ?>

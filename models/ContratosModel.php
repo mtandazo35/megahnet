@@ -338,4 +338,16 @@ public function contarContratos($estado )
         return $r ? intval($r[0]['c']) : 0;
     }
 
+
+    public function zonasPorMikrotik($idMikrotik)
+    {
+        $sql = "SELECT id, descripcion FROM zonas WHERE estado = 1 AND id_mikrotik = ? ORDER BY descripcion";
+        return $this->select2($sql, [$idMikrotik]);
+    }
+    public function repetidorasPorMikrotik($idMikrotik)
+    {
+        $sql = "SELECT id, ssid FROM repetidoras WHERE estado = 1 AND id_mikrotik = ? ORDER BY ssid";
+        return $this->select2($sql, [$idMikrotik]);
+    }
+
 }

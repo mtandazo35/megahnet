@@ -26,6 +26,7 @@ class Repetidoras extends Controller
         $data['title'] = 'Repetidoras';
         $data['script'] = 'repetidoras.js';
         $data['repetidoras'] = $this->model->getRepetidoras(1);
+        $data['mikrotiks'] = $this->model->getMikrotiks();
         $this->views->getView('repetidoras', 'index', $data);
     }
     public function listar()
@@ -91,15 +92,7 @@ class Repetidoras extends Controller
                     $verificarIdentidad = $this->model->getValidar('ssid', $ssid, 'registrar', 0);
                     if (empty($verificarIdentidad)) {
                        
-                        $data = $this->model->registrar(
-                            $marca,
-                            $ssid,
-                            $ip,
-                            $canal,
-                            $seguridad,
-                            $frecuencia
-                            
-                        );
+                        $data = $this->model->registrar($marca, $ssid, $ip, $canal, $seguridad, $frecuencia, isset($_POST['id_mikrotik']) ? trim($_POST['id_mikrotik']) : null);
                         if ($data > 0) {
                             $res = array('msg' => 'REPETIDORA REGISTRADO EXITOSAMENTE', 'type' => 'success');
                         } else {
@@ -112,15 +105,7 @@ class Repetidoras extends Controller
                     $verificarIdentidad = $this->model->getValidar('ssid', $ssid, 'actualizar', $id);
                    if (empty($verificarIdentidad)) {
                        
-                        $data = $this->model->actualizar(
-                            $marca,
-                            $ssid,
-                            $ip,
-                            $canal,
-                            $seguridad,
-                            $frecuencia,
-                            $id
-                        );
+                        $data = $this->model->actualizar($marca, $ssid, $ip, $canal, $seguridad, $frecuencia, $id, isset($_POST['id_mikrotik']) ? trim($_POST['id_mikrotik']) : null);
                         if ($data > 0) {
                             $res = array('msg' => 'REPETIDORA ACTUALIZADO EXITOSAMENTE', 'type' => 'success');
                         } else {
