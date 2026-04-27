@@ -147,12 +147,12 @@ $_emp          = isset($empresa) && is_array($empresa) ? $empresa : [];
 <div class="header">
     <table>
         <tr>
-            <td class="logo-cell" style="width:160px;padding-right:14px;">
+            <td class="empresa-cell" style="width:60%;padding-right:14px;">
                 <?php if ($_logoSrc !== '') { ?>
-                    <img src="<?php echo $_logoSrc; ?>" alt="" style="max-width:150px;max-height:90px;display:block;">
+                    <div style="margin-bottom:8px;">
+                        <img src="<?php echo $_logoSrc; ?>" alt="" style="max-width:160px;max-height:80px;display:block;">
+                    </div>
                 <?php } ?>
-            </td>
-            <td class="empresa-cell">
                 <?php if (!empty($_emp['razon_social'])) { ?>
                     <p class="nombre" style="font-size:15px;font-weight:bold;color:#111827;margin:0 0 4px 0;"><?php echo $_e(strtoupper($_emp['razon_social'])); ?></p>
                 <?php } ?>

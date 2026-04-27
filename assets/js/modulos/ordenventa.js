@@ -96,14 +96,12 @@ document.addEventListener('DOMContentLoaded', function () {
             //Abrir una Conexion - POST - GET
             http.open('POST', url, true);
             //Enviar Datos
-            var chkWa = document.getElementById('chkEnviarWa');
             http.send(JSON.stringify({
                 productos: listaCarrito,
                 idCliente: idCliente.value,
                 metodo: metodo.value,
                 descuento: descuento.value,
-                tipoPago: tipopago.value,
-                enviar_wa: chkWa && chkWa.checked ? 1 : 0
+                tipoPago: tipopago.value
             }));
             //verificar estados
             http.onreadystatechange = function () {
@@ -419,8 +417,13 @@ function mostrarOrdenCreadaModal(idOrden) {
             <iframe src="${pdfUrl}" style="width:100%; height:65vh; border:0; display:block;"></iframe>
           </div>
           <div class="modal-footer flex-wrap gap-2 align-items-center justify-content-between">
-            <div class="text-success small">
-              <i class="bx bxl-whatsapp"></i> El PDF se envia al cliente automaticamente si marcaste el checkbox.
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <i class="bx bxl-whatsapp text-success" style="font-size:24px;"></i>
+              <input type="tel" id="ocTel" class="form-control form-control-sm" placeholder="Telefono"
+                value="${telCliente}" style="width:150px;" inputmode="numeric" maxlength="13">
+              <button class="btn btn-success btn-sm" type="button" id="ocBtnWa">
+                <i class="bx bx-paper-plane me-1"></i>Enviar WhatsApp
+              </button>
             </div>
             <div class="d-flex gap-2">
               <a class="btn btn-outline-primary btn-sm" href="${pdfUrl}" target="_blank" download>
@@ -442,12 +445,56 @@ function mostrarOrdenCreadaModal(idOrden) {
 
     var btnCerrar = document.getElementById('ocBtnCerrar');
     btnCerrar.addEventListener('click', function(){
-        btnCerrar._reloaded = true;
         modal.hide();
-        window.location.reload();
+        window.location.href = base_url + 'ordenventa';
     });
     modalEl.addEventListener('hidden.bs.modal', function(){
-        if (!btnCerrar._reloaded) window.location.reload();
+        modalEl.remove();
     });
 
+
+    var btnWa = document.getElementById('ocBtnWa');
+    if (btnWa) btnWa.addEventListener('click', function(){
+        var tel = document.getElementById('ocTel').value.trim().replace(/[^0-9]/g, '');
+        if (!tel) {
+            Swal.fire({icon:'warning', title:'Telefono requerido', text:'Escribe un numero para enviar.'});
+            return;
+        }
+        btnWa.disabled = true;
+        var prev = btnWa.innerHTML;
+        btnWa.innerHTML = '<i class="bx bx-loader bx-spin me-1"></i>Enviando...';
+        // Usar /notificaciones/waEnviarPrueba con caption + URL del PDF (CF lo conoce)
+        var pdfUrlAbs = window.location.origin + base_url.replace(window.location.origin, '') + 'ordenventa/reporte/factura/' + idOrden;
+        // Ajuste: si base_url ya tiene origin, no duplicar
+        if (base_url.indexOf('://') !== -1) {
+            pdfUrlAbs = base_url + 'ordenventa/reporte/factura/' + idOrden;
+        }
+        fetch(base_url + 'notificaciones/waEnviarPrueba', {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({
+                number: tel,
+                message: 'Adjunto orden de venta #' + idOrden,
+                mediaUrl: pdfUrlAbs,
+                fileName: 'OrdenVenta_' + idOrden + '.pdf'
+            })
+        }).then(function(r){ return r.text(); }).then(function(text){
+            var d;
+            try { d = JSON.parse(text); }
+            catch(e){
+                Swal.fire({icon:'error', title:'Respuesta invalida', html:'<small>Cloudflare bloqueo el endpoint. Considera whitelist.</small>'});
+                throw e;
+            }
+            if (d.ok) {
+                Swal.fire({icon:'success', title:'PDF enviado', text:'WhatsApp a +' + tel, timer:2200, showConfirmButton:false});
+            } else {
+                Swal.fire({icon:'error', title:'No se pudo enviar', text: d.msg || ('HTTP ' + (d.http || '?'))});
+            }
+        }).catch(function(e){
+            // already handled in catch above
+        }).finally(function(){
+            btnWa.disabled = false;
+            btnWa.innerHTML = prev;
+        });
+    });
 }

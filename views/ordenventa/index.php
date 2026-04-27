@@ -169,12 +169,6 @@
                                     <?php } ?>
                                 </select>
 
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" id="chkEnviarWa" checked>
-                                    <label class="form-check-label small" for="chkEnviarWa">
-                                        <i class="bx bxl-whatsapp text-success me-1"></i>Enviar PDF al cliente por WhatsApp
-                                    </label>
-                                </div>
                                 <div class="d-grid">
                                     <button class="btn btn-primary btn-lg" type="button" id="btnAccion">
                                         <i class="bx bx-check-circle me-1"></i>Completar orden

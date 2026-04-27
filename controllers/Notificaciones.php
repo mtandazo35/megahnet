@@ -510,6 +510,38 @@ class Notificaciones extends Controller
 
     public function waEnviarPrueba()
     {
+        // Soporte para envio de media (PDF, imagen) cuando se pasa mediaUrl en el body
+        $bodyIn = json_decode(file_get_contents('php://input'), true) ?: [];
+        if (!empty($bodyIn['mediaUrl'])) {
+            header('Content-Type: application/json; charset=utf-8');
+            $tel = preg_replace('/[^0-9]/', '', (string)($bodyIn['number'] ?? ''));
+            if (empty($tel)) { echo json_encode(['ok'=>false,'msg'=>'Sin numero']); exit; }
+            if (strlen($tel) === 10 && $tel[0] === '0') $tel = '593' . substr($tel, 1);
+            elseif (strlen($tel) === 9) $tel = '593' . $tel;
+            $base = $this->waBaseUrl();
+            $cfg = $this->cargarConfig();
+            $sessionId = $cfg['wa_api']['session_id'] ?? '';
+            if (empty($base) || empty($sessionId)) { echo json_encode(['ok'=>false,'msg'=>'WhatsApp no configurado']); exit; }
+            $payload = [
+                'sessionId' => $sessionId,
+                'number'    => $tel,
+                'url'       => (string)$bodyIn['mediaUrl'],
+                'fileName'  => (string)($bodyIn['fileName'] ?? 'archivo.pdf'),
+                'caption'   => (string)($bodyIn['message'] ?? ''),
+            ];
+            $ch = curl_init(rtrim($base,'/') . '/api/whatsapp/send-media/url');
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => json_encode($payload),
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                CURLOPT_TIMEOUT => 30, CURLOPT_SSL_VERIFYPEER => false,
+            ]);
+            $resp = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            echo json_encode(['ok'=>($code>=200 && $code<300), 'http'=>$code]);
+            exit;
+        }
         header('Content-Type: application/json; charset=utf-8');
         if (($_SESSION['rol'] ?? 0) != 1) { echo json_encode(['ok'=>false,'msg'=>'No autorizado']); return; }
         $body = json_decode(file_get_contents('php://input'), true) ?: [];
