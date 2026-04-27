@@ -112,36 +112,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     alertaPersonalizada(res.type, res.msg);
                     if (res.type == 'success') {
                         localStorage.removeItem(nombreKey);
-                        setTimeout(() => {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'IMPRIMIR ORDEN VENTA?',
-                                text: 'Generando',
-                                showCancelButton: true,
-                                confirmButtonText: 'Orden Venta',
-                            }).then((result) => {
-                                /* Read more about isConfirmed, isDenied below */
-                                divLoading.style.display = "none";
-
-                              //  hideLoader();
-                                if (result.isConfirmed) {
-                                    const ruta = base_url + 'ordenventa/reporte/factura/' + res.idOrdenVenta;
-
-                                    window.open(ruta, '_blank');
-                                } 
-                                /*else if (result.isDenied) {
-                                    
-                                    const ruta = base_url + 'ordenventa/reporte/ticked/' + res.idOrdenVenta;
-                                    window.open(ruta, '_blank');
-                                }*/
-                                window.location.reload();
-                            })
-
-                        }, 2000);
-                    }else{
                         divLoading.style.display = "none";
-              
-                      }
+                        // Mostrar modal embebido con preview del PDF + WhatsApp send
+                        mostrarOrdenCreadaModal(res.idOrdenVenta);
+                    } else {
+                        divLoading.style.display = "none";
+                    }
                 }else{
                     divLoading.style.display = "none";
           
@@ -416,3 +392,93 @@ function envioCorreoOrdenVenta(idOrden) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
     else bind();
 })();
+
+
+// ============================================================================
+// Modal: muestra PDF embebido tras crear orden + envio por WhatsApp
+// ============================================================================
+function mostrarOrdenCreadaModal(idOrden) {
+    var existing = document.getElementById('modalOrdenCreada');
+    if (existing) existing.remove();
+
+    var telCliente = '';
+    var telInput = document.getElementById('telefonoCliente');
+    if (telInput) telCliente = (telInput.value || '').replace(/[^0-9]/g, '');
+
+    var pdfUrl = base_url + 'ordenventa/reporte/factura/' + idOrden;
+    var modalHtml = `
+    <div class="modal fade" id="modalOrdenCreada" tabindex="-1" data-bs-backdrop="static">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title"><i class="bx bx-check-circle me-2"></i>Orden de venta #${idOrden} creada</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-0">
+            <iframe src="${pdfUrl}" style="width:100%; height:65vh; border:0; display:block;"></iframe>
+          </div>
+          <div class="modal-footer flex-wrap gap-2 align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <i class="bx bxl-whatsapp text-success" style="font-size:24px;"></i>
+              <input type="tel" id="ocTel" class="form-control form-control-sm" placeholder="Telefono cliente"
+                value="${telCliente}" style="width:160px;" inputmode="numeric" maxlength="13">
+              <button class="btn btn-success btn-sm" type="button" id="ocBtnWa">
+                <i class="bx bx-paper-plane me-1"></i>Enviar por WhatsApp
+              </button>
+            </div>
+            <div class="d-flex gap-2">
+              <a class="btn btn-outline-primary btn-sm" href="${pdfUrl}" target="_blank" download>
+                <i class="bx bx-download me-1"></i>Descargar PDF
+              </a>
+              <button class="btn btn-secondary btn-sm" type="button" id="ocBtnCerrar">
+                <i class="bx bx-plus me-1"></i>Nueva orden
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    var modalEl = document.getElementById('modalOrdenCreada');
+    var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+
+    var btnCerrar = document.getElementById('ocBtnCerrar');
+    btnCerrar.addEventListener('click', function(){
+        btnCerrar._reloaded = true;
+        modal.hide();
+        window.location.reload();
+    });
+    modalEl.addEventListener('hidden.bs.modal', function(){
+        if (!btnCerrar._reloaded) window.location.reload();
+    });
+
+    var btnWa = document.getElementById('ocBtnWa');
+    btnWa.addEventListener('click', function(){
+        var tel = document.getElementById('ocTel').value.trim().replace(/[^0-9]/g, '');
+        if (!tel) {
+            Swal.fire({icon:'warning', title:'Telefono requerido', text:'Escribe un numero para enviar.'});
+            return;
+        }
+        btnWa.disabled = true;
+        var prev = btnWa.innerHTML;
+        btnWa.innerHTML = '<i class="bx bx-loader bx-spin me-1"></i>Enviando...';
+        fetch(base_url + 'ordenventa/enviarPorWhatsApp/' + idOrden, {
+            method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ telefono: tel, mensaje: 'Adjunto orden de venta #' + idOrden })
+        }).then(function(r){ return r.json(); }).then(function(d){
+            if (d.ok) {
+                Swal.fire({icon:'success', title:'PDF enviado', text:'WhatsApp a +' + d.telefono, timer:2200, showConfirmButton:false});
+            } else {
+                Swal.fire({icon:'error', title:'No se pudo enviar', text: d.msg || ('HTTP ' + (d.http || '?'))});
+            }
+        }).catch(function(e){
+            Swal.fire({icon:'error', title:'Error', text:e.message});
+        }).finally(function(){
+            btnWa.disabled = false;
+            btnWa.innerHTML = prev;
+        });
+    });
+}
