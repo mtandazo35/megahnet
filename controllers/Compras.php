@@ -62,24 +62,29 @@ class Compras extends Controller
                     array_push($array['productos'], $data);
                     $total += $subTotalConIva;
                 }
-                if ($saldo['saldo'] >= $total) { // esta validacion es para registrar una compra, se necesita tener saldo en la caja para realizar comprar de cantidades alta
-                    $datosProductos = json_encode($array['productos'], JSON_UNESCAPED_UNICODE);
-                    $compra = $this->model->registrarCompra($datosProductos, $total, $fecha, $hora, $serie, $idproveedor, $this->id_usuario);
-                    if ($compra > 0) {
-                        foreach ($datos['productos'] as $producto) {
-                            $result = $this->model->getProducto($producto['id']);
-                            //actualizar stock
-                            $nuevaCantidad = $result['cantidad'] + $producto['cantidad'];
-                            $this->model->actualizarStock($nuevaCantidad, $result['id']);
-                            $movimiento = 'Compra N°: ' . $compra;
-                            $this->model->registrarMovimiento($movimiento, 'entrada', $producto['cantidad'], $nuevaCantidad, $producto['id'], $this->id_usuario);
-                        }
-                        $res = array('msg' => 'COMPRA GENERADA', 'type' => 'success', 'idCompra' => $compra);
-                    } else {
-                        $res = array('msg' => 'ERROR AL CREAR COMPRA', 'type' => 'error');
+                // Saldo de caja: ya NO bloquea la compra (decision de negocio).
+                // Si el saldo no alcanza, se registra de todos modos pero se anota una advertencia
+                // en el bitacora de alertas para auditoria.
+                $datosProductos = json_encode($array['productos'], JSON_UNESCAPED_UNICODE);
+                $compra = $this->model->registrarCompra($datosProductos, $total, $fecha, $hora, $serie, $idproveedor, $this->id_usuario);
+                if ($compra > 0) {
+                    foreach ($datos['productos'] as $producto) {
+                        $result = $this->model->getProducto($producto['id']);
+                        $nuevaCantidad = $result['cantidad'] + $producto['cantidad'];
+                        $this->model->actualizarStock($nuevaCantidad, $result['id']);
+                        $movimiento = 'Compra N°: ' . $compra;
+                        $this->model->registrarMovimiento($movimiento, 'entrada', $producto['cantidad'], $nuevaCantidad, $producto['id'], $this->id_usuario);
                     }
+                    if ($saldo['saldo'] < $total && function_exists('registrarFalla')) {
+                        registrarFalla('COMPRA_SIN_SALDO',
+                            'Compra N° ' . $compra . ' registrada con saldo insuficiente',
+                            'Saldo de caja: ' . MONEDA . $saldo['saldo'] . ' / Total compra: ' . MONEDA . number_format($total, 2),
+                            ['idCompra' => $compra, 'idProveedor' => $idproveedor, 'serie' => $serie]
+                        );
+                    }
+                    $res = array('msg' => 'COMPRA GENERADA', 'type' => 'success', 'idCompra' => $compra);
                 } else {
-                    $res = array('msg' => 'SALDO DISPONIBLE: ' . MONEDA . $saldo['saldo'], 'type' => 'warning');
+                    $res = array('msg' => 'ERROR AL CREAR COMPRA', 'type' => 'error');
                 }
             }
         } else {
