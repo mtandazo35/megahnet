@@ -323,7 +323,7 @@ $('#nav-completados-tab').on('shown.bs.tab', function () {
                         tblHistorial.ajax.reload();
                         // Preview WA antes de enviar via API
                         if (res.idCredito && typeof previewYEnviarWaCredito === 'function') {
-                            previewYEnviarWaCredito(res.idCredito, res.telefonoCliente);
+                            previewYEnviarWaCredito(res.idCredito, res.telefonoCliente, 'pagado');
                         } else {
                             tblHistorial.ajax.reload();
                         }
@@ -418,7 +418,7 @@ $('#nav-completados-tab').on('shown.bs.tab', function () {
                         tblHistorial.ajax.reload();
                         // Preview WA antes de enviar via API
                         if (res.idCredito && typeof previewYEnviarWaCredito === 'function') {
-                            previewYEnviarWaCredito(res.idCredito, res.telefonoCliente);
+                            previewYEnviarWaCredito(res.idCredito, res.telefonoCliente, 'pagado');
                         } else {
                             tblHistorial.ajax.reload();
                         }
@@ -621,10 +621,11 @@ function escapeHtmlPlain(s){
 // Preview del mensaje WhatsApp antes de enviar (post-abono)
 // Reusa el endpoint creditos/notificarCliente con preview=1
 // ============================================================================
-function previewYEnviarWaCredito(idCredito, telefonoCliente) {
+function previewYEnviarWaCredito(idCredito, telefonoCliente, tipoForzar) {
     if (!idCredito) return;
     var telDef = (telefonoCliente || '').replace(/[^0-9]/g, '');
-    fetch(base_url + 'creditos/notificarCliente/' + idCredito + '?preview=1', {
+    var qsTipo = tipoForzar ? '&tipo=' + encodeURIComponent(tipoForzar) : '';
+    fetch(base_url + 'creditos/notificarCliente/' + idCredito + '?preview=1' + qsTipo, {
         method: 'POST', credentials: 'same-origin'
     }).then(function(r){ return r.json(); }).then(function(d){
         if (!d.ok) {
@@ -656,10 +657,10 @@ function previewYEnviarWaCredito(idCredito, telefonoCliente) {
             var ta = document.getElementById('swalEdMsg');
             var mensajeEdit = ta ? ta.value : (d.mensaje || '');
             // Enviar via API real con el mensaje editado
-            fetch(base_url + 'creditos/notificarCliente/' + idCredito, {
+            fetch(base_url + 'creditos/notificarCliente/' + idCredito + (tipoForzar ? '?tipo=' + encodeURIComponent(tipoForzar) : ''), {
                 method: 'POST', credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mensaje: mensajeEdit })
+                body: JSON.stringify({ mensaje: mensajeEdit, tipo: tipoForzar || null })
             }).then(function(r2){ return r2.json(); }).then(function(dd){
                 if (dd.ok) {
                     Swal.fire({icon:'success', title:'Mensaje enviado', text:'WhatsApp a +' + dd.telefono, timer:2200, showConfirmButton:false});
@@ -673,3 +674,55 @@ function previewYEnviarWaCredito(idCredito, telefonoCliente) {
         Swal.fire({icon:'error', title:'Error preview', text:e.message});
     });
 }
+
+
+// ============================================================================
+// Buscador de cliente para Varios Abono — autocomplete que carga sus facturas
+// ============================================================================
+(function(){
+    var inp = document.getElementById('buscarClienteVarios');
+    var contratosInp = document.getElementById('contratos');
+    if (!inp || typeof $ === 'undefined' || !$.fn.autocomplete) return;
+    if (inp.dataset.bound === '1') return;
+    inp.dataset.bound = '1';
+
+    $(inp).autocomplete({
+        source: function(request, response) {
+            $.getJSON(base_url + 'creditos/buscarClienteCreditos', { term: request.term }, function(data){
+                response(data || []);
+            });
+        },
+        minLength: 2,
+        select: function(event, ui) {
+            event.preventDefault();
+            inp.value = ui.item.label;
+            // Cargar las facturas/ordenes pendientes del cliente
+            fetch(base_url + 'creditos/listarCreditosCliente/' + ui.item.id, {credentials:'same-origin'})
+                .then(function(r){ return r.json(); })
+                .then(function(creditos){
+                    if (!creditos || creditos.length === 0) {
+                        Swal.fire({icon:'info', title:'Sin creditos pendientes', text:'Este cliente no tiene facturas pendientes.'});
+                        return;
+                    }
+                    // Llenar input contratos con IDs separados por coma + montos
+                    var ids = creditos.map(function(c){ return c.id; }).join(',');
+                    var totalRestante = creditos.reduce(function(acc, c){
+                        return acc + (parseFloat(c.monto) - parseFloat(c.abonado || 0));
+                    }, 0);
+                    if (contratosInp) {
+                        contratosInp.value = ids;
+                        contratosInp.dataset.cantidad = creditos.length;
+                    }
+                    var monto = document.getElementById('monto_total_varios') || document.querySelector('#modalVariosAbonos .monto-total, input[id*="monto"]');
+                    if (monto) monto.value = totalRestante.toFixed(2);
+                    Swal.fire({
+                        icon:'success',
+                        title: 'Cliente con ' + creditos.length + ' factura(s)',
+                        text: 'Saldo total pendiente: $' + totalRestante.toFixed(2),
+                        timer: 2200, showConfirmButton: false
+                    });
+                })
+                .catch(function(e){ Swal.fire({icon:'error', title:'Error', text:e.message}); });
+        }
+    });
+})();

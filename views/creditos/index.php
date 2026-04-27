@@ -247,8 +247,8 @@
 
                     <div class="col-md-12 mb-2">
                         <div class="form-group">
-                            <label for="contratos">Contratos</label>
-                            <input id="contratos" class="form-control" type="text" placeholder="Contratos" readonly>
+                            <label for="buscarClienteVarios">Buscar Cliente</label>
+                            <input id="contratos" class="form-control" type="text" placeholder="Cliente seleccionado" readonly>
                         </div>
                     </div>
                     <div class="col-md-4 mb-2">

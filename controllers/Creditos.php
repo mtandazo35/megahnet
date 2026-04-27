@@ -664,6 +664,72 @@ class Creditos extends Controller
         echo json_encode($res);
         die();
     }
+    public function buscarClienteCreditos()
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        if (empty($_SESSION['id_usuario'])) { echo json_encode([]); exit; }
+        $term = trim((string)($_GET['term'] ?? ''));
+        if (mb_strlen($term) < 2) { echo json_encode([]); exit; }
+        $like = '%' . $term . '%';
+        try {
+            $pdo = new PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, PASSWORD,
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT]);
+            // Buscar clientes con creditos pendientes (orden_venta o electronica)
+            $sql = "SELECT DISTINCT cl.id, cl.nombre, cl.num_identidad, cl.telefono,
+                    (SELECT COUNT(*) FROM creditos cr2 INNER JOIN orden_venta ov2 ON ov2.id = cr2.id_orden_venta
+                       WHERE ov2.id_cliente = cl.id AND cr2.estado = 1) AS pendientes
+                FROM clientes cl
+                WHERE (cl.nombre LIKE ? OR cl.num_identidad LIKE ?)
+                  AND cl.estado = 1
+                  AND EXISTS (
+                      SELECT 1 FROM creditos cr INNER JOIN orden_venta ov ON ov.id = cr.id_orden_venta
+                      WHERE ov.id_cliente = cl.id AND cr.estado = 1
+                  )
+                LIMIT 12";
+            $st = $pdo->prepare($sql);
+            $st->execute([$like, $like]);
+            $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+            $out = [];
+            foreach ($rows as $r) {
+                $out[] = [
+                    'value' => $r['id'],
+                    'label' => $r['nombre'] . ' [' . $r['num_identidad'] . '] - ' . $r['pendientes'] . ' pendiente(s)',
+                    'id'    => $r['id'],
+                    'nombre'=> $r['nombre'],
+                    'telefono' => $r['telefono'],
+                ];
+            }
+            echo json_encode($out, JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            echo json_encode([]);
+        }
+        exit;
+    }
+
+    public function listarCreditosCliente($idCliente = 0)
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        if (empty($_SESSION['id_usuario'])) { echo json_encode([]); exit; }
+        $idCliente = (int)$idCliente;
+        if ($idCliente <= 0) { echo json_encode([]); exit; }
+        try {
+            $pdo = new PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, PASSWORD,
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT]);
+            $sql = "SELECT cr.id, cr.monto, cr.id_orden_venta, cr.id_electronica, cr.fecha,
+                       IFNULL((SELECT SUM(a.abono) FROM abonos a WHERE a.id_credito = cr.id), 0) AS abonado
+                FROM creditos cr
+                INNER JOIN orden_venta ov ON ov.id = cr.id_orden_venta
+                WHERE ov.id_cliente = ? AND cr.estado = 1
+                ORDER BY cr.fecha ASC";
+            $st = $pdo->prepare($sql);
+            $st->execute([$idCliente]);
+            echo json_encode($st->fetchAll(PDO::FETCH_ASSOC), JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            echo json_encode([]);
+        }
+        exit;
+    }
+
     public function notificarCliente($idCredito = 0)
     {
         header('Content-Type: application/json; charset=utf-8');
@@ -747,8 +813,17 @@ class Creditos extends Controller
             }
         } catch (\Throwable $e) { /* fallback al restante de este credito */ }
 
-        // Decidir plantilla segun estado
-        $plantillaKey = ($estado === 1) ? 'whatsapp_recordatorio' : (($estado === 0 || $estado === 3) ? 'whatsapp_pago_recibido' : null);
+        // Leer body para soportar tipo override y mensaje custom
+        $bodyIn = json_decode(file_get_contents('php://input'), true) ?: [];
+        // Decidir plantilla segun estado, pero permitir override via ?tipo=pagado/pendiente
+        $tipoForzado = $_GET['tipo'] ?? ($bodyIn['tipo'] ?? '');
+        if ($tipoForzado === 'pagado') {
+            $plantillaKey = 'whatsapp_pago_recibido';
+        } elseif ($tipoForzado === 'pendiente') {
+            $plantillaKey = 'whatsapp_recordatorio';
+        } else {
+            $plantillaKey = ($estado === 1) ? 'whatsapp_recordatorio' : (($estado === 0 || $estado === 3) ? 'whatsapp_pago_recibido' : null);
+        }
         if (!$plantillaKey) { echo json_encode(['ok'=>false,'msg'=>'Estado del credito no notificable']); exit; }
 
         // Renderizar plantilla con SALDO TOTAL REAL del cliente
@@ -759,7 +834,6 @@ class Creditos extends Controller
             'servicio_meses'   => '',
         ];
         // Si el frontend envia un mensaje custom (editado por el usuario), usarlo
-        $bodyIn = json_decode(file_get_contents('php://input'), true) ?: [];
         $mensajeCustom = isset($bodyIn['mensaje']) ? trim((string)$bodyIn['mensaje']) : '';
         if ($mensajeCustom !== '') {
             $cuerpo = $mensajeCustom;
@@ -808,7 +882,7 @@ class Creditos extends Controller
                 'ok'=>true, 'preview'=>true,
                 'mensaje'=>$cuerpo,
                 'telefono'=>$tel,
-                'tipo'=>(($estado===1)?'pendiente':'pagado'),
+                'tipo'=>($plantillaKey === 'whatsapp_pago_recibido' ? 'pagado' : 'pendiente'),
                 'plantilla_key'=>$plantillaKey,
             ], JSON_UNESCAPED_UNICODE);
             exit;
