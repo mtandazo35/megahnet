@@ -145,6 +145,7 @@
 
                                 <th>Fecha</th>
                                 <th>Hora</th>
+                                <th>Cantidad</th>
                                 <th>Total</th>
                                 <th>Serie</th>
                                 <th></th>
