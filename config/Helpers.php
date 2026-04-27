@@ -791,13 +791,50 @@ function permisosRolesCargar()
 }
 }
 
+if (!function_exists('rolDefaultsOcultos')) {
+function rolDefaultsOcultos($rol)
+{
+    $rol = (int)$rol;
+    // Defaults derivados de los $_SESSION['rol'] == X hardcoded en los controllers.
+    // Coinciden con la tabla "Resumen de permisos por rol" de /admin/roles.
+    if ($rol === 2) {
+        // Secretario(a): sin acceso a configuracion, usuarios, admin tools, proveedores
+        return [
+            'admin/datos',
+            'usuarios',
+            'admin/modulos',
+            'admin/roles',
+            'admin/logs',
+            'proveedor',
+            'compras',
+            'retenciones',
+        ];
+    }
+    if ($rol === 3) {
+        // Tecnico: sin acceso a contratos, creditos, ni admin tools (modulos/roles)
+        return [
+            'admin/modulos',
+            'admin/roles',
+            'contratos',
+            'creditos',
+        ];
+    }
+    return [];
+}
+}
+
 if (!function_exists('moduloOcultoParaRol')) {
 function moduloOcultoParaRol($key, $rol)
 {
     $rol = (int)$rol;
     if ($rol === 1) return false; // admin siempre ve todo
     $p = permisosRolesCargar();
-    $list = $p['ocultos_por_rol'][(string)$rol] ?? [];
+    // Si el rol tiene entrada explicita en JSON, usar esa; sino, defaults hardcoded
+    if (isset($p['ocultos_por_rol'][(string)$rol]) && is_array($p['ocultos_por_rol'][(string)$rol])) {
+        $list = $p['ocultos_por_rol'][(string)$rol];
+    } else {
+        $list = rolDefaultsOcultos($rol);
+    }
     return in_array($key, $list, true);
 }
 }

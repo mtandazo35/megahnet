@@ -769,7 +769,14 @@ class Admin extends Controller
         } catch (\Throwable $e) { $usuarios = []; }
         $data['usuarios'] = $usuarios;
         $perms = function_exists('permisosRolesCargar') ? permisosRolesCargar() : ['ocultos_por_rol' => []];
-        $data['ocultos_por_rol'] = $perms['ocultos_por_rol'] ?? [];
+        $ocultosPorRol = $perms['ocultos_por_rol'] ?? [];
+        // Para roles sin entrada explicita, devolver defaults hardcoded (coinciden con la tabla)
+        foreach ([2, 3] as $r) {
+            if (!isset($ocultosPorRol[(string)$r]) && function_exists('rolDefaultsOcultos')) {
+                $ocultosPorRol[(string)$r] = rolDefaultsOcultos($r);
+            }
+        }
+        $data['ocultos_por_rol'] = $ocultosPorRol;
         $this->views->getView('admin', 'roles', $data);
     }
 
