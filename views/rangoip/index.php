@@ -1,5 +1,14 @@
 <?php include_once 'views/templates/header.php'; ?>
 
+<style>
+  #tblIp thead th,
+  #tblIp tbody td {
+    text-align: center !important;
+    vertical-align: middle !important;
+  }
+</style>
+
+
 <div class="page-header d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2" id="page-header-modern">
     <div>
         <h4 class="mb-0 fw-semibold"><i class="bx bx-network-chart text-primary me-1"></i>Rango de IP</h4>
