@@ -16,7 +16,7 @@
     <div class="card-body">
         <?php $tituloListado='Listado de IP'; $iconoListado='bx-network-chart'; include 'views/templates/listado_titulo.php'; ?>
         <div class="table-responsive">
-            <table class="table table-hover nowrap" id="tblIp" style="width: 100%;">
+            <table class="table table-hover nowrap text-center" id="tblIp" style="width: 100%;">
                 <thead class="table-light">
                     <tr>
                         <th>ID</th>
