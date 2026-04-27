@@ -258,10 +258,14 @@ public function contarContratos($estado )
 
     // Sanitiza paginación
     $start = max(0, intval($start));
-    $length = (intval($length) > 0 && intval($length) <= 100) ? intval($length) : 10;
-
-    // Agrega orden y límite
-    $sql .= " ORDER BY c.fecha DESC LIMIT $start, $length";
+    $length = intval($length);
+    // length=-1 (DataTables "Todos") -> sin limite efectivo
+    if ($length === -1) {
+        $sql .= " ORDER BY c.fecha DESC";
+    } else {
+        if ($length <= 0) $length = 10;
+        $sql .= " ORDER BY c.fecha DESC LIMIT $start, $length";
+    }
 
     return $this->select2($sql, $params);
 }
@@ -307,8 +311,12 @@ public function contarContratos($estado )
                 $where
                 GROUP BY c.id
                 HAVING COUNT(*) > $cantidad
-                ORDER BY total DESC
-                LIMIT $start, $length";
+                ORDER BY total DESC";
+        $length = intval($length);
+        if ($length !== -1) {
+            if ($length <= 0) $length = 25;
+            $sql .= " LIMIT $start, $length";
+        }
         return $this->select2($sql, $params);
     }
 
