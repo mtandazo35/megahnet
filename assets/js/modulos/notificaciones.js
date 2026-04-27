@@ -331,3 +331,35 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 });
+
+
+// Auto-seleccionar plantilla via query string (?plantilla=key)
+(function(){
+  function selectPlantillaFromQuery() {
+    var params = new URLSearchParams(window.location.search);
+    var key = params.get('plantilla');
+    if (!key) return;
+    var btn = document.querySelector('.plantilla-item[data-key="' + key + '"]');
+    if (btn) {
+      // Asegurar que el tab Plantillas este activo
+      var tabBtn = document.querySelector('[data-bs-toggle="tab"][data-bs-target="#nav-plantillas"]');
+      if (tabBtn && typeof bootstrap !== 'undefined') {
+        var tab = bootstrap.Tab.getOrCreateInstance(tabBtn);
+        tab.show();
+      }
+      // Pequeno delay para que el tab este visible antes del click
+      setTimeout(function(){
+        btn.click();
+        btn.scrollIntoView({block:'nearest', behavior:'smooth'});
+        btn.style.transition = 'box-shadow .8s ease';
+        btn.style.boxShadow = '0 0 0 3px rgba(37,99,235,.35)';
+        setTimeout(function(){ btn.style.boxShadow = ''; }, 1500);
+      }, 200);
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', selectPlantillaFromQuery);
+  } else {
+    selectPlantillaFromQuery();
+  }
+})();

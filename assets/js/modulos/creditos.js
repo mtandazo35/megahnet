@@ -556,7 +556,7 @@ $(document).on('click', '.btn-notif-credito', function(){
                       escapeHtmlPlain(d.mensaje || '') +
                       '</div>' +
                       '<div style="text-align:right;font-size:.7rem;color:#6b7280;margin-top:.4rem;">' +
-                      '<a href="' + base_url + 'notificaciones#nav-plantillas" target="_blank">Editar plantilla</a>' +
+                      '<a href="' + base_url + 'notificaciones?plantilla=' + encodeURIComponent(d.plantilla_key || '') + '#nav-plantillas" target="_blank">Editar plantilla</a>' +
                       '</div>',
                 showCancelButton: true,
                 confirmButtonText: '<i class="bx bx-paper-plane me-1"></i>Enviar',

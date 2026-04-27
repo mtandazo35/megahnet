@@ -758,7 +758,13 @@ class Creditos extends Controller
 
         // Modo preview: solo devolver el mensaje renderizado
         if (!empty($_GET['preview']) || !empty($_POST['preview'])) {
-            echo json_encode(['ok'=>true, 'preview'=>true, 'mensaje'=>$cuerpo, 'telefono'=>$tel, 'tipo'=>(($estado===1)?'pendiente':'pagado')], JSON_UNESCAPED_UNICODE);
+            echo json_encode([
+                'ok'=>true, 'preview'=>true,
+                'mensaje'=>$cuerpo,
+                'telefono'=>$tel,
+                'tipo'=>(($estado===1)?'pendiente':'pagado'),
+                'plantilla_key'=>$plantillaKey,
+            ], JSON_UNESCAPED_UNICODE);
             exit;
         }
 
