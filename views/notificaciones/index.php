@@ -23,7 +23,23 @@
 </ul>
 
 <style>
-  /* === Polish global de Notificaciones === */
+  /* === Tabs: transicion suave sin saltos === */
+  /* 1) Acortar el fade de Bootstrap (default 150ms con reflow notable) */
+  .tab-pane.fade { transition: opacity .12s ease-out; }
+  /* 2) Cuando se activa, reservar espacio durante la transicion para evitar el "salto" del scroll */
+  #tabsNotif ~ .tab-content { position: relative; min-height: 200px; }
+  /* 3) El tab activo entra con un pequeno desplazamiento desde abajo (sensacion mas fluida) */
+  .tab-pane.fade.show.active {
+    animation: notif-tab-in .18s ease-out;
+  }
+  @keyframes notif-tab-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  /* 4) Suprimir cualquier scroll automatico al activar el tab */
+  .tab-pane:focus { outline: none; }
+
+    /* === Polish global de Notificaciones === */
   .notif-header-icon {
     width: 44px; height: 44px;
     display: inline-flex; align-items: center; justify-content: center;
