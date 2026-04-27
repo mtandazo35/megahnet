@@ -190,7 +190,9 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         minLength: 2,
         select: function (event, ui) {
-            reporteKardex(ui.item.id);
+            inputBuscarNombre.value = ui.item.value || ui.item.label || '';
+            reporteKardex(ui.item.id, ui.item.value || ui.item.label || ui.item.descripcion || '');
+            return false;
         }
     });
 })
@@ -275,28 +277,89 @@ function productoPorCodigo(valor) {
     }
 }
 
-function reporteKardex(idProducto) {
-    let timerInterval
-    Swal.fire({
-        title: 'Entradas y Salidas',
-        html: 'Generando Reporte <b></b> milliseconds.',
-        timer: 2000,
-        timerProgressBar: true,
-        didOpen: () => {
-            Swal.showLoading()
-            const b = Swal.getHtmlContainer().querySelector('b')
-            timerInterval = setInterval(() => {
-                b.textContent = Swal.getTimerLeft()
-            }, 100)
+// Carga el kardex en la tabla inline (sustituye el flujo viejo de abrir PDF directo).
+// El boton PDF de la cabecera sigue permitiendo descargar el reporte cuando se desea.
+let tblKardex = null;
+let kardexProductoActualId = null;
+let kardexProductoActualNombre = '';
+
+function cargarKardex(idProducto, nombre) {
+    kardexProductoActualId = idProducto;
+    kardexProductoActualNombre = nombre || '';
+
+    const header = document.getElementById('kardexHeader');
+    const nombreEl = document.getElementById('kardexNombreProducto');
+    if (header) { header.classList.remove('d-none'); header.classList.add('d-flex'); }
+    if (nombreEl) nombreEl.textContent = nombre || ('Producto #' + idProducto);
+
+    const url = base_url + 'inventarios/listarKardex/' + idProducto;
+
+    if (tblKardex) {
+        tblKardex.destroy();
+        $('#tblKardex tbody').empty();
+    }
+    tblKardex = $('#tblKardex').DataTable({
+        deferRender: true,
+        stateSave: false,
+        pageLength: 20,
+        lengthMenu: [[10, 20, 50, 100, -1], [10, 20, 50, 100, 'Todos']],
+        ajax: {
+            url: url, dataSrc: '',
+            error: function(xhr){
+                if (typeof alertaPersonalizada === 'function') {
+                    alertaPersonalizada('error', 'No se pudo cargar el kardex (HTTP ' + xhr.status + ')');
+                }
+            }
         },
-        willClose: () => {
-            clearInterval(timerInterval)
+        columns: [
+            { data: 'fecha' },
+            { data: 'movimiento' },
+            { data: 'accion' },
+            { data: 'entrada', className: 'text-end' },
+            { data: 'salida',  className: 'text-end' },
+            { data: 'stock_actual', className: 'text-end fw-bold' }
+        ],
+        language: { url: base_url + 'assets/js/espanol.json' },
+        dom,
+        buttons,
+        responsive: true,
+        order: [],
+        drawCallback: function(){
+            // Calcular totales sobre TODA la data (no solo la pagina visible)
+            try {
+                const data = tblKardex.rows().data();
+                let entradas = 0, salidas = 0, stock = 0;
+                for (let i = 0; i < data.length; i++) {
+                    entradas += parseInt(data[i].entrada || 0, 10);
+                    salidas  += parseInt(data[i].salida  || 0, 10);
+                }
+                if (data.length > 0) stock = parseInt(data[0].stock_actual || 0, 10); // primer row = mas reciente
+                const e = document.getElementById('kardexTotalEntradas');
+                const sa = document.getElementById('kardexTotalSalidas');
+                const st = document.getElementById('kardexStockActual');
+                if (e)  e.textContent  = entradas;
+                if (sa) sa.textContent = salidas;
+                if (st) st.textContent = stock;
+            } catch(_){}
         }
-    }).then((result) => {
-        /* Read more about handling dismissals below */
-        if (result.dismiss === Swal.DismissReason.timer) {
-            const ruta = base_url + 'inventarios/kardex/' + idProducto;
-            window.open(ruta, '_blank');
-        }
-    })
+    });
+}
+
+// Boton PDF en la cabecera del kardex
+document.addEventListener('DOMContentLoaded', function(){
+    const btnPdf = document.getElementById('btnKardexPdf');
+    if (btnPdf) {
+        btnPdf.addEventListener('click', function(){
+            if (!kardexProductoActualId) {
+                if (typeof alertaPersonalizada === 'function') alertaPersonalizada('warning', 'Selecciona un producto primero');
+                return;
+            }
+            window.open(base_url + 'inventarios/kardex/' + kardexProductoActualId, '_blank');
+        });
+    }
+});
+
+// Compatibilidad: la funcion vieja reporteKardex() ahora carga la tabla.
+function reporteKardex(idProducto, nombre) {
+    cargarKardex(idProducto, nombre);
 }

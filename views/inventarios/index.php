@@ -72,6 +72,47 @@
                     <input class="form-control" type="text" id="buscarProductoNombre" placeholder="Buscar Producto" autocomplete="off">
                     <span class="input-group-text"><button class="btn btn-danger" type="button"><i class="fas fa-file-pdf"></i></button></span>
                 </div>
+
+                <!-- Cabecera del producto seleccionado -->
+                <div id="kardexHeader" class="alert alert-light border d-none align-items-center justify-content-between flex-wrap gap-2 py-2 mb-2">
+                    <div>
+                        <small class="text-muted d-block">Producto seleccionado</small>
+                        <strong id="kardexNombreProducto">-</strong>
+                    </div>
+                    <div class="d-flex gap-3 align-items-center flex-wrap">
+                        <div class="text-center">
+                            <small class="text-muted d-block">Entradas</small>
+                            <span class="badge bg-success" id="kardexTotalEntradas">0</span>
+                        </div>
+                        <div class="text-center">
+                            <small class="text-muted d-block">Salidas</small>
+                            <span class="badge bg-danger" id="kardexTotalSalidas">0</span>
+                        </div>
+                        <div class="text-center">
+                            <small class="text-muted d-block">Stock actual</small>
+                            <span class="badge bg-primary" id="kardexStockActual">0</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="btnKardexPdf" title="Descargar PDF"><i class="fas fa-file-pdf me-1"></i>PDF</button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover align-middle nowrap" id="tblKardex" style="width:100%;">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Movimiento</th>
+                                <th>Acción</th>
+                                <th class="text-end">Entrada</th>
+                                <th class="text-end">Salida</th>
+                                <th class="text-end">Stock</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="6" class="text-center text-muted py-3">Selecciona un producto para ver su kardex</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 

@@ -37,8 +37,12 @@ class InventariosModel extends Query{
 
     public function getKardex($idProducto, $id_usuario)
     {
-        $sql = "SELECT i.accion, i.cantidad, i.stock_actual, i.fecha, p.descripcion FROM inventario i INNER JOIN productos p ON i.id_producto = p.id WHERE i.id_producto = $idProducto AND i.id_usuario = $id_usuario";
-        return $this->selectAll($sql);
+        $sql = "SELECT i.id, i.movimiento, i.accion, i.cantidad, i.stock_actual, i.fecha, p.descripcion
+                FROM inventario i
+                INNER JOIN productos p ON i.id_producto = p.id
+                WHERE i.id_producto = ? AND i.id_usuario = ?
+                ORDER BY i.fecha DESC, i.id DESC";
+        return $this->selectAll($sql, [(int)$idProducto, (int)$id_usuario]);
     }
 
     public function getEmpresa()

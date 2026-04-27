@@ -105,6 +105,36 @@ class Inventarios extends Controller
         die();
     }
 
+
+    public function listarKardex($idProducto = 0)
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        if (empty($_SESSION['id_usuario'])) { echo json_encode([]); exit; }
+        $idProducto = (int)$idProducto;
+        if ($idProducto <= 0) { echo json_encode([]); exit; }
+        $rows = $this->model->getKardex($idProducto, $this->id_usuario);
+        $out = [];
+        foreach ($rows as $r) {
+            $accion = strtolower((string)($r['accion'] ?? ''));
+            $cant   = (int)($r['cantidad'] ?? 0);
+            $entrada = ($accion === 'entrada') ? $cant : 0;
+            $salida  = ($accion === 'salida')  ? $cant : 0;
+            $accionBadge = ($accion === 'entrada')
+                ? '<span class="badge bg-success">Entrada</span>'
+                : '<span class="badge bg-danger">Salida</span>';
+            $out[] = [
+                'fecha'        => $r['fecha'],
+                'movimiento'   => $r['movimiento'],
+                'accion'       => $accionBadge,
+                'entrada'      => $entrada,
+                'salida'       => $salida,
+                'stock_actual' => (int)($r['stock_actual'] ?? 0),
+            ];
+        }
+        echo json_encode($out, JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     //#### Kardex
     public function kardex($idProducto)
     {
