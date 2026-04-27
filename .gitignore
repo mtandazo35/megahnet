@@ -52,3 +52,4 @@ composer.phar
 # Temporales del proyecto
 *.tmp
 *.cache
+*.bak.*

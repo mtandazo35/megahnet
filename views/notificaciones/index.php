@@ -159,6 +159,24 @@
   <div class="tab-pane fade" id="nav-plantillas">
 
     <style>
+      /* Layout: textarea grande para llenar espacio, page-wrapper natural */
+      body:has(#nav-plantillas.show.active) .page-wrapper,
+      body:has(#nav-plantillas.active) .page-wrapper {
+        height: auto !important;
+        min-height: auto !important;
+      }
+      body:has(#nav-plantillas.show.active) .page-content,
+      body:has(#nav-plantillas.active) .page-content {
+        padding-bottom: 0 !important;
+      }
+      #nav-plantillas .row > [class*="col-"] { display: flex; flex-direction: column; }
+      .pl-list-card { flex: 0 0 auto; }
+      .pl-list-card > .card-body { padding: 0 !important; }
+      .pl-card { flex: 1 1 auto; display: flex; flex-direction: column; }
+      .pl-card .card-body { display: flex; flex-direction: column; }
+      #pl_cuerpo { flex: 1 1 auto; min-height: 320px; resize: vertical; }
+      .pl-ph-card { flex: 0 0 auto; }
+      /* Visual */
       .pl-list .list-group-item { border: 0; border-bottom: 1px solid #f1f3f7; padding: .55rem .75rem; }
       .pl-list .list-group-item:last-child { border-bottom: 0; }
       .pl-list .list-group-item .pl-key { font-size: .8rem; font-weight: 600; color: #1f2937; }
@@ -188,9 +206,9 @@
 
     <div class="row g-3">
       <div class="col-lg-3">
-        <div class="card pl-card">
-          <div class="card-body p-0">
-            <div class="px-3 pt-2 pb-1 d-flex align-items-center justify-content-between">
+        <div class="card pl-list-card">
+          <div class="card-body">
+            <div class="px-3 pt-2 pb-1 d-flex align-items-center justify-content-between" style="flex:0 0 auto;">
               <h6 class="fw-semibold mb-0" style="font-size:.85rem;"><i class="bx bx-list-ul text-primary me-1"></i>Plantillas</h6>
               <span class="badge bg-light text-muted border" style="font-size:.7rem;"><?php echo count($data['plantillas'] ?? []); ?></span>
             </div>
@@ -260,7 +278,6 @@
       </div>
     </div>
   </div>
-</div>
 
   <!-- WHATSAPP -->
   <div class="tab-pane fade" id="nav-whatsapp">
@@ -309,6 +326,7 @@
       </div>
     </div>
   </div>
+</div>
 
   <!-- Modal QR WhatsApp -->
   <div class="modal fade" id="modalQrWa" tabindex="-1" data-bs-backdrop="static">
