@@ -127,6 +127,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             { data: 'fecha' },
             { data: 'hora' },
+            { data: 'cantidad_total' },
             { data: 'total' },
             { data: 'serie' },
             { data: 'acciones' },

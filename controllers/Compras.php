@@ -124,6 +124,22 @@ class Compras extends Controller
     {
         $data = $this->model->getCompras();
         for ($i = 0; $i < count($data); $i++) {
+            // Recalcular total real desde el JSON de productos (el campo total en BD puede estar mal)
+            $totalReal = 0;
+            $cantidadTotal = 0;
+            $prods = !empty($data[$i]['productos']) ? json_decode($data[$i]['productos'], true) : [];
+            if (is_array($prods)) {
+                foreach ($prods as $p) {
+                    $cant  = (float)($p['cantidad'] ?? 0);
+                    $prec  = (float)($p['precio']   ?? 0);
+                    $totalReal     += $cant * $prec;
+                    $cantidadTotal += $cant;
+                }
+            }
+            // Si recalculo dio mas que el guardado, usar el real; sino conservar el de BD
+            if ($totalReal > 0) $data[$i]['total'] = number_format($totalReal, 2);
+            $data[$i]['cantidad_total'] = (int)$cantidadTotal;
+
             if ($data[$i]['estado'] == 1) {
                 $data[$i]['acciones'] = '<div>
                 <a class="btn btn-danger" href="#" onclick="verReporte(' . $data[$i]['id'] . ')"><i class="fas fa-file-pdf"></i></a>
