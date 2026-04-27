@@ -162,6 +162,7 @@
      Funciona con TODAS las DataTables (escucha 'init.dt' global). Anchos guardados por
      nombre de columna, así sobreviven al colReorder. -->
 <script src="<?php echo BASE_URL; ?>assets/js/datatables-colresize.js?v=<?php echo function_exists('asset_v') ? asset_v('assets/js/datatables-colresize.js') : ''; ?>"></script>
+<script src="<?php echo BASE_URL; ?>assets/js/datatables-savestate.js?v=<?php echo function_exists('asset_v') ? asset_v('assets/js/datatables-savestate.js') : ''; ?>"></script>
 <script src="<?php echo BASE_URL; ?>assets/plugins/fullcalendar/js/main.min.js"></script>
 <script src="<?php echo BASE_URL; ?>assets/js/es.js"></script>
 
