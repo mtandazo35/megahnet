@@ -482,12 +482,22 @@ class Notificaciones extends Controller
     {
         $f = $this->plantillasFile();
         $defs = $this->plantillasDefault();
-        if (!file_exists($f)) return $defs;
+        if (!file_exists($f)) {
+            // Persistir defaults en disco para que renderPlantilla() (helper global) los encuentre
+            $dir = ROOT_PATH . '/storage';
+            if (!is_dir($dir)) @mkdir($dir, 0755, true);
+            @file_put_contents($f, json_encode($defs, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            return $defs;
+        }
         $arr = @json_decode(@file_get_contents($f), true);
         if (!is_array($arr)) return $defs;
-        // mezclar: plantillas guardadas + nuevas que no existian
+        // mezclar: plantillas guardadas + nuevas que no existian (y persistir si hubo cambios)
+        $cambio = false;
         foreach ($defs as $k => $v) {
-            if (!isset($arr[$k])) $arr[$k] = $v;
+            if (!isset($arr[$k])) { $arr[$k] = $v; $cambio = true; }
+        }
+        if ($cambio) {
+            @file_put_contents($f, json_encode($arr, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         }
         return $arr;
     }
