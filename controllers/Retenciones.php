@@ -493,6 +493,60 @@ class Retenciones extends Controller
         exit;
     }
 
+
+    // ====== CRUD de codigos de retencion ======
+    public function listarCodigos()
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        if (empty($_SESSION['id_usuario'])) { echo json_encode([]); exit; }
+        echo json_encode($this->model->listarCodigosRetencion(), JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    public function guardarCodigo()
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        if (empty($_SESSION['id_usuario'])) { echo json_encode(['type'=>'error','msg'=>'Sesion expirada']); exit; }
+        $body = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+        $id          = (int)($body['id'] ?? 0);
+        $tipo        = trim((string)($body['tipo'] ?? ''));
+        $codigo      = trim((string)($body['codigo'] ?? ''));
+        $porcentaje  = trim((string)($body['porcentaje'] ?? ''));
+        $descripcion = trim((string)($body['descripcion'] ?? ''));
+        $estado      = (int)($body['estado'] ?? 1);
+
+        if ($tipo === '' || $codigo === '' || $porcentaje === '') {
+            echo json_encode(['type'=>'warning','msg'=>'Tipo, codigo y porcentaje son requeridos']);
+            exit;
+        }
+        // Validar porcentaje numerico (acepta decimales)
+        if (!is_numeric(str_replace(',', '.', $porcentaje))) {
+            echo json_encode(['type'=>'warning','msg'=>'El porcentaje debe ser numerico']);
+            exit;
+        }
+
+        if ($id > 0) {
+            $ok = $this->model->actualizarCodigoRetencion($id, $tipo, $codigo, $porcentaje, $descripcion, $estado);
+            echo json_encode($ok ? ['type'=>'success','msg'=>'Codigo actualizado','id'=>$id]
+                                 : ['type'=>'error','msg'=>'No se pudo actualizar']);
+        } else {
+            $newId = $this->model->insertarCodigoRetencion($tipo, $codigo, $porcentaje, $descripcion);
+            echo json_encode($newId ? ['type'=>'success','msg'=>'Codigo creado','id'=>(int)$newId]
+                                    : ['type'=>'error','msg'=>'No se pudo crear']);
+        }
+        exit;
+    }
+
+    public function eliminarCodigo($id = 0)
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        if (empty($_SESSION['id_usuario'])) { echo json_encode(['type'=>'error']); exit; }
+        $ok = $this->model->eliminarCodigoRetencion((int)$id);
+        echo json_encode($ok ? ['type'=>'success','msg'=>'Codigo desactivado']
+                             : ['type'=>'error','msg'=>'No se pudo eliminar']);
+        exit;
+    }
+
     function generate_numbers($start, $count, $digits)
     {
         $result = array();

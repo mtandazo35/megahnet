@@ -21,6 +21,7 @@
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-plantillas" type="button"><i class="bx bx-file me-1"></i>Plantillas</button></li>
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-correo" type="button"><i class="bx bx-envelope me-1"></i>Correo</button></li>
   <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-whatsapp" type="button"><i class="bx bxl-whatsapp me-1"></i>WhatsApp</button></li>
+  <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#nav-retenciones-cod" type="button"><i class="bx bx-receipt me-1"></i>Retenciones</button></li>
 </ul>
 
 <style>
@@ -826,7 +827,233 @@
       </script>
     </div>
   </div>
+
+  <!-- CODIGOS RETENCION -->
+  <div class="tab-pane fade" id="nav-retenciones-cod">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h6 class="mb-1 fw-semibold"><i class="bx bx-receipt me-1"></i>Codigos y porcentajes de retencion</h6>
+            <small class="text-muted">Edita los codigos y porcentajes que apareceran en el modulo de Retenciones.</small>
+          </div>
+          <div class="d-flex gap-2">
+            <select id="filtroTipoRet" class="form-select form-select-sm" style="width:140px;">
+              <option value="">Todos</option>
+              <option value="IVA">IVA</option>
+              <option value="Renta">Renta</option>
+            </select>
+            <button class="btn btn-sm btn-success" id="btnNuevoCodRet" type="button"><i class="bx bx-plus me-1"></i>Nuevo</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped table-hover align-middle" id="tblCodigosRet" style="width:100%;">
+            <thead class="table-light">
+              <tr>
+                <th style="width:90px;">Tipo</th>
+                <th style="width:110px;">Codigo</th>
+                <th style="width:110px;">Porcentaje</th>
+                <th>Descripcion</th>
+                <th style="width:90px;">Estado</th>
+                <th style="width:130px;"></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
+
+  <!-- Modal Codigo Retencion -->
+  <div class="modal fade" id="modalCodRet" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h6 class="modal-title"><i class="bx bx-receipt me-1"></i><span id="modalCodRetTitle">Nuevo codigo</span></h6>
+          <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="codRet_id" value="0">
+          <div class="row g-2">
+            <div class="col-md-4">
+              <label class="form-label small mb-1">Tipo</label>
+              <select id="codRet_tipo" class="form-select form-select-sm">
+                <option value="IVA">IVA</option>
+                <option value="Renta">Renta</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small mb-1">Codigo</label>
+              <input type="text" id="codRet_codigo" class="form-control form-control-sm" placeholder="Ej. 312">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small mb-1">Porcentaje (%)</label>
+              <input type="number" step="0.01" id="codRet_porcentaje" class="form-control form-control-sm" placeholder="Ej. 1.75">
+            </div>
+            <div class="col-12">
+              <label class="form-label small mb-1">Descripcion</label>
+              <textarea id="codRet_descripcion" class="form-control form-control-sm" rows="2" placeholder="Descripcion del codigo..."></textarea>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small mb-1">Estado</label>
+              <select id="codRet_estado" class="form-select form-select-sm">
+                <option value="1">Activo</option>
+                <option value="0">Inactivo</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-primary" id="btnGuardarCodRet" type="button"><i class="bx bx-save me-1"></i>Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    var tbody = document.querySelector('#tblCodigosRet tbody');
+    var btnNuevo = document.getElementById('btnNuevoCodRet');
+    var filtroTipo = document.getElementById('filtroTipoRet');
+    var modalEl = document.getElementById('modalCodRet');
+    var modal = null;
+    var inpId = document.getElementById('codRet_id');
+    var inpTipo = document.getElementById('codRet_tipo');
+    var inpCodigo = document.getElementById('codRet_codigo');
+    var inpPorcentaje = document.getElementById('codRet_porcentaje');
+    var inpDesc = document.getElementById('codRet_descripcion');
+    var inpEstado = document.getElementById('codRet_estado');
+    var ttl = document.getElementById('modalCodRetTitle');
+    var btnGuardar = document.getElementById('btnGuardarCodRet');
+    var datosCache = [];
+
+    function escHtml(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+    function pintar(){
+      var f = (filtroTipo && filtroTipo.value) || '';
+      var rows = datosCache.filter(function(r){ return !f || r.tipo === f; });
+      if (!rows.length){
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Sin codigos</td></tr>';
+        return;
+      }
+      var html = '';
+      rows.forEach(function(r){
+        var badge = parseInt(r.estado, 10) === 1
+          ? '<span class="badge bg-success">Activo</span>'
+          : '<span class="badge bg-secondary">Inactivo</span>';
+        html += '<tr>'
+          + '<td>' + escHtml(r.tipo) + '</td>'
+          + '<td><strong>' + escHtml(r.codigo) + '</strong></td>'
+          + '<td>' + escHtml(r.porcentajeretencion) + ' %</td>'
+          + '<td><small>' + escHtml(r.descripcion) + '</small></td>'
+          + '<td>' + badge + '</td>'
+          + '<td class="text-end">'
+          + '<button class="btn btn-sm btn-outline-primary me-1" data-act="edit" data-id="' + r.id + '"><i class="bx bx-edit"></i></button>'
+          + '<button class="btn btn-sm btn-outline-danger" data-act="del" data-id="' + r.id + '"><i class="bx bx-trash"></i></button>'
+          + '</td>'
+          + '</tr>';
+      });
+      tbody.innerHTML = html;
+    }
+
+    function cargar(){
+      fetch(base_url + 'retenciones/listarCodigos', {credentials:'same-origin'})
+        .then(function(r){ return r.json(); })
+        .then(function(data){ datosCache = Array.isArray(data) ? data : []; pintar(); })
+        .catch(function(){ tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-3">Error al cargar</td></tr>'; });
+    }
+
+    function abrirModal(reg){
+      if (!modal) modal = new bootstrap.Modal(modalEl);
+      if (reg){
+        inpId.value = reg.id;
+        inpTipo.value = reg.tipo || 'Renta';
+        inpCodigo.value = reg.codigo || '';
+        inpPorcentaje.value = reg.porcentajeretencion || '';
+        inpDesc.value = reg.descripcion || '';
+        inpEstado.value = String(parseInt(reg.estado, 10) === 0 ? 0 : 1);
+        ttl.textContent = 'Editar codigo';
+      } else {
+        inpId.value = 0;
+        inpTipo.value = (filtroTipo && filtroTipo.value) || 'Renta';
+        inpCodigo.value = '';
+        inpPorcentaje.value = '';
+        inpDesc.value = '';
+        inpEstado.value = '1';
+        ttl.textContent = 'Nuevo codigo';
+      }
+      modal.show();
+    }
+
+    btnNuevo && btnNuevo.addEventListener('click', function(){ abrirModal(null); });
+    filtroTipo && filtroTipo.addEventListener('change', pintar);
+
+    tbody.addEventListener('click', function(e){
+      var btn = e.target.closest('button[data-act]');
+      if (!btn) return;
+      var id = btn.getAttribute('data-id');
+      var act = btn.getAttribute('data-act');
+      var reg = datosCache.find(function(r){ return String(r.id) === String(id); });
+      if (act === 'edit'){
+        abrirModal(reg);
+      } else if (act === 'del'){
+        Swal.fire({
+          title:'Desactivar codigo?', text:'El codigo ya no aparecera en el modulo de retenciones.',
+          icon:'warning', showCancelButton:true, confirmButtonColor:'#d33',
+          confirmButtonText:'Si, desactivar', cancelButtonText:'Cancelar'
+        }).then(function(r){
+          if (!r.isConfirmed) return;
+          fetch(base_url + 'retenciones/eliminarCodigo/' + id, {credentials:'same-origin'})
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+              Swal.fire({icon: d.type || 'info', title: d.msg || '', timer:1400, showConfirmButton:false});
+              cargar();
+            });
+        });
+      }
+    });
+
+    btnGuardar && btnGuardar.addEventListener('click', function(){
+      var payload = {
+        id: parseInt(inpId.value, 10) || 0,
+        tipo: inpTipo.value,
+        codigo: inpCodigo.value.trim(),
+        porcentaje: inpPorcentaje.value.trim(),
+        descripcion: inpDesc.value.trim(),
+        estado: parseInt(inpEstado.value, 10)
+      };
+      btnGuardar.disabled = true;
+      fetch(base_url + 'retenciones/guardarCodigo', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        Swal.fire({icon: d.type || 'info', title: d.msg || '', timer:1400, showConfirmButton:false});
+        if (d.type === 'success'){
+          if (modal) modal.hide();
+          cargar();
+        }
+      })
+      .catch(function(){ Swal.fire({icon:'error', title:'Error de red'}); })
+      .finally(function(){ btnGuardar.disabled = false; });
+    });
+
+    // Cargar al activar el tab por primera vez
+    var tabBtn = document.querySelector('button[data-bs-target="#nav-retenciones-cod"]');
+    var loaded = false;
+    if (tabBtn){
+      tabBtn.addEventListener('shown.bs.tab', function(){
+        if (!loaded){ cargar(); loaded = true; }
+      });
+    }
+  })();
+  </script>
 
   <!-- Modal QR WhatsApp -->
   <div class="modal fade" id="modalQrWa" tabindex="-1" data-bs-backdrop="static">

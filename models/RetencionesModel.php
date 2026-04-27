@@ -166,4 +166,30 @@ class RetencionesModel extends Query
         $params = array_merge($variants, [$cleanFull]);
         return $this->select($sql, $params);
     }
+    public function listarCodigosRetencion()
+    {
+        $sql = "SELECT id, tipo, codigo, porcentajeretencion, descripcion, estado
+                FROM codigos_retencion ORDER BY tipo ASC, codigo ASC";
+        return $this->selectAll($sql);
+    }
+    public function getCodigoRetencion($id)
+    {
+        $sql = "SELECT * FROM codigos_retencion WHERE id = ?";
+        return $this->select($sql, [(int)$id]);
+    }
+    public function insertarCodigoRetencion($tipo, $codigo, $porcentaje, $descripcion)
+    {
+        $sql = "INSERT INTO codigos_retencion (tipo, codigo, porcentajeretencion, descripcion, estado) VALUES (?,?,?,?,1)";
+        return $this->insertar($sql, [$tipo, $codigo, $porcentaje, $descripcion]);
+    }
+    public function actualizarCodigoRetencion($id, $tipo, $codigo, $porcentaje, $descripcion, $estado)
+    {
+        $sql = "UPDATE codigos_retencion SET tipo=?, codigo=?, porcentajeretencion=?, descripcion=?, estado=? WHERE id=?";
+        return $this->save($sql, [$tipo, $codigo, $porcentaje, $descripcion, (int)$estado, (int)$id]);
+    }
+    public function eliminarCodigoRetencion($id)
+    {
+        $sql = "UPDATE codigos_retencion SET estado=0 WHERE id=?";
+        return $this->save($sql, [(int)$id]);
+    }
 }
