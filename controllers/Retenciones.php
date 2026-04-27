@@ -467,12 +467,18 @@ class Retenciones extends Controller
         $compra = $this->model->buscarCompraPorComprobante($variants, $clean);
         if (empty($compra)) { echo json_encode(['ok'=>false, 'msg'=>'compra no encontrada']); exit; }
 
-        // Recalcular total real desde JSON de productos (campo total en BD puede estar mal)
+        // Recalcular total real desde JSON de productos INCLUYENDO IVA por producto.
+        // El precio en el JSON se guarda sin IVA; aqui sumamos sub * (1+iva/100) para que
+        // el "Valor Factura" coincida con el total real (con IVA) del comprobante.
         $totalReal = 0;
         $prods = !empty($compra['productos']) ? json_decode($compra['productos'], true) : [];
         if (is_array($prods)) {
             foreach ($prods as $p) {
-                $totalReal += ((float)($p['cantidad'] ?? 0)) * ((float)($p['precio'] ?? 0));
+                $cant = (float)($p['cantidad'] ?? 0);
+                $prec = (float)($p['precio']   ?? 0);
+                $ivaP = (float)($p['iva_producto'] ?? 0);
+                $sub  = $cant * $prec;
+                $totalReal += ($ivaP > 0) ? round($sub * (1 + $ivaP / 100), 2) : $sub;
             }
         }
         if ($totalReal <= 0) $totalReal = (float)$compra['total'];
