@@ -636,22 +636,30 @@ function previewYEnviarWaCredito(idCredito, telefonoCliente) {
             title: titulo,
             html: '<div style="text-align:left;font-size:.85rem;color:#374151;margin-bottom:.5rem;">' +
                   '<i class="bx bxl-whatsapp" style="color:#16a34a;font-size:18px;vertical-align:-3px;"></i> Se enviara a <b>+' + d.telefono + '</b>' +
+                  ' <small class="text-muted ms-2">(editable)</small>' +
                   '</div>' +
-                  '<div style="background:#dcfce7;color:#0f172a;padding:.85rem 1rem;border-radius:10px;text-align:left;white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:.78rem;line-height:1.45;max-height:300px;overflow:auto;border:1px solid #bbf7d0;">' +
+                  '<textarea id="swalEdMsg" style="width:100%;background:#dcfce7;color:#0f172a;padding:.75rem .9rem;border-radius:10px;font-family:ui-monospace,Menlo,monospace;font-size:.8rem;line-height:1.45;height:240px;border:1px solid #bbf7d0;resize:vertical;">' +
                   String(d.mensaje || '').replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }) +
-                  '</div>',
+                  '</textarea>' +
+                  '<small class="text-muted d-block mt-1" style="font-size:.7rem;">Edita el texto si necesitas corregir algo. Asteriscos para *negrita*, guion bajo para _cursiva_.</small>',
             showCancelButton: true,
             confirmButtonText: '<i class="bx bx-paper-plane me-1"></i>Enviar',
             cancelButtonText: 'No enviar',
-            width: 540
+            width: 580,
+            didOpen: function(){ var ta = document.getElementById('swalEdMsg'); if (ta) ta.focus(); }
         }).then(function(r){
             if (!r.isConfirmed) {
                 if (typeof tblHistorial !== 'undefined') tblHistorial.ajax.reload();
                 return;
             }
-            // Enviar via API real
+            // Capturar el mensaje editado del textarea
+            var ta = document.getElementById('swalEdMsg');
+            var mensajeEdit = ta ? ta.value : (d.mensaje || '');
+            // Enviar via API real con el mensaje editado
             fetch(base_url + 'creditos/notificarCliente/' + idCredito, {
-                method: 'POST', credentials: 'same-origin'
+                method: 'POST', credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mensaje: mensajeEdit })
             }).then(function(r2){ return r2.json(); }).then(function(dd){
                 if (dd.ok) {
                     Swal.fire({icon:'success', title:'Mensaje enviado', text:'WhatsApp a +' + dd.telefono, timer:2200, showConfirmButton:false});

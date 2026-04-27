@@ -718,17 +718,23 @@ class Creditos extends Controller
             'cliente_telefono' => $tel,
             'servicio_meses'   => '',
         ];
-        if (function_exists('renderPlantilla')) {
-            $tpl = renderPlantilla($plantillaKey, $vars);
-            $cuerpo = is_array($tpl) ? ($tpl['cuerpo'] ?? '') : '';
+        // Si el frontend envia un mensaje custom (editado por el usuario), usarlo
+        $bodyIn = json_decode(file_get_contents('php://input'), true) ?: [];
+        $mensajeCustom = isset($bodyIn['mensaje']) ? trim((string)$bodyIn['mensaje']) : '';
+        if ($mensajeCustom !== '') {
+            $cuerpo = $mensajeCustom;
         } else {
-            $cuerpo = '';
-        }
-        if (empty($cuerpo)) {
-            // Fallback simple
-            $cuerpo = ($estado === 1)
-                ? '*Recordatorio de pago*' . PHP_EOL . PHP_EOL . 'Estimado/a ' . $vars['cliente_nombre'] . ', tienes un saldo pendiente de $' . $vars['cliente_saldo'] . '.'
-                : '*Pago recibido*' . PHP_EOL . PHP_EOL . 'Estimado/a ' . $vars['cliente_nombre'] . ', confirmamos la recepcion de tu pago. Gracias!';
+            if (function_exists('renderPlantilla')) {
+                $tpl = renderPlantilla($plantillaKey, $vars);
+                $cuerpo = is_array($tpl) ? ($tpl['cuerpo'] ?? '') : '';
+            } else {
+                $cuerpo = '';
+            }
+            if (empty($cuerpo)) {
+                $cuerpo = ($estado === 1)
+                    ? '*Recordatorio de pago*' . PHP_EOL . PHP_EOL . 'Estimado/a ' . $vars['cliente_nombre'] . ', tienes un saldo pendiente de $' . $vars['cliente_saldo'] . '.'
+                    : '*Pago recibido*' . PHP_EOL . PHP_EOL . 'Estimado/a ' . $vars['cliente_nombre'] . ', confirmamos la recepcion de tu pago. Gracias!';
+            }
         }
 
         // Resolver URL del WhatsApp API (servicios.json -> alertas-config.json -> default)
