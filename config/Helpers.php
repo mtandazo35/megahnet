@@ -774,4 +774,29 @@ function modulosOcultos()
 }
 }
 
+if (!function_exists('serviciosCargar')) {
+function serviciosCargar()
+{
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    $f = (defined('ROOT_PATH') ? ROOT_PATH : (__DIR__ . '/..')) . '/storage/servicios.json';
+    $cache = [];
+    if (file_exists($f)) {
+        $j = @json_decode(@file_get_contents($f), true);
+        if (is_array($j)) $cache = $j;
+    }
+    return $cache;
+}
+}
+
+if (!function_exists('servicioConfig')) {
+function servicioConfig($key)
+{
+    $all = serviciosCargar();
+    if (isset($all[$key]) && is_array($all[$key])) return $all[$key];
+    return ['base_url' => '', 'enabled' => false];
+}
+}
+
+
 ?>

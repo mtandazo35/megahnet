@@ -232,6 +232,7 @@
                     <ul>
                         <li data-url="usuarios"><a href="<?php echo BASE_URL . 'usuarios'; ?>"><i class="bx bx-user"></i>Usuarios</a></li>
                         <li data-url="admin/datos"><a href="<?php echo BASE_URL . 'admin/datos'; ?>"><i class="bx bx-buildings"></i>Configuración</a></li>
+                        <?php if (function_exists('moduloActivo') ? moduloActivo('admin/servicios') : true): ?><li data-url="admin/servicios"><a href="<?php echo BASE_URL . 'admin/servicios'; ?>"><i class="bx bx-server"></i>Servicios externos</a></li><?php endif; ?>
                         <li data-url="sucursales"><a href="<?php echo BASE_URL . 'sucursales'; ?>"><i class="bx bx-store-alt"></i>Sucursales</a></li>
                         <li data-url="admin/modulos"><a href="<?php echo BASE_URL . 'admin/modulos'; ?>"><i class="bx bx-grid-alt"></i>Modulos del sistema</a></li>
                         <?php if (function_exists('moduloActivo') ? moduloActivo('admin/roles') : true): ?><li data-url="admin/roles"><a href="<?php echo BASE_URL . 'admin/roles'; ?>"><i class="bx bx-id-card"></i>Roles de usuarios</a></li><?php endif; ?>

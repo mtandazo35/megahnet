@@ -807,6 +807,88 @@ class Admin extends Controller
         }
     }
 
+    public function servicios()
+    {
+        if (empty($_SESSION['id_usuario']) || ($_SESSION['rol'] ?? 0) != 1) {
+            header('Location: ' . BASE_URL); exit;
+        }
+        $data['title'] = 'Servicios externos';
+        $data['servicios'] = function_exists('serviciosCargar') ? serviciosCargar() : [];
+        // URL legacy de WhatsApp como fallback inicial
+        $f = ROOT_PATH . '/storage/alertas-config.json';
+        $legacyWa = '';
+        if (file_exists($f)) {
+            $j = @json_decode(@file_get_contents($f), true);
+            $legacyWa = $j['wa_api']['base_url'] ?? '';
+        }
+        $data['legacy_wa_url'] = $legacyWa;
+        $this->views->getView('admin', 'servicios', $data);
+    }
+
+    public function guardarServicios()
+    {
+        header('Content-Type: application/json');
+        if (empty($_SESSION['id_usuario']) || ($_SESSION['rol'] ?? 0) != 1) {
+            echo json_encode(['ok'=>false,'msg'=>'No autorizado']); exit;
+        }
+        $body = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($body) || !isset($body['servicios']) || !is_array($body['servicios'])) {
+            echo json_encode(['ok'=>false,'msg'=>'Datos invalidos']); exit;
+        }
+        $allowed = ['whatsapp_api']; // catalogo de servicios soportados
+        $clean = [];
+        foreach ($body['servicios'] as $key => $val) {
+            if (!in_array($key, $allowed, true) || !is_array($val)) continue;
+            $clean[$key] = [
+                'base_url' => isset($val['base_url']) ? rtrim(trim((string)$val['base_url']), '/') : '',
+                'enabled'  => !empty($val['enabled']),
+            ];
+        }
+        $dir = ROOT_PATH . '/storage';
+        if (!is_dir($dir)) @mkdir($dir, 0755, true);
+        @file_put_contents($dir . '/servicios.json', json_encode($clean, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        echo json_encode(['ok'=>true]);
+    }
+
+    public function probarServicio()
+    {
+        header('Content-Type: application/json');
+        if (empty($_SESSION['id_usuario']) || ($_SESSION['rol'] ?? 0) != 1) {
+            echo json_encode(['ok'=>false,'msg'=>'No autorizado']); exit;
+        }
+        $body = json_decode(file_get_contents('php://input'), true) ?: [];
+        $url = trim((string)($body['url'] ?? ''));
+        $type = trim((string)($body['type'] ?? ''));
+        if (empty($url) || !preg_match('#^https?://#i', $url)) {
+            echo json_encode(['ok'=>false, 'msg'=>'URL invalida (debe empezar con http:// o https://)']); exit;
+        }
+        $probeUrl = rtrim($url, '/');
+        if ($type === 'whatsapp_api') {
+            $probeUrl .= '/api/whatsapp/status-sessions';
+        }
+        $ch = curl_init($probeUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 8,
+            CURLOPT_CONNECTTIMEOUT => 4,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+        ]);
+        $resp = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $err  = curl_error($ch);
+        $time = (float)curl_getinfo($ch, CURLINFO_TOTAL_TIME);
+        curl_close($ch);
+        $ok = ($code >= 200 && $code < 400);
+        echo json_encode([
+            'ok' => $ok,
+            'http' => $code,
+            'time_ms' => (int)round($time * 1000),
+            'error' => $err ?: null,
+            'sample' => $ok && is_string($resp) ? mb_substr($resp, 0, 300) : null,
+        ]);
+    }
+
     public function permisos()
     {
         $data['title'] = 'Permisos';

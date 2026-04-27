@@ -263,6 +263,12 @@ class Notificaciones extends Controller
 
     private function waBaseUrl()
     {
+        // 1) Preferir servicios.json (gestion centralizada en /admin/servicios)
+        if (function_exists('servicioConfig')) {
+            $svc = servicioConfig('whatsapp_api');
+            if (!empty($svc['base_url'])) return rtrim($svc['base_url'], '/');
+        }
+        // 2) Fallback: campo legacy en alertas-config.json
         $cfg = $this->cargarConfig();
         return rtrim($cfg['wa_api']['base_url'] ?? '', '/');
     }
