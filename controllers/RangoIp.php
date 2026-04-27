@@ -53,6 +53,9 @@ class RangoIp extends Controller
                 ? ($finalLong - $ultimaLong)
                 : 0;
             $data[$i]['redCidr'] = $this->inferCidrFromRedFinal($data[$i]['red'], $data[$i]['final']);
+            $data[$i]['mikrotik_nombre'] = !empty($data[$i]['mikrotik_nombre'])
+                ? '<span class="badge bg-light text-dark border">' . htmlspecialchars($data[$i]['mikrotik_nombre']) . '</span>'
+                : '<span class="text-muted small">—</span>';
 
             $data[$i]['acciones'] = '
             <div> <button class="btn btn-info" type="button" onclick="editarRangoIp(' . $data[$i]['id'] . ')"><i class="fas fa-edit text-white"></i></button>

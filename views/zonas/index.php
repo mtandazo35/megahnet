@@ -23,6 +23,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>Descripción</th>
+                        <th>Mikrotik</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>

@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function(){
         },
         columns: [
             { data: 'descripcion' },
+            { data: 'mikrotik_nombre' },
             { data: 'acciones' }
         ],
         language: {

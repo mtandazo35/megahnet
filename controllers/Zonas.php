@@ -22,6 +22,9 @@ class Zonas extends Controller
     {
         $data = $this->model->getZonas(1);
         for ($i = 0; $i < count($data); $i++) {
+            $data[$i]['mikrotik_nombre'] = !empty($data[$i]['mikrotik_nombre'])
+                ? '<span class="badge bg-light text-dark border">' . htmlspecialchars($data[$i]['mikrotik_nombre']) . '</span>'
+                : '<span class="text-muted small">—</span>';
             $data[$i]['acciones'] = '<div>
             <button class="btn btn-info" type="button" onclick="editarZonas(' . $data[$i]['id'] . ')"><i class="fas fa-edit text-white"></i></button>
             <button class="btn btn-danger" type="button" onclick="eliminarZonas(' . $data[$i]['id'] . ')"><i class="fas fa-trash"></i></button>
