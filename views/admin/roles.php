@@ -88,6 +88,13 @@
               <small class="opacity-75" style="font-size:.72rem;font-weight:400;"><?php echo htmlspecialchars($meta['desc']); ?></small>
             </div>
             <span class="role-count" title="Usuarios"><?php echo count($porRol[$rolId]); ?></span>
+            <?php if ($rolId !== 1): ?>
+              <button type="button" class="btn btn-sm btn-light ms-2 btn-edit-perms"
+                data-rol="<?php echo $rolId; ?>" data-rolname="<?php echo htmlspecialchars($meta['nombre']); ?>"
+                title="Editar permisos del rol" style="padding:.2rem .55rem;">
+                <i class="bx bx-cog"></i>
+              </button>
+            <?php endif; ?>
           </div>
           <div class="role-body">
             <?php if (empty($porRol[$rolId])): ?>
@@ -213,6 +220,148 @@
         else sel.value = prev;
       }
     });
+  });
+})();
+</script>
+
+
+<!-- Modal Editar permisos de rol -->
+<div class="modal fade" id="modalPermsRol" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bx bx-cog me-1 text-primary"></i>Permisos: <span id="permsRolName"></span></h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="max-height:60vh;overflow-y:auto;">
+        <p class="text-muted mb-2" style="font-size:.78rem;">Marca los modulos que este rol VERA en el menu lateral. Los desmarcados quedan ocultos para ese rol.</p>
+        <div id="permsList"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light border" type="button" id="btnPermsAll"><i class="bx bx-check-double"></i> Todos</button>
+        <button class="btn btn-light border" type="button" id="btnPermsNone"><i class="bx bx-x"></i> Ninguno</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" type="button" id="btnGuardarPermsRol"><i class="bx bx-save me-1"></i>Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // Catalogo de modulos (agrupado por seccion)
+  var SECCIONES = <?php echo json_encode([
+      'Principal' => [
+          ['admin', 'Tablero'],
+      ],
+      'Operaciones' => [
+          ['contratos', 'Contratos'],
+          ['creditos', 'Administrar Creditos'],
+          ['cotizaciones', 'Cotizaciones'],
+      ],
+      'Ventas' => [
+          ['sridashboard', 'SRI Dashboard'],
+          ['factura', 'Facturas'],
+          ['automaticas/index', 'Cerrar Corte F'],
+          ['notacredito', 'Nota Credito'],
+          ['ordenventa', 'Orden Venta'],
+          ['automaticas/indexOrdenVenta', 'Cerrar Corte OV'],
+      ],
+      'Gestion Compra' => [
+          ['proveedor', 'Proveedores'],
+          ['compras', 'Compras'],
+          ['retenciones', 'Retenciones'],
+      ],
+      'Clientes & Cajas' => [
+          ['clientes', 'Clientes'],
+          ['cajas', 'Cajas'],
+          ['casos', 'Casos'],
+          ['mikrotiks', 'Mikrotik'],
+      ],
+      'Inventario / Mantenimiento' => [
+          ['categorias', 'Categorias'],
+          ['productos', 'Productos'],
+          ['inventarios', 'Inventario & Kardex'],
+          ['zonas', 'Zonas'],
+          ['rangoip', 'Rango IP'],
+          ['grupotrabajos', 'Grupos de Trabajo'],
+          ['repetidoras', 'Repetidoras'],
+      ],
+      'Administracion' => [
+          ['usuarios', 'Usuarios'],
+          ['admin/datos', 'Configuracion'],
+          ['admin/roles', 'Roles de usuarios'],
+          ['sucursales', 'Sucursales'],
+          ['admin/logs', 'Log de Acceso'],
+          ['admin/respaldos', 'Respaldos BD'],
+          ['notificaciones', 'Notificaciones'],
+      ],
+  ]); ?>;
+
+  var OCULTOS_POR_ROL = <?php echo json_encode($data['ocultos_por_rol'] ?? []); ?>;
+  var modalEl = document.getElementById('modalPermsRol');
+  var listEl = document.getElementById('permsList');
+  var nameEl = document.getElementById('permsRolName');
+  var rolActual = null;
+
+  function renderList(rolId) {
+    var ocultos = OCULTOS_POR_ROL[String(rolId)] || [];
+    var ocultosSet = {};
+    ocultos.forEach(function(k){ ocultosSet[k] = true; });
+    var html = '';
+    Object.keys(SECCIONES).forEach(function(sec){
+      html += '<div class="mb-2"><div class="fw-semibold text-primary mb-1" style="font-size:.78rem;">' + sec + '</div>';
+      SECCIONES[sec].forEach(function(it){
+        var key = it[0], label = it[1];
+        var checked = ocultosSet[key] ? '' : 'checked';
+        html += '<div class="form-check form-switch ms-2">';
+        html += '<input class="form-check-input perm-toggle" type="checkbox" id="perm_' + key.replace(/\W/g,'_') + '" data-key="' + key + '" ' + checked + '>';
+        html += '<label class="form-check-label" for="perm_' + key.replace(/\W/g,'_') + '" style="font-size:.85rem;">' + label + ' <small class="text-muted ms-1" style="font-family:ui-monospace;">' + key + '</small></label>';
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+    listEl.innerHTML = html;
+  }
+
+  document.querySelectorAll('.btn-edit-perms').forEach(function(b){
+    b.addEventListener('click', function(){
+      rolActual = parseInt(b.dataset.rol, 10);
+      nameEl.textContent = b.dataset.rolname;
+      renderList(rolActual);
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    });
+  });
+
+  document.getElementById('btnPermsAll').addEventListener('click', function(){
+    listEl.querySelectorAll('.perm-toggle').forEach(function(cb){ cb.checked = true; });
+  });
+  document.getElementById('btnPermsNone').addEventListener('click', function(){
+    listEl.querySelectorAll('.perm-toggle').forEach(function(cb){ cb.checked = false; });
+  });
+
+  document.getElementById('btnGuardarPermsRol').addEventListener('click', function(){
+    if (!rolActual) return;
+    var ocultos = Array.from(listEl.querySelectorAll('.perm-toggle:not(:checked)')).map(function(cb){ return cb.dataset.key; });
+    var btn = this;
+    btn.disabled = true; btn.innerHTML = '<i class="bx bx-loader bx-spin me-1"></i>Guardando...';
+    fetch(base_url + 'admin/guardarPermisosRol', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rol: rolActual, ocultos: ocultos })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if (d.ok) {
+        OCULTOS_POR_ROL[String(rolActual)] = ocultos;
+        bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        if (typeof Swal !== 'undefined') Swal.fire({icon:'success', title:'Permisos guardados', text: ocultos.length + ' modulo(s) ocultos para este rol', timer: 2200});
+        else alert('Permisos guardados');
+      } else {
+        alert('Error: ' + (d.msg || ''));
+      }
+    }).catch(function(e){ alert('Error: ' + e.message); })
+      .finally(function(){
+        btn.disabled = false; btn.innerHTML = '<i class="bx bx-save me-1"></i>Guardar';
+      });
   });
 })();
 </script>

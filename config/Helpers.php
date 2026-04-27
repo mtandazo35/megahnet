@@ -774,5 +774,43 @@ function modulosOcultos()
 }
 }
 
+if (!function_exists('permisosRolesCargar')) {
+function permisosRolesCargar()
+{
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    $f = (defined('ROOT_PATH') ? ROOT_PATH : (__DIR__ . '/..')) . '/storage/roles_permisos.json';
+    $cache = ['ocultos_por_rol' => []];
+    if (file_exists($f)) {
+        $j = @json_decode(@file_get_contents($f), true);
+        if (is_array($j) && isset($j['ocultos_por_rol']) && is_array($j['ocultos_por_rol'])) {
+            $cache['ocultos_por_rol'] = $j['ocultos_por_rol'];
+        }
+    }
+    return $cache;
+}
+}
+
+if (!function_exists('moduloOcultoParaRol')) {
+function moduloOcultoParaRol($key, $rol)
+{
+    $rol = (int)$rol;
+    if ($rol === 1) return false; // admin siempre ve todo
+    $p = permisosRolesCargar();
+    $list = $p['ocultos_por_rol'][(string)$rol] ?? [];
+    return in_array($key, $list, true);
+}
+}
+
+if (!function_exists('moduloVisible')) {
+function moduloVisible($key, $rol = null)
+{
+    if ($rol === null) $rol = (int)($_SESSION['rol'] ?? 0);
+    if (function_exists('moduloActivo') && !moduloActivo($key)) return false;
+    if (function_exists('moduloOcultoParaRol') && moduloOcultoParaRol($key, $rol)) return false;
+    return true;
+}
+}
+
 
 ?>

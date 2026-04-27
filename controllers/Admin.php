@@ -768,6 +768,8 @@ class Admin extends Controller
             $usuarios = $rs ? $rs->fetchAll(PDO::FETCH_ASSOC) : [];
         } catch (\Throwable $e) { $usuarios = []; }
         $data['usuarios'] = $usuarios;
+        $perms = function_exists('permisosRolesCargar') ? permisosRolesCargar() : ['ocultos_por_rol' => []];
+        $data['ocultos_por_rol'] = $perms['ocultos_por_rol'] ?? [];
         $this->views->getView('admin', 'roles', $data);
     }
 
@@ -805,6 +807,35 @@ class Admin extends Controller
         } catch (\Throwable $e) {
             echo json_encode(['ok'=>false,'msg'=>$e->getMessage()]);
         }
+    }
+
+    public function guardarPermisosRol()
+    {
+        header('Content-Type: application/json');
+        if (empty($_SESSION['id_usuario']) || ($_SESSION['rol'] ?? 0) != 1) {
+            echo json_encode(['ok'=>false,'msg'=>'No autorizado']); exit;
+        }
+        $body = json_decode(file_get_contents('php://input'), true);
+        $rol  = (int)($body['rol'] ?? 0);
+        $ocultos = (isset($body['ocultos']) && is_array($body['ocultos']))
+            ? array_values(array_unique(array_filter(array_map('strval', $body['ocultos']))))
+            : [];
+        if (!in_array($rol, [2, 3], true)) {
+            echo json_encode(['ok'=>false,'msg'=>'Solo se pueden editar roles 2 y 3']); exit;
+        }
+        $f = ROOT_PATH . '/storage/roles_permisos.json';
+        $current = ['ocultos_por_rol' => []];
+        if (file_exists($f)) {
+            $j = @json_decode(@file_get_contents($f), true);
+            if (is_array($j) && isset($j['ocultos_por_rol']) && is_array($j['ocultos_por_rol'])) {
+                $current['ocultos_por_rol'] = $j['ocultos_por_rol'];
+            }
+        }
+        $current['ocultos_por_rol'][(string)$rol] = $ocultos;
+        $dir = ROOT_PATH . '/storage';
+        if (!is_dir($dir)) @mkdir($dir, 0755, true);
+        @file_put_contents($f, json_encode($current, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        echo json_encode(['ok'=>true, 'count'=>count($ocultos)]);
     }
 
     public function permisos()

@@ -82,7 +82,7 @@
 
                 <li class="menu-label">Principal</li>
 
-                <?php if (function_exists('moduloActivo') ? moduloActivo('admin') : true): ?>
+                <?php if (function_exists('moduloVisible') ? moduloVisible('admin') : true): ?>
 
                 <li data-url="admin">
                     <a href="<?php echo BASE_URL . 'admin'; ?>" data-pjax="1">
@@ -95,7 +95,7 @@
 
                 <li class="menu-label">Operaciones</li>
 
-                <?php if (function_exists('moduloActivo') ? moduloActivo('contratos') : true): ?>
+                <?php if (function_exists('moduloVisible') ? moduloVisible('contratos') : true): ?>
 
                 <li data-url="contratos">
                     <a href="<?php echo BASE_URL . 'contratos'; ?>">
@@ -106,7 +106,7 @@
 
                 <?php endif; ?>
 
-                <?php if (function_exists('moduloActivo') ? moduloActivo('creditos') : true): ?>
+                <?php if (function_exists('moduloVisible') ? moduloVisible('creditos') : true): ?>
 
                 <li data-url="creditos">
                     <a href="<?php echo BASE_URL . 'creditos'; ?>">
@@ -117,7 +117,7 @@
 
                 <?php endif; ?>
 
-                <?php if (function_exists('moduloActivo') ? moduloActivo('cotizaciones') : true): ?>
+                <?php if (function_exists('moduloVisible') ? moduloVisible('cotizaciones') : true): ?>
 
                 <li data-url="cotizaciones">
                     <a href="<?php echo BASE_URL . 'cotizaciones'; ?>">
@@ -158,7 +158,7 @@
                 <?php if (isset($_SESSION['id_usuario'])) { ?>
                 <li class="menu-label">Clientes &amp; Cajas</li>
 
-                <?php if (function_exists('moduloActivo') ? moduloActivo('clientes') : true): ?>
+                <?php if (function_exists('moduloVisible') ? moduloVisible('clientes') : true): ?>
 
                 <li data-url="clientes">
                     <a href="<?php echo BASE_URL . 'clientes'; ?>">
@@ -169,7 +169,7 @@
 
                 <?php endif; ?>
 
-                <?php if (function_exists('moduloActivo') ? moduloActivo('cajas') : true): ?>
+                <?php if (function_exists('moduloVisible') ? moduloVisible('cajas') : true): ?>
 
                 <li data-url="cajas">
                     <a href="<?php echo BASE_URL . 'cajas'; ?>">
@@ -180,7 +180,7 @@
 
                 <?php endif; ?>
 
-                <?php if (function_exists('moduloActivo') ? moduloActivo('casos') : true): ?>
+                <?php if (function_exists('moduloVisible') ? moduloVisible('casos') : true): ?>
 
                 <li data-url="casos">
                     <a href="<?php echo BASE_URL . 'casos'; ?>">
@@ -191,7 +191,7 @@
 
                 <?php endif; ?>
 
-                <?php if (function_exists('moduloActivo') ? moduloActivo('mikrotiks') : true): ?>
+                <?php if (function_exists('moduloVisible') ? moduloVisible('mikrotiks') : true): ?>
 
                 <li data-url="mikrotiks">
                     <a href="<?php echo BASE_URL . 'mikrotiks'; ?>">
@@ -236,12 +236,12 @@
                         <li data-url="admin/datos"><a href="<?php echo BASE_URL . 'admin/datos'; ?>"><i class="bx bx-buildings"></i>Configuración</a></li>
                         <li data-url="sucursales"><a href="<?php echo BASE_URL . 'sucursales'; ?>"><i class="bx bx-store-alt"></i>Sucursales</a></li>
                         <li data-url="admin/modulos"><a href="<?php echo BASE_URL . 'admin/modulos'; ?>"><i class="bx bx-grid-alt"></i>Modulos del sistema</a></li>
-                        <?php if (function_exists('moduloActivo') ? moduloActivo('admin/roles') : true): ?><li data-url="admin/roles"><a href="<?php echo BASE_URL . 'admin/roles'; ?>"><i class="bx bx-id-card"></i>Roles de usuarios</a></li><?php endif; ?>
+                        <?php if (function_exists('moduloVisible') ? moduloVisible('admin/roles') : true): ?><li data-url="admin/roles"><a href="<?php echo BASE_URL . 'admin/roles'; ?>"><i class="bx bx-id-card"></i>Roles de usuarios</a></li><?php endif; ?>
                         <li data-url="admin/logs"><a href="<?php echo BASE_URL . 'admin/logs'; ?>"><i class="bx bx-history"></i>Log de Acceso</a></li>
                     </ul>
                 </li>
 
-                <?php if (function_exists('moduloActivo') ? moduloActivo('admin/respaldos') : true): ?>
+                <?php if (function_exists('moduloVisible') ? moduloVisible('admin/respaldos') : true): ?>
 
                 <li data-url="admin/respaldos">
                     <a href="<?php echo BASE_URL . 'admin/respaldos'; ?>">
@@ -252,7 +252,7 @@
 
                 <?php endif; ?>
 
-                <?php if (function_exists('moduloActivo') ? moduloActivo('notificaciones') : true): ?>
+                <?php if (function_exists('moduloVisible') ? moduloVisible('notificaciones') : true): ?>
 
                 <li data-url="notificaciones">
                     <a href="<?php echo BASE_URL . 'notificaciones'; ?>">
