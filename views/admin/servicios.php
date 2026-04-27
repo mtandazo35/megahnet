@@ -105,7 +105,7 @@
 </div>
 
 <script>
-(function(){
+function initServiciosPage(){
   function setStatus(key, level, text) {
     var el = document.getElementById('status_' + key);
     if (!el) return;
@@ -176,7 +176,13 @@
   if (initial && initial.value.trim()) {
     document.querySelector('.svc-test[data-key="whatsapp_api"]').click();
   }
-})();
+}
+// Espera a que el footer haya declarado base_url
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initServiciosPage);
+} else {
+  initServiciosPage();
+}
 </script>
 
 <?php include_once 'views/templates/footer.php'; ?>
