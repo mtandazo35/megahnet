@@ -347,14 +347,27 @@ document.addEventListener('DOMContentLoaded', function () {
         var tab = bootstrap.Tab.getOrCreateInstance(tabBtn);
         tab.show();
       }
-      // Pequeno delay para que el tab este visible antes del click
-      setTimeout(function(){
-        btn.click();
-        btn.scrollIntoView({block:'nearest', behavior:'smooth'});
-        btn.style.transition = 'box-shadow .8s ease';
-        btn.style.boxShadow = '0 0 0 3px rgba(37,99,235,.35)';
-        setTimeout(function(){ btn.style.boxShadow = ''; }, 1500);
-      }, 200);
+      // Esperar a que el cache de plantillas este poblado (es fetch async).
+      // Polling cada 80ms hasta 4s.
+      var startedAt = Date.now();
+      var poll = function(){
+        var ready = (typeof plantillasCache !== 'undefined' && plantillasCache && plantillasCache[key]);
+        if (ready) {
+          btn.click();
+          btn.scrollIntoView({block:'nearest', behavior:'smooth'});
+          btn.style.transition = 'box-shadow .8s ease';
+          btn.style.boxShadow = '0 0 0 3px rgba(37,99,235,.35)';
+          setTimeout(function(){ btn.style.boxShadow = ''; }, 1500);
+          return;
+        }
+        if (Date.now() - startedAt < 4000) {
+          setTimeout(poll, 80);
+        } else {
+          // Click igual aunque el cache no este, asi al menos marca activo
+          btn.click();
+        }
+      };
+      setTimeout(poll, 200);
     }
   }
   if (document.readyState === 'loading') {
