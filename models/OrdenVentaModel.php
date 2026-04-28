@@ -75,11 +75,22 @@ class OrdenVentaModel extends Query
             return $this->save($sql, $array);
         }
     }
-    public function registrarCredito($monto, $fecha, $hora, $idVenta, $idElectronica,$id_orden_venta)
+    public function registrarCredito($monto, $fecha, $hora, $idVenta, $idElectronica, $id_orden_venta, $id_contrato = null)
     {
-        $sql = "INSERT INTO creditos (monto, fecha, hora, id_venta, id_electronica,id_orden_venta) VALUES (?,?,?,?,?,?)";
-        $array = array($monto, $fecha, $hora, $idVenta, $idElectronica,$id_orden_venta);
+        $sql = "INSERT INTO creditos (monto, fecha, hora, id_venta, id_electronica, id_orden_venta, id_contrato) VALUES (?,?,?,?,?,?,?)";
+        $array = array($monto, $fecha, $hora, $idVenta, $idElectronica, $id_orden_venta, $id_contrato);
         return $this->insertar($sql, $array);
+    }
+
+    /**
+     * Devuelve el id del unico contrato vigente del cliente (estado != 2).
+     * Si tiene 0 o mas de 1 contrato vigente devuelve null para evitar atribuir abonos a contrato equivocado.
+     */
+    public function getContratoUnicoActivo($idCliente)
+    {
+        $sql = "SELECT id FROM contratos WHERE id_cliente = ? AND estado != 2 LIMIT 2";
+        $rows = $this->selectAll($sql, [$idCliente]);
+        return (is_array($rows) && count($rows) === 1) ? (int)$rows[0]['id'] : null;
     }
     public function tipoPago()
     {

@@ -129,7 +129,10 @@ class OrdenVenta extends Controller
                     }
                     if ($metodo == 'CREDITO') {
                         $monto = $total - $descuento;
-                        $this->model->registrarCredito($monto, $fecha, $hora, null, null, $ordenventa);
+                        // Si el cliente tiene UN solo contrato vigente, enlazar el credito a ese contrato
+                        // para que el abono aparezca en "Abonos del mes" del listado de Contratos.
+                        $idContratoLink = $this->model->getContratoUnicoActivo($idCliente);
+                        $this->model->registrarCredito($monto, $fecha, $hora, null, null, $ordenventa, $idContratoLink);
                     }
                     // La orden ya esta persistida; pase lo que pase con PDF/email,
                     // la respuesta debe reportar exito.
@@ -394,7 +397,8 @@ function importarExcel($archivoExcel)
                                     
                     if ($metodo == 'CREDITO') {
                         $monto =  $total;
-                        $ordenVenta->registrarCredito($monto, $fecha, $hora, null, null, $ordenventa);
+                        $idContratoLink = $ordenVenta->getContratoUnicoActivo($idCliente);
+                        $ordenVenta->registrarCredito($monto, $fecha, $hora, null, null, $ordenventa, $idContratoLink);
                     }
                     /* if ($datos['impresion']) {
                         $this->impresionDirecta($ordenventa);
