@@ -100,6 +100,20 @@ fi
 # remoteip: que Apache vea la IP real del cliente cuando hay reverse-proxy delante
 a2enmod rewrite headers proxy proxy_http remoteip -q
 
+# Limites de PHP (uploads grandes para respaldos SQL)
+PHP_VER=$(ls /etc/php/ 2>/dev/null | head -1)
+if [[ -n "$PHP_VER" ]] && [[ -d "/etc/php/$PHP_VER/apache2/conf.d" ]]; then
+    cat > "/etc/php/$PHP_VER/apache2/conf.d/99-megahnet-uploads.ini" <<EOF
+upload_max_filesize = 512M
+post_max_size = 512M
+memory_limit = 512M
+max_execution_time = 300
+max_input_time = 300
+max_file_uploads = 50
+EOF
+    cp "/etc/php/$PHP_VER/apache2/conf.d/99-megahnet-uploads.ini" "/etc/php/$PHP_VER/cli/conf.d/99-megahnet-uploads.ini" 2>/dev/null || true
+fi
+
 # ---------------------------------------------------------------------------
 # 2. .env (genera DB password + crypt key si no existe)
 # ---------------------------------------------------------------------------
@@ -204,6 +218,9 @@ cd "$PROJECT_DIR/models"
 log "Creando carpetas runtime y ajustando permisos..."
 cd "$PROJECT_DIR"
 mkdir -p storage facturaelectronica static
+mkdir -p /var/backups/sistema
+chown www-data:www-data /var/backups/sistema
+chmod 750 /var/backups/sistema
 chown -R www-data:www-data "$PROJECT_DIR"
 chmod -R 775 storage facturaelectronica static
 chmod 640 "$ENV_FILE" 2>/dev/null || true
