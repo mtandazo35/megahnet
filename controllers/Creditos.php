@@ -826,12 +826,18 @@ class Creditos extends Controller
         }
         if (!$plantillaKey) { echo json_encode(['ok'=>false,'msg'=>'Estado del credito no notificable']); exit; }
 
+        // Mes (en espanol, mayusculas) del servicio cubierto por este credito.
+        // Se deriva de cr.fecha; si falta, fallback a la fecha actual.
+        $mesesEs = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+        $tsServ = !empty($r['fecha']) ? strtotime((string)$r['fecha']) : time();
+        $servicioMesesTxt = $tsServ ? ($mesesEs[(int)date('n', $tsServ) - 1] . ' ' . date('Y', $tsServ)) : '';
+
         // Renderizar plantilla con SALDO TOTAL REAL del cliente
         $vars = [
             'cliente_nombre'   => trim($r['nombre'] ?? ''),
             'cliente_saldo'    => number_format(max(0, $saldoTotalCliente), 2),
             'cliente_telefono' => $tel,
-            'servicio_meses'   => '',
+            'servicio_meses'   => $servicioMesesTxt,
         ];
         // Si el frontend envia un mensaje custom (editado por el usuario), usarlo
         $mensajeCustom = isset($bodyIn['mensaje']) ? trim((string)$bodyIn['mensaje']) : '';
