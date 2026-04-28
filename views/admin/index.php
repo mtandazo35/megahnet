@@ -89,7 +89,7 @@
         <a href="<?php echo BASE_URL; ?>sucursales" class="btn btn-outline-primary">
             <i class="bx bx-store-alt me-1"></i>Sucursales
         </a>
-        <button type="button" class="btn btn-primary" form="formulario" id="btnGuardarTop">
+        <button type="submit" class="btn btn-primary" form="formulario" id="btnGuardarTop">
             <i class="bx bx-save me-1"></i>Guardar cambios
         </button>
     </div>
