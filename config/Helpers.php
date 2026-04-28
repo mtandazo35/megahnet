@@ -393,9 +393,11 @@ function respaldoBD_subir($file) {
     // pero marcamos para que el usuario confirme
     $requiereConfirmacion = !$matchDb;
 
-    // Si confirmacion = skip (se puede forzar con flag)
-    if ($requiereConfirmacion && empty($_POST["confirmar_cross_db"]))
-        throw new Exception("El archivo no parece ser de la base " . $db . ". Si estas seguro, reintenta con confirmar_cross_db=1");
+    // Validacion suave: si el dump no menciona la DB actual, lo logueamos pero
+    // dejamos continuar (el usuario subio el archivo a proposito).
+    if ($requiereConfirmacion) {
+        error_log("[respaldo] dump " . $nombreOriginal . " no menciona la DB " . $db . "; importando igual");
+    }
 
     $ext = $esGz ? ".sql.gz" : ".sql";
     $nombre = DBNAME . "_uploaded_" . date("Y-m-d_H-i-s") . $ext;
