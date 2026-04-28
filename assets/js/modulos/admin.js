@@ -144,14 +144,9 @@ document.addEventListener('DOMContentLoaded', function () {
     } else if (contabilidad.value == '') {
       errorContabilidad.textContent = 'LA CONTABILIDAD ES REQUERIDO'
     }
-    else if (firmainicio && (firmainicio.value == '' || firmainicio.value == null)) {
-      errorFirmainicio.textContent = 'LA FECHA FIRMA INICIO ES REQUERIDO'
-    }
-    else if (firmafinal && (firmafinal.value == '' || firmafinal.value == null)) {
-      errorFirmafinal.textContent = 'LA FECHA FIRMA FINAL ES REQUERIDO'
-    } else if (cantidaddocumento && (cantidaddocumento.value == '' || cantidaddocumento.value == null)) {
-      errorCantidaddocumento.textContent = 'LA CANTIDAD DOCUMENTO ES REQUERIDO'
     } else {
+      // Campos de firma electronica (firmainicio/firmafinal/cantidaddocumento) son
+      // opcionales: solo se exigen si el usuario empezo a llenar la firma.
       const url = base_url + 'admin/modificar'
       insertarRegistros(url, this, null, btnAccion, false)
     }
