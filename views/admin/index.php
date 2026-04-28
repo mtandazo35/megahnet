@@ -282,7 +282,7 @@
                         <input type="hidden" name="foto_remove" id="foto_remove" value="<?php echo htmlspecialchars($data['empresa']['img'] ?? '', ENT_QUOTES); ?>">
                         <div class="logo-spec">
                             <strong>Recomendado:</strong> 200×60 px (horizontal) o 200×200 px (cuadrado)<br>
-                            <strong>Formato:</strong> JPG/JPEG · <strong>Peso máx:</strong> 200 KB<br>
+                            <strong>Formato:</strong> JPG/PNG/GIF/WEBP · <strong>Peso máx:</strong> 5 MB<br>
                             <em>Aparece en la barra lateral y en el inicio.</em>
                         </div>
                     </div>
@@ -309,7 +309,7 @@
                         <input type="hidden" name="foto_factura_remove" id="foto_factura_remove" value="0">
                         <div class="logo-spec">
                             <strong>Recomendado:</strong> 600×200 px (horizontal)<br>
-                            <strong>Formato:</strong> JPG/JPEG · <strong>Peso máx:</strong> 500 KB<br>
+                            <strong>Formato:</strong> JPG/PNG/GIF/WEBP · <strong>Peso máx:</strong> 5 MB<br>
                             <em>Aparece en el RIDE/PDF de facturas, notas de crédito y recibos.</em>
                         </div>
                     </div>

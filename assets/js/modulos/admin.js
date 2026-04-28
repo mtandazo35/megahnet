@@ -59,18 +59,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ============ Uploader: Logo del Sistema ============
   const logoUploaderSistema = document.querySelector('#logoUploaderSistema')
-  const MAX_LOGO_SISTEMA = 200 * 1024  // 200 KB
+  const MAX_LOGO_SISTEMA = 5 * 1024 * 1024  // 5 MB
   foto.addEventListener('change', function (e) {
     const f = e.target.files[0]
     if (!f) return
-    if (f.type !== 'image/jpg' && f.type !== 'image/jpeg') {
+    if (!f.type || !f.type.startsWith('image/')) {
       foto.value = ''
-      alertaPersonalizada('warning', 'SOLO SE PERMITEN IMG DE TIPO JPG/JPEG')
+      alertaPersonalizada('warning', 'EL ARCHIVO NO ES UNA IMAGEN VALIDA')
       return
     }
     if (f.size > MAX_LOGO_SISTEMA) {
       foto.value = ''
-      alertaPersonalizada('warning', 'EL LOGO DEL SISTEMA NO DEBE PESAR MÁS DE 200 KB')
+      alertaPersonalizada('warning', 'EL LOGO DEL SISTEMA NO DEBE PESAR MÁS DE 5 MB')
       return
     }
     const tmpUrl = URL.createObjectURL(f)
@@ -84,19 +84,19 @@ document.addEventListener('DOMContentLoaded', function () {
   const fotoFacturaRemove = document.querySelector('#foto_factura_remove')
   const containerPreviewFactura = document.querySelector('#containerPreviewFactura')
   const logoUploaderFactura = document.querySelector('#logoUploaderFactura')
-  const MAX_LOGO_FACTURA = 500 * 1024  // 500 KB
+  const MAX_LOGO_FACTURA = 5 * 1024 * 1024  // 5 MB
   if (fotoFactura) {
     fotoFactura.addEventListener('change', function (e) {
       const f = e.target.files[0]
       if (!f) return
-      if (f.type !== 'image/jpg' && f.type !== 'image/jpeg') {
+      if (!f.type || !f.type.startsWith('image/')) {
         fotoFactura.value = ''
-        alertaPersonalizada('warning', 'SOLO SE PERMITEN IMG DE TIPO JPG/JPEG')
+        alertaPersonalizada('warning', 'EL ARCHIVO NO ES UNA IMAGEN VALIDA')
         return
       }
       if (f.size > MAX_LOGO_FACTURA) {
         fotoFactura.value = ''
-        alertaPersonalizada('warning', 'EL LOGO DE FACTURACIÓN NO DEBE PESAR MÁS DE 500 KB')
+        alertaPersonalizada('warning', 'EL LOGO DE FACTURACIÓN NO DEBE PESAR MÁS DE 5 MB')
         return
       }
       const tmpUrl = URL.createObjectURL(f)
