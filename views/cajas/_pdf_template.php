@@ -11,7 +11,7 @@
 //   $gastos           - array de gastos [descripcion, monto, fecha]
 
 // Logo embebido en base64 (Dompdf no resuelve URLs externas confiablemente).
-$_logoPath = ROOT_PATH . '/assets/images/logo.png';
+$_logoPath = ROOT_PATH . '/assets/images/' . (is_file(ROOT_PATH . '/assets/images/Logo.jpg') ? 'Logo.jpg' : (is_file(ROOT_PATH . '/assets/images/logo.png') ? 'logo.png' : 'logoedessi.png'));
 $_logoSrc  = '';
 if (is_file($_logoPath)) {
     $_logoData = @file_get_contents($_logoPath);

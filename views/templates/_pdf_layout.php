@@ -12,7 +12,7 @@ $_e = function ($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); 
 // Logo embebido base64 (Dompdf no resuelve URLs externas confiablemente).
 $_logoSrc = '';
 // Lista de candidatos: 1) configuracion.img de BD, 2) logoedessi.png, 3) defaults
-$_logoCandidates = ['logoedessi.png', 'logo.png', 'Logo.jpg', 'logo.jpg'];
+$_logoCandidates = ['LogoFactura.jpg', 'Logo.jpg', 'logoedessi.png', 'logo.png', 'logo.jpg'];
 try {
     if (defined('HOSTT') && defined('DBNAME') && defined('USER')) {
         $__pdoLogo = new PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, defined('PASSWORD') ? PASSWORD : '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT, PDO::ATTR_TIMEOUT => 2]);

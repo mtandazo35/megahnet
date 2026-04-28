@@ -1,7 +1,7 @@
 <?php
 // Logo embebido en base64 (Dompdf no resuelve URLs externas confiablemente).
 $_logoSrc = '';
-foreach (['logo.png', 'Logo.jpg', 'logo.jpg'] as $_logoName) {
+foreach (['Logo.jpg', 'LogoFactura.jpg', 'logo.png', 'logo.jpg', 'logoedessi.png'] as $_logoName) {
     $_lp = ROOT_PATH . '/assets/images/' . $_logoName;
     if (is_file($_lp)) {
         $_data = @file_get_contents($_lp);

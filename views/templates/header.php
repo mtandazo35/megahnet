@@ -64,7 +64,7 @@
         <div class="sidebar-wrapper" data-simplebar="true">
             <div class="sidebar-header">
                 <div class="logo-wrap">
-                    <img src="<?php echo BASE_URL; ?>assets/images/logoedessi.png" alt="logo">
+                    <img src="<?php echo BASE_URL . "assets/images/" . (is_file(ROOT_PATH . "/assets/images/Logo.jpg") ? "Logo.jpg?v=" . filemtime(ROOT_PATH . "/assets/images/Logo.jpg") : "logoedessi.png"); ?>" alt="logo">
                 </div>
                 <button class="sidebar-toggle-btn" type="button" aria-label="Colapsar menu">
                     <i class="bx bx-chevron-left"></i>

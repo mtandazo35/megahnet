@@ -37,7 +37,7 @@
                 <div class="col-md-8 col-lg-5 col-xl-4">
 
                     <div class="text-center mb-4 login-brand">
-                        <img src="<?php echo BASE_URL; ?>assets/images/logoedessi.png" alt="<?php echo htmlspecialchars(TITLE, ENT_QUOTES, 'UTF-8'); ?>" class="img-fluid mb-2">
+                        <img src="<?php echo BASE_URL . "assets/images/" . (is_file(ROOT_PATH . "/assets/images/Logo.jpg") ? "Logo.jpg?v=" . filemtime(ROOT_PATH . "/assets/images/Logo.jpg") : "logoedessi.png"); ?>" alt="<?php echo htmlspecialchars(TITLE, ENT_QUOTES, 'UTF-8'); ?>" class="img-fluid mb-2">
                         <p class="text-muted small mb-0">Sistema de Gestión y Facturación Electrónica</p>
                     </div>
 
