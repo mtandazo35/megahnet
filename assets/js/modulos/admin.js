@@ -135,14 +135,14 @@ document.addEventListener('DOMContentLoaded', function () {
     else if (impuesto.value == '') {
       errorImpuesto.textContent = 'EL IMPUESTO ES REQUERIDO'
     }
-    else if (items.value == '') {
-      errorItems.textContent = 'EL TOTAL DE ITEMS ES REQUERIDO'
-    } else if (establecimiento.value == '') {
-      errorEstablecimiento.textContent = 'EL ESTABLECIMIENTO ES REQUERIDO'
-    } else if (emision.value == '') {
-      errorEmision.textContent = 'EL PUNTO DE EMISION ES REQUERIDO'
-    } else if (contabilidad.value == '') {
-      errorContabilidad.textContent = 'LA CONTABILIDAD ES REQUERIDO'
+    else if (items && items.value == '') {
+      if (errorItems) errorItems.textContent = 'EL TOTAL DE ITEMS ES REQUERIDO'
+    } else if (establecimiento && establecimiento.value == '') {
+      if (errorEstablecimiento) errorEstablecimiento.textContent = 'EL ESTABLECIMIENTO ES REQUERIDO'
+    } else if (emision && emision.value == '') {
+      if (errorEmision) errorEmision.textContent = 'EL PUNTO DE EMISION ES REQUERIDO'
+    } else if (contabilidad && contabilidad.value == '') {
+      if (errorContabilidad) errorContabilidad.textContent = 'LA CONTABILIDAD ES REQUERIDO'
     } else {
       // Campos de firma electronica (firmainicio/firmafinal/cantidaddocumento) son
       // opcionales: solo se exigen si el usuario empezo a llenar la firma.
