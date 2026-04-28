@@ -54,10 +54,10 @@ class ClientesModel extends Query{
         return $this->selectAll($sql, [$like, $like]);
     }
 
-    /** Cuenta TODOS los contratos asociados (activos + inactivos) — bloquea DELETE definitivo. */
+    /** Cuenta contratos vigentes (estado != 2) — los anulados no bloquean el DELETE definitivo del cliente. */
     public function contarContratosTotales($idCliente)
     {
-        $sql = "SELECT COUNT(*) AS total FROM contratos WHERE id_cliente = ?";
+        $sql = "SELECT COUNT(*) AS total FROM contratos WHERE id_cliente = ? AND estado != 2";
         $r = $this->select($sql, [$idCliente]);
         return isset($r['total']) ? (int)$r['total'] : 0;
     }
