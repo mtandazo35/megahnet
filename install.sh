@@ -192,6 +192,16 @@ else
     log "BD ya tiene ${TABLE_COUNT} tablas, no se reimporta schema"
 fi
 
+# Aplicar migraciones (db/migrations/*.sql) — deben ser idempotentes (usar IF NOT EXISTS).
+# Se corren siempre, tanto en BD nueva como en deploys existentes.
+if [[ -d "$PROJECT_DIR/db/migrations" ]]; then
+    for mig in "$PROJECT_DIR/db/migrations"/*.sql; do
+        [[ -f "$mig" ]] || continue
+        log "Aplicando migracion $(basename "$mig")..."
+        mysql "${DB_NAME}" < "$mig" 2>&1 | grep -v -E '^Warning:' || true
+    done
+fi
+
 # Crear admin por defecto solo si la tabla usuarios esta vacia
 USER_COUNT=$(mysql -N -B "${DB_NAME}" -e "SELECT COUNT(*) FROM usuarios" 2>/dev/null || echo "0")
 if [[ "$USER_COUNT" == "0" ]] && [[ -f "$PROJECT_DIR/db/seed-admin.sql" ]]; then
