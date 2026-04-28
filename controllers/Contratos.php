@@ -776,13 +776,16 @@ class Contratos extends Controller
             $data['ok']          = false;
             $data['msg']         = 'El cliente no tiene telefono registrado';
         } else {
-            // Mensaje en texto plano (no URL-encoded). Asteriscos = negrita en WhatsApp.
-            $mensaje =
-                "SALUDOS ESTIMADO USUARIO\n          *MEGAHNET*\n\n*RECORDATORIO DE PAGO*\n\n*"
-                . $data['nombre'] . "*\n  SU SALDO PENDIENTE\n\n            *$"
-                . $data['deudaTotal'] . "*\n\nCUENTA CORRIENTE\nPICHINCHA 2100159721\nGUAYAQUIL 8737835\nPRODUBANCO 02120010727\nA NOMBRE DE GOBRAVCORP\n\nenviar foto del deposito\n\n*EVITE LA SUSPENSION DEL SERVICIO*\n\n*Este es un mensaje circular*\nsi ya pago, haga caso omiso\n\n          *GRACIAS*";
+            // Renderizar plantilla configurable (storage/plantillas.json -> whatsapp_recordatorio).
+            // renderPlantilla auto-inyecta empresa_*, empresa_cuentas, empresa_titular_cuenta.
+            $tpl = function_exists('renderPlantilla') ? renderPlantilla('whatsapp_recordatorio', [
+                'cliente_nombre' => $data['nombre'],
+                'cliente_saldo'  => $data['deudaTotal'],
+            ]) : null;
+            $mensaje = is_array($tpl) && !empty($tpl['cuerpo'])
+                ? $tpl['cuerpo']
+                : ('RECORDATORIO DE PAGO\n*' . $data['nombre'] . "*\nSaldo pendiente: $" . $data['deudaTotal']);
 
-            // Envio via WA API (sustituye el window.open(wa.me) anterior)
             $resApi = enviarWhatsappTexto($data['telefono'], $mensaje);
             $data['ok']   = !empty($resApi['ok']);
             $data['msg']  = $resApi['msg'] ?? null;
