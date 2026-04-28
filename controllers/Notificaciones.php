@@ -530,7 +530,10 @@ class Notificaciones extends Controller
         $bodyIn = json_decode(file_get_contents('php://input'), true) ?: [];
         // Si nos piden regenerar el PDF de una orden, hacerlo ANTES de resolver mediaPath
         // (las ordenes recien creadas todavia no tienen Facturable_<id>.pdf en disco).
+        // ojo: ordenVentaPDF puede leakear output (HTML del view, warnings de cargarSri, etc.)
+        // — envolver en ob_start/ob_end_clean para que la respuesta JSON quede limpia.
         if (!empty($bodyIn['regenerateOrdenId'])) {
+            ob_start();
             try {
                 if (!class_exists('OrdenVenta')) {
                     $ovFile = ROOT_PATH . '/controllers/OrdenVenta.php';
@@ -541,6 +544,7 @@ class Notificaciones extends Controller
                     $ov->ordenVentaPDF('facturas', (int)$bodyIn['regenerateOrdenId']);
                 }
             } catch (\Throwable $e) { error_log('regenerate PDF falla: ' . $e->getMessage()); }
+            ob_end_clean();
         }
         $mediaLocalPath = '';
         if (!empty($bodyIn['mediaPath'])) {
