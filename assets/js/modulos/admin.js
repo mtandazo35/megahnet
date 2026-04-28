@@ -143,7 +143,6 @@ document.addEventListener('DOMContentLoaded', function () {
       errorEmision.textContent = 'EL PUNTO DE EMISION ES REQUERIDO'
     } else if (contabilidad.value == '') {
       errorContabilidad.textContent = 'LA CONTABILIDAD ES REQUERIDO'
-    }
     } else {
       // Campos de firma electronica (firmainicio/firmafinal/cantidaddocumento) son
       // opcionales: solo se exigen si el usuario empezo a llenar la firma.
