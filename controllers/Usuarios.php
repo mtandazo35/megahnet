@@ -341,7 +341,9 @@ class Usuarios extends Controller
                 $data = $this->model->modificarDatos($nombre, $apellidos, $correo, $telefono, $direccion, $hash, $destino, $this->id_usuario);
                 if ($data == 1) {
                     if (!empty($name)) {
-                        move_uploaded_file($tmp, $destino);
+                        if (!imagen_normalizar_a_jpg($tmp, $destino)) {
+                            move_uploaded_file($tmp, $destino);
+                        }
                     }
                     $res = array('msg' => 'DATOS ACTUALIZADO EXITOSAMENTE', 'type' => 'success', 'clave' => false);
                 } else {

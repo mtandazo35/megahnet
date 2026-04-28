@@ -152,10 +152,10 @@ class Admin extends Controller
             $logoFacturaRemove = isset($_POST['foto_factura_remove']) && $_POST['foto_factura_remove'] === '1';
             if (!empty($_FILES['foto_factura']['tmp_name']) && is_uploaded_file($_FILES['foto_factura']['tmp_name'])) {
                 $ff = $_FILES['foto_factura'];
-                if ($ff['size'] > 500 * 1024) {
-                    $logoFacturaWarning = 'EL LOGO DE FACTURACIÓN EXCEDE 500 KB';
-                } else if (!in_array($ff['type'], ['image/jpg','image/jpeg'])) {
-                    $logoFacturaWarning = 'LOGO DE FACTURACIÓN: SOLO JPG/JPEG';
+                if ($ff['size'] > 5 * 1024 * 1024) {
+                    $logoFacturaWarning = 'EL LOGO DE FACTURACIÓN EXCEDE 5 MB';
+                } else if (!is_array(@getimagesize($ff['tmp_name']))) {
+                    $logoFacturaWarning = 'LOGO DE FACTURACIÓN: ARCHIVO NO ES UNA IMAGEN VALIDA';
                 } else {
                     $logoFacturaUploadOk = true;
                 }
@@ -292,8 +292,9 @@ class Admin extends Controller
                 // Persistencia del Logo de Facturación (independiente del UPDATE de la BD)
                 $logoFacturaPath = 'assets/images/LogoFactura.jpg';
                 if ($logoFacturaUploadOk) {
-                    @move_uploaded_file($_FILES['foto_factura']['tmp_name'], $logoFacturaPath);
-                    @chmod($logoFacturaPath, 0644);
+                    if (!imagen_normalizar_a_jpg($_FILES['foto_factura']['tmp_name'], $logoFacturaPath)) {
+                        $logoFacturaWarning = 'LOGO DE FACTURACIÓN: NO SE PUDO PROCESAR LA IMAGEN';
+                    }
                 }
                 if ($logoFacturaRemove && file_exists($logoFacturaPath)) {
                     @unlink($logoFacturaPath);
@@ -305,7 +306,10 @@ class Admin extends Controller
                         unlink('assets/images/Logo.jpg');
                     }
                     if ($nombre_foto != '') {
-                        move_uploaded_file($urltemp_foto, $src);
+                        if (!imagen_normalizar_a_jpg($urltemp_foto, $src)) {
+                            // fallback al move clasico si gd falla por algun motivo
+                            move_uploaded_file($urltemp_foto, $src);
+                        }
                     }
                     if ($firmaWarning !== null) {
                         $res = array('msg' => 'DATOS ACTUALIZADOS pero ' . $firmaWarning, 'type' => 'warning');

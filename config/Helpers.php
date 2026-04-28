@@ -868,4 +868,43 @@ function servicioConfig($key)
 }
 
 
+
+/**
+ * Normaliza una imagen subida a JPG en $destPath.
+ * Acepta JPG/JPEG/PNG/GIF/WEBP/BMP. Si la entrada tiene canal alfa lo
+ * aplana sobre fondo blanco. Devuelve true si guardo, false si fallo.
+ *
+ * No depende del MIME enviado por el cliente (es manipulable); usa la
+ * deteccion de PHP via getimagesize().
+ */
+function imagen_normalizar_a_jpg($srcTmp, $destPath, $jpgQuality = 90) {
+    if (!is_uploaded_file($srcTmp) && !is_file($srcTmp)) return false;
+    $info = @getimagesize($srcTmp);
+    if (!is_array($info)) return false;
+    $type = $info[2];
+    $img = null;
+    switch ($type) {
+        case IMAGETYPE_JPEG: $img = @imagecreatefromjpeg($srcTmp); break;
+        case IMAGETYPE_PNG:  $img = @imagecreatefrompng($srcTmp);  break;
+        case IMAGETYPE_GIF:  $img = @imagecreatefromgif($srcTmp);  break;
+        case IMAGETYPE_WEBP: if (function_exists('imagecreatefromwebp')) $img = @imagecreatefromwebp($srcTmp); break;
+        case IMAGETYPE_BMP:  if (function_exists('imagecreatefrombmp'))  $img = @imagecreatefrombmp($srcTmp);  break;
+        default: return false;
+    }
+    if (!$img) return false;
+    // Aplanar transparencia sobre fondo blanco
+    $w = imagesx($img); $h = imagesy($img);
+    $flat = imagecreatetruecolor($w, $h);
+    $white = imagecolorallocate($flat, 255, 255, 255);
+    imagefilledrectangle($flat, 0, 0, $w, $h, $white);
+    imagecopy($flat, $img, 0, 0, 0, 0, $w, $h);
+    imagedestroy($img);
+    $dir = dirname($destPath);
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    $ok = @imagejpeg($flat, $destPath, $jpgQuality);
+    imagedestroy($flat);
+    if ($ok) @chmod($destPath, 0644);
+    return (bool)$ok;
+}
+
 ?>
