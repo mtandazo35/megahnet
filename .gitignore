@@ -65,3 +65,8 @@ controllers/Sridashboard.php
 controllers/Grupotrabajos.php
 controllers/Rangoip.php
 models/notaCreditoModel.php
+
+# Logos personalizados (cada cliente sube los suyos via UI)
+assets/images/Logo.jpg
+assets/images/LogoFactura.jpg
+assets/images/Logo2.jpg
