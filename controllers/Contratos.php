@@ -771,19 +771,26 @@ class Contratos extends Controller
 
         $data['deudaTotal'] = $totalDeuda - $abonado;
 
-        if ($data['telefono'] == '') {
-
+        if (empty($data['telefono'])) {
             $data['resWhatsapp'] = null;
+            $data['ok']          = false;
+            $data['msg']         = 'El cliente no tiene telefono registrado';
         } else {
-            // $resWathsapp = "https://wa.me/593{$getInfoClientes['telefono']}?text=Buen Dia estimado cliente *MEGAHNET*! Su abono es de: ' . '$' . $total . ', *Su saldo a favor es de: ' . '$' . $anticipo . '*    Su deuda Total es de:' . '$' . $restante . ', INCLUIDO SERVICIO DE *' . $mesActualLetra . '*";
-            //$resWathsapp = 'https://web.whatsapp.com/send?text=Buen Dia estimado cliente *MEGAHNET*! Su deuda Total es de:' . '$' . $restante . ', INCLUIDO SERVICIO DE *' . $mesActualLetra . '*    &phone=+593' . $getInfoClientes['telefono'] . '&abid=+593' . $getInfoClientes['telefono'] . '';.$restante.'
-            $data['resWhatsapp'] = 'https://web.whatsapp.com/send?phone=593' . $data['telefono'] .
-                '&text=SALUDOS%20ESTIMADO%20USUARIO%0A%20%20%20%20%20%20%20%20%20%20*MEGAHNET*%0A%0A*RECORDATORIO%20DE%20PAGO*%0A%0A*'
-                . $data['nombre'] . '*%0A%20%20SU%20SALDO%20PENDIENTE%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20*$'
-                . $data['deudaTotal'] . '*%0A%0ACUENTA%20CORRIENTE%0APICHINCHA%202100159721%0AGUAYAQUIL%208737835%0APRODUBANCO%2002120010727%0AA%20NOMBRE%20DE%20GOBRAVCORP%0A%0Aenviar%20foto%20del%20deposito%0A%0A*EVITE%20LA%20SUSPENSION%20DEL%20SERVICIO*%0A%0A*Este%20es%20un%20mensaje%20circular*%0Asi%20ya%20pago%2C%20haga%20caso%20omiso%0A%0A%20%20%20%20%20%20%20%20%20%20*GRACIAS*';
-        }
+            // Mensaje en texto plano (no URL-encoded). Asteriscos = negrita en WhatsApp.
+            $mensaje =
+                "SALUDOS ESTIMADO USUARIO\n          *MEGAHNET*\n\n*RECORDATORIO DE PAGO*\n\n*"
+                . $data['nombre'] . "*\n  SU SALDO PENDIENTE\n\n            *$"
+                . $data['deudaTotal'] . "*\n\nCUENTA CORRIENTE\nPICHINCHA 2100159721\nGUAYAQUIL 8737835\nPRODUBANCO 02120010727\nA NOMBRE DE GOBRAVCORP\n\nenviar foto del deposito\n\n*EVITE LA SUSPENSION DEL SERVICIO*\n\n*Este es un mensaje circular*\nsi ya pago, haga caso omiso\n\n          *GRACIAS*";
 
-        //print_r($data['deudaTotal']); exit;
+            // Envio via WA API (sustituye el window.open(wa.me) anterior)
+            $resApi = enviarWhatsappTexto($data['telefono'], $mensaje);
+            $data['ok']   = !empty($resApi['ok']);
+            $data['msg']  = $resApi['msg'] ?? null;
+            $data['http'] = $resApi['http'] ?? 0;
+            // Mantener URL como fallback por si el JS quiere ofrecer abrir WhatsApp Web manualmente
+            $data['resWhatsapp'] = 'https://web.whatsapp.com/send?phone=' . ($resApi['tel'] ?? ('593' . $data['telefono']))
+                . '&text=' . rawurlencode($mensaje);
+        }
 
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         die();

@@ -746,6 +746,73 @@ function whatsappLinkPlantilla($key, $telefono, array $vars = [], $codpais = '59
 }
 }
 
+/**
+ * Envia un mensaje de texto via la WA API REST (api-whats-app NestJS + Baileys).
+ * Lee la config desde servicios.json (whatsapp_api) con fallback a alertas-config.json (wa_api).
+ *
+ * @param string $telefono  Numero (acepta formato 09xxxxxxxx, 9xxxxxxxx, 593xxxxxxxxx)
+ * @param string $mensaje   Texto plano (acepta *negrita*, _italica_ formato WhatsApp)
+ * @param string $codpais   Codigo de pais por defecto (593 Ecuador)
+ * @return array            ['ok'=>bool, 'http'=>int, 'msg'=>string|null, 'tel'=>string]
+ */
+if (!function_exists('enviarWhatsappTexto')) {
+function enviarWhatsappTexto($telefono, $mensaje, $codpais = '593')
+{
+    $tel = preg_replace('/[^0-9]/', '', (string)$telefono);
+    if (empty($tel))         return ['ok'=>false, 'http'=>0, 'msg'=>'Telefono vacio',         'tel'=>''];
+    if (empty(trim((string)$mensaje))) return ['ok'=>false, 'http'=>0, 'msg'=>'Mensaje vacio', 'tel'=>$tel];
+    if (strlen($tel) === 10 && $tel[0] === '0') $tel = $codpais . substr($tel, 1);
+    elseif (strlen($tel) === 9) $tel = $codpais . $tel;
+
+    // 1) servicios.json
+    $base = ''; $sessionId = '';
+    if (function_exists('servicioConfig')) {
+        $svc = servicioConfig('whatsapp_api');
+        if (!empty($svc['base_url']))   $base      = rtrim($svc['base_url'], '/');
+        if (!empty($svc['session_id'])) $sessionId = $svc['session_id'];
+    }
+    // 2) Fallback alertas-config.json
+    if ($base === '' || $sessionId === '') {
+        $cfgFile = (defined('ROOT_PATH') ? ROOT_PATH : (__DIR__ . '/..')) . '/storage/alertas-config.json';
+        if (file_exists($cfgFile)) {
+            $cfg = @json_decode(@file_get_contents($cfgFile), true);
+            if (is_array($cfg) && !empty($cfg['wa_api'])) {
+                if ($base === ''      && !empty($cfg['wa_api']['base_url']))   $base      = rtrim($cfg['wa_api']['base_url'], '/');
+                if ($sessionId === '' && !empty($cfg['wa_api']['session_id'])) $sessionId = $cfg['wa_api']['session_id'];
+            }
+        }
+    }
+    if (empty($base) || empty($sessionId)) {
+        return ['ok'=>false, 'http'=>0, 'msg'=>'WhatsApp API no configurada', 'tel'=>$tel];
+    }
+
+    $ch = curl_init($base . '/api/whatsapp/send?fastMode=true');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode([
+            'sessionId' => $sessionId,
+            'number'    => $tel,
+            'message'   => (string)$mensaje,
+        ], JSON_UNESCAPED_UNICODE),
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Accept: application/json'],
+        CURLOPT_TIMEOUT        => 20,
+        CURLOPT_SSL_VERIFYPEER => false,
+    ]);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err  = curl_error($ch);
+    curl_close($ch);
+    $ok = ($code >= 200 && $code < 300);
+    return [
+        'ok'   => $ok,
+        'http' => (int)$code,
+        'msg'  => $ok ? null : ($err ?: ('HTTP ' . $code . ': ' . (is_string($resp) ? mb_substr($resp, 0, 200) : ''))),
+        'tel'  => $tel,
+    ];
+}
+}
+
 if (!function_exists('moduloActivo')) {
 function moduloActivo($key)
 {

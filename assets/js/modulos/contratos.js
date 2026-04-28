@@ -729,31 +729,42 @@ function Editar(idContrato) {
 
 
 function enviarMsm(idContrato) {
-  //limpiarCampos();
-  // editorDireccion.setData('');
-
-  const url = base_url + 'contratos/enviarMsm/' + idContrato;
-  //hacer una instancia del objeto XMLHttpRequest 
-  const http = new XMLHttpRequest();
-  //Abrir una Conexion - POST - GET
-  http.open('GET', url, true);
-  //Enviar Datos
-  http.send();
-  //verificar estados
-  http.onreadystatechange = function () {
-    if (this.readyState == 4 && this.status == 200) {
-      const res = JSON.parse(this.responseText);
-
-      setTimeout(() => {
-        const whatsapp = res.resWhatsapp;
-
-        // window.open(ruta, '_blank');
-        window.open(whatsapp, '_blank');
-
-      }, 2000);
-
-    }
-  }
+  // Envio directo via WA API (la pagina ya no abre wa.me).
+  // El backend (Contratos::enviarMsm) llama enviarWhatsappTexto() y devuelve {ok,msg,resWhatsapp}.
+  Swal.fire({
+    title: 'Enviando recordatorio...',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+  fetch(base_url + 'contratos/enviarMsm/' + idContrato, { credentials: 'same-origin' })
+    .then(r => r.json())
+    .then(res => {
+      if (res.ok) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Mensaje enviado',
+          text: 'Recordatorio enviado por WhatsApp',
+          timer: 2200, showConfirmButton: false
+        });
+        return;
+      }
+      // Fallo: ofrecer fallback de abrir WhatsApp Web si tenemos URL
+      if (res.resWhatsapp) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'No se envio por la API',
+          text: (res.msg || 'Fallo el envio') + '. Abrir WhatsApp Web para enviar manualmente?',
+          showCancelButton: true,
+          confirmButtonText: 'Abrir WhatsApp Web',
+          cancelButtonText: 'Cerrar'
+        }).then(r => { if (r.isConfirmed) window.open(res.resWhatsapp, '_blank'); });
+      } else {
+        Swal.fire({ icon: 'error', title: 'No se pudo enviar', text: res.msg || 'Sin telefono o WhatsApp no configurado' });
+      }
+    })
+    .catch(e => {
+      Swal.fire({ icon: 'error', title: 'Error de red', text: e.message || 'No se pudo contactar al servidor' });
+    });
 }
 
 
