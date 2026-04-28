@@ -196,6 +196,40 @@
         if (!dtInactivos) return;
         restaurarRegistros(base_url + 'clientes/restaurar/' + id, dtInactivos);
     };
+    window.eliminarClientePermanente = function (id) {
+        Swal.fire({
+            title: '¿Eliminar permanentemente?',
+            html: '<div class="text-muted small">Esta acción <b>NO</b> se puede deshacer. El cliente se borrará de la base de datos.</div>',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            fetch(base_url + 'clientes/eliminarPermanente/' + id, {
+                method: 'GET', credentials: 'same-origin'
+            })
+            .then(rs => rs.json())
+            .then(function (res) {
+                Swal.fire({
+                    toast: true, position: 'top-right',
+                    icon: res.type, title: res.msg,
+                    showConfirmButton: false, timer: 3000
+                });
+                if (res.type === 'success') {
+                    if (dtInactivos) dtInactivos.ajax.reload(null, false);
+                    if (typeof tblClientes !== 'undefined' && tblClientes) {
+                        tblClientes.ajax.reload(null, false);
+                    }
+                }
+            })
+            .catch(function () {
+                Swal.fire({ icon: 'error', title: 'Error de red al eliminar' });
+            });
+        });
+    };
     document.addEventListener('mhn:restauradoOk', function () {
         if (typeof tblClientes !== 'undefined' && tblClientes) {
             tblClientes.ajax.reload(null, false);
