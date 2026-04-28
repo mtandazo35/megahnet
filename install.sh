@@ -126,6 +126,15 @@ ENV_FILE="$PROJECT_DIR/.env"
 if [[ -f "$ENV_FILE" ]]; then
     log ".env ya existe, reusando credenciales"
     DB_PASS=$(grep -E '^DB_PASSWORD=' "$ENV_FILE" | head -1 | cut -d= -f2-)
+    # Sincronizar BASE_URL con APP_DOMAIN si se cambio (re-run con dominio nuevo)
+    if [[ -n "$APP_DOMAIN" ]]; then
+        NEW_BASE="https://${APP_DOMAIN}/"
+        CUR_BASE=$(grep -E '^BASE_URL=' "$ENV_FILE" | head -1 | cut -d= -f2-)
+        if [[ "$CUR_BASE" != "$NEW_BASE" ]]; then
+            log "Actualizando BASE_URL en .env: ${CUR_BASE} -> ${NEW_BASE}"
+            sed -i "s|^BASE_URL=.*|BASE_URL=${NEW_BASE}|" "$ENV_FILE"
+        fi
+    fi
 else
     log "Generando .env"
     DB_PASS=$(openssl rand -hex 16)
