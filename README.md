@@ -29,24 +29,46 @@ cd megahnet
 sudo bash install.sh
 ```
 
-El script instala todo lo necesario y deja el sistema corriendo:
+El script te preguntara dominios y configura todo. Lo que instala y deja corriendo:
 
-- Apache 2 + mod_rewrite + PHP 8 + MariaDB + Composer
+- Apache 2 + mods (rewrite/headers/proxy/proxy_http/remoteip) + PHP 8 + MariaDB + Composer
 - Crea BD `sistema` + usuario MariaDB + contrasena random en `.env`
 - Importa `db/schema.sql` (39 tablas)
 - Crea usuario admin por defecto: **admin@admin.com / 12345678**
 - Hace `composer install --no-dev`
 - Genera los symlinks de routing case-insensitive
-- Configura vhost Apache (acceso por IP, sin dominio)
+- Configura vhost Apache con `ServerName` del dominio que indiques
+- Configura `RemoteIPHeader X-Forwarded-For` para que Apache vea la IP real del cliente cuando hay reverse-proxy delante
+- **Despliega el servicio WhatsApp API** (Docker compose, NestJS+Baileys, puerto 3005)
+  - Genera su `.env` con secretos aleatorios
+  - Si das `WA_DOMAIN` configura el vhost Apache reverse-proxy de la API
+- Inicializa `storage/alertas-config.json` apuntando a la WA API local
 - Bloquea acceso publico a `.env`, `.git`, `composer.json`, `log.txt`
 
 Se puede correr **multiples veces sin romper la instalacion** (es idempotente).
+Las respuestas a los prompts quedan cacheadas en `.install.cache` (gitignored).
+
+### SSL
+
+Por defecto el installer **NO** gestiona SSL — Apache queda en HTTP plano detras
+de un reverse-proxy externo (Nginx Proxy Manager, Cloudflare, traefik, etc.).
+Al final del install te muestra la config exacta para crear el Proxy Host en NPM.
+
+Si prefieres SSL nativo con Let's Encrypt + certbot:
+
+```bash
+sudo MANAGE_SSL=1 LE_EMAIL=tu@correo.com bash install.sh
+```
 
 ### Variables opcionales
 
+Todas se pueden pasar como env para evitar prompts:
+
 ```bash
+sudo APP_DOMAIN=sistema.midominio.com WA_DOMAIN=wa.midominio.com bash install.sh
 sudo ADMIN_EMAIL=tu@correo.com ADMIN_PASS='tu-clave' bash install.sh
 sudo DB_NAME=otrabd DB_USER=otroUser bash install.sh
+sudo SKIP_WA=1 bash install.sh    # solo PHP, sin servicio WhatsApp
 ```
 
 ### Actualizar el codigo

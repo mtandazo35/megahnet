@@ -25,7 +25,9 @@ cd "$SCRIPT_DIR"
 
 VHOST_NAME="wa-api"
 VHOST_FILE="/etc/apache2/sites-available/${VHOST_NAME}.conf"
-DOMAIN="wa-api.sincosto.xyz"
+# WA_DOMAIN se puede pasar como env (lo hace install.sh). Vacio = no exponer
+# publicamente, la API solo queda accesible localmente en 127.0.0.1:3005.
+DOMAIN="${WA_DOMAIN:-}"
 COMPOSE_PROJECT="whatsapp-api"
 
 # === 1. Docker ===
@@ -52,23 +54,30 @@ if ! docker compose version >/dev/null 2>&1; then
   err "docker compose plugin no disponible (revisa la instalacion)"
 fi
 
-# === 2. Apache modules + vhost ===
-if ! command -v apache2 >/dev/null 2>&1; then
+# === 2. Apache modules + vhost (solo si hay WA_DOMAIN) ===
+if [ -z "$DOMAIN" ]; then
+  log "WA_DOMAIN vacio: la API quedara solo accesible localmente (127.0.0.1:3005)."
+elif ! command -v apache2 >/dev/null 2>&1; then
   warn "Apache no esta instalado en el host. Saltando configuracion de vhost."
 else
   log "Habilitando mod_proxy y mod_proxy_http..."
   a2enmod proxy proxy_http >/dev/null
 
+  # Generar el vhost sustituyendo el placeholder __SERVER_NAME__
+  TMP_VHOST="$(mktemp)"
+  sed "s|__SERVER_NAME__|${DOMAIN}|g" "${SCRIPT_DIR}/apache-vhost.conf" > "$TMP_VHOST"
+
   if [ ! -f "$VHOST_FILE" ]; then
-    log "Creando vhost ${VHOST_FILE}"
-    cp "${SCRIPT_DIR}/apache-vhost.conf" "$VHOST_FILE"
+    log "Creando vhost ${VHOST_FILE} (ServerName=${DOMAIN})"
+    mv "$TMP_VHOST" "$VHOST_FILE"
   else
-    if ! cmp -s "${SCRIPT_DIR}/apache-vhost.conf" "$VHOST_FILE"; then
-      log "Actualizando vhost (cambios detectados)"
+    if ! cmp -s "$TMP_VHOST" "$VHOST_FILE"; then
+      log "Actualizando vhost (cambios detectados, ServerName=${DOMAIN})"
       cp "$VHOST_FILE" "${VHOST_FILE}.bak.$(date +%s)"
-      cp "${SCRIPT_DIR}/apache-vhost.conf" "$VHOST_FILE"
+      mv "$TMP_VHOST" "$VHOST_FILE"
     else
       log "Vhost sin cambios"
+      rm -f "$TMP_VHOST"
     fi
   fi
 
@@ -133,7 +142,9 @@ echo
 log "=========================================="
 log "  Deploy completo"
 log "=========================================="
-log "  URL publica:     https://${DOMAIN}/api"
+if [ -n "$DOMAIN" ]; then
+  log "  URL publica:     https://${DOMAIN}/api  (terminado por tu reverse-proxy)"
+fi
 log "  URL local:       http://127.0.0.1:3005/api"
 log "  Compose project: ${COMPOSE_PROJECT}"
 log "  Logs API:        docker compose -p ${COMPOSE_PROJECT} logs -f api"
