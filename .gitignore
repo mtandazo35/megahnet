@@ -53,3 +53,15 @@ composer.phar
 *.tmp
 *.cache
 *.bak.*
+
+# install.sh case-routing symlinks (regenerados en cada despliegue)
+controllers/Mikrotik.php
+controllers/Mikrotiks.php
+controllers/NotaCredito.php
+controllers/Notacredito.php
+controllers/notacredito.php
+controllers/Ordenventa.php
+controllers/Sridashboard.php
+controllers/Grupotrabajos.php
+controllers/Rangoip.php
+models/notaCreditoModel.php
