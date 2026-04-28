@@ -38,13 +38,27 @@ class Notificaciones extends Controller
             $cuerpoCorto = trim(preg_replace('/\s+/', ' ', $cuerpoCorto));
             if (mb_strlen($cuerpoCorto) > 200) $cuerpoCorto = mb_substr($cuerpoCorto, 0, 200) . '...';
             $statusBadge = '';
-            switch ($r['status'] ?? '') {
+            // Normalizar: status puede llegar como string ('OK','FAIL'...) o como objeto ({ok:bool,log_only:bool}) cuando es log-only.
+            $statusRaw = $r['status'] ?? '';
+            if (is_array($statusRaw)) {
+                if (!empty($statusRaw['log_only'])) {
+                    $statusKey = 'LOG_ONLY';
+                } elseif (!empty($statusRaw['ok'])) {
+                    $statusKey = 'OK';
+                } else {
+                    $statusKey = 'FAIL';
+                }
+            } else {
+                $statusKey = (string)$statusRaw;
+            }
+            switch ($statusKey) {
                 case 'OK':              $statusBadge = '<span class="badge bg-success">ENVIADO</span>'; break;
                 case 'FAIL':            $statusBadge = '<span class="badge bg-danger">FALLO</span>'; break;
                 case 'NO_DESTINO':      $statusBadge = '<span class="badge bg-warning text-dark">SIN DESTINATARIO</span>'; break;
                 case 'NO_PHPMAILER':    $statusBadge = '<span class="badge bg-secondary">SIN PHPMAILER</span>'; break;
                 case 'TIPO_DESACTIVADO':$statusBadge = '<span class="badge bg-secondary">TIPO OFF</span>'; break;
-                default:                $statusBadge = '<span class="badge bg-secondary">' . htmlspecialchars($r['status'] ?? '?') . '</span>';
+                case 'LOG_ONLY':        $statusBadge = '<span class="badge bg-secondary">SOLO LOG</span>'; break;
+                default:                $statusBadge = '<span class="badge bg-secondary">' . htmlspecialchars($statusKey !== '' ? $statusKey : '?') . '</span>';
             }
             $items[] = [
                 'ts'      => $r['ts'] ?? '',
@@ -514,6 +528,20 @@ class Notificaciones extends Controller
         // Si se pasa mediaPath -> upload multipart directo (evita problemas con CF/red)
         // Si se pasa mediaUrl  -> intentar extraer ruta local del propio dominio, sino mandar URL
         $bodyIn = json_decode(file_get_contents('php://input'), true) ?: [];
+        // Si nos piden regenerar el PDF de una orden, hacerlo ANTES de resolver mediaPath
+        // (las ordenes recien creadas todavia no tienen Facturable_<id>.pdf en disco).
+        if (!empty($bodyIn['regenerateOrdenId'])) {
+            try {
+                if (!class_exists('OrdenVenta')) {
+                    $ovFile = ROOT_PATH . '/controllers/OrdenVenta.php';
+                    if (file_exists($ovFile)) require_once $ovFile;
+                }
+                if (class_exists('OrdenVenta')) {
+                    $ov = new OrdenVenta();
+                    $ov->ordenVentaPDF('facturas', (int)$bodyIn['regenerateOrdenId']);
+                }
+            } catch (\Throwable $e) { error_log('regenerate PDF falla: ' . $e->getMessage()); }
+        }
         $mediaLocalPath = '';
         if (!empty($bodyIn['mediaPath'])) {
             $mp = ROOT_PATH . '/' . ltrim((string)$bodyIn['mediaPath'], '/');
@@ -531,19 +559,6 @@ class Notificaciones extends Controller
         // Caso: tenemos archivo local -> upload multipart al WA API
         if (!empty($mediaLocalPath)) {
             header('Content-Type: application/json; charset=utf-8');
-            // Regenerar el PDF antes de enviar si lo piden (asegura template actualizado)
-            if (!empty($bodyIn['regenerateOrdenId'])) {
-                try {
-                    if (!class_exists('OrdenVenta')) {
-                        $ovFile = ROOT_PATH . '/controllers/OrdenVenta.php';
-                        if (file_exists($ovFile)) require_once $ovFile;
-                    }
-                    if (class_exists('OrdenVenta')) {
-                        $ov = new OrdenVenta();
-                        $ov->ordenVentaPDF('facturas', (int)$bodyIn['regenerateOrdenId']);
-                    }
-                } catch (\Throwable $e) { error_log('regenerate PDF falla: ' . $e->getMessage()); }
-            }
             $tel = preg_replace('/[^0-9]/', '', (string)($bodyIn['number'] ?? ''));
             if (empty($tel)) { echo json_encode(['ok'=>false,'msg'=>'Sin numero']); exit; }
             if (strlen($tel) === 10 && $tel[0] === '0') $tel = '593' . substr($tel, 1);
