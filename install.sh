@@ -67,6 +67,11 @@ WA_DOMAIN="${WA_DOMAIN:-${CACHE_WA_DOMAIN:-}}"
 if [[ "$SKIP_WA" != "1" ]] && [[ -z "${WA_DOMAIN+x}" || -z "$WA_DOMAIN" ]] && [[ -z "${CACHE_WA_DOMAIN+x}" ]]; then
     WA_DOMAIN="$(ask 'Dominio publico del servicio WhatsApp (vacio = solo accesible localmente)' '')"
 fi
+# Validacion: WA_DOMAIN no puede colisionar con APP_DOMAIN (genera ServerName duplicado)
+if [[ -n "$WA_DOMAIN" ]] && [[ "$WA_DOMAIN" == "$APP_DOMAIN" ]]; then
+    warn "WA_DOMAIN no puede ser igual a APP_DOMAIN (\"$APP_DOMAIN\"); ignorando WA_DOMAIN."
+    WA_DOMAIN=""
+fi
 LE_EMAIL="${LE_EMAIL:-${CACHE_LE_EMAIL:-}}"
 if [[ "$MANAGE_SSL" == "1" ]] && [[ -n "$APP_DOMAIN" ]] && [[ -z "$LE_EMAIL" ]]; then
     LE_EMAIL="$(ask 'Email para Lets Encrypt (avisos de renovacion)' '')"

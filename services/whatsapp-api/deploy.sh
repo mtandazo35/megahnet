@@ -57,6 +57,14 @@ fi
 # === 2. Apache modules + vhost (solo si hay WA_DOMAIN) ===
 if [ -z "$DOMAIN" ]; then
   log "WA_DOMAIN vacio: la API quedara solo accesible localmente (127.0.0.1:3005)."
+  # Limpieza: si quedo un vhost de un install previo con WA_DOMAIN seteado,
+  # desactivarlo para evitar ServerName duplicado que roba trafico al vhost
+  # principal de megahnet.
+  if [ -L "/etc/apache2/sites-enabled/${VHOST_NAME}.conf" ]; then
+    log "Deshabilitando vhost wa-api previo (WA_DOMAIN ahora vacio)"
+    a2dissite "${VHOST_NAME}" >/dev/null 2>&1 || true
+    systemctl reload apache2 2>/dev/null || true
+  fi
 elif ! command -v apache2 >/dev/null 2>&1; then
   warn "Apache no esta instalado en el host. Saltando configuracion de vhost."
 else
