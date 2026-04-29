@@ -35,6 +35,28 @@ ask()  { local p="$1" def="${2:-}" var; if [[ -t 0 ]]; then read -r -p "$p${def:
 [[ $EUID -eq 0 ]] || err "Este script debe ejecutarse como root (sudo bash install.sh)"
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Validar que Apache (www-data) pueda atravesar todo el path hasta el proyecto.
+# /root tiene 700 por defecto -> Forbidden con AH00035 search permissions are missing.
+# Verificamos cada componente del path.
+_check_dir_traversable() {
+    local p="$1"
+    while [[ "$p" != "/" && -n "$p" ]]; do
+        # Si www-data no puede atravesar este componente, falla.
+        if ! sudo -u www-data test -x "$p"; then
+            return 1
+        fi
+        p="$(dirname "$p")"
+    done
+    return 0
+}
+if ! _check_dir_traversable "$PROJECT_DIR"; then
+    err "Apache (www-data) no puede acceder a $PROJECT_DIR (algun directorio padre tiene permisos restrictivos, tipico cuando se clona en /root o un home).
+       Mueve el proyecto a /var/www/html y vuelve a correr el installer:
+         sudo mv \"$PROJECT_DIR\" /var/www/html/megahnet
+         cd /var/www/html/megahnet
+         sudo bash install.sh"
+fi
 DB_NAME="${DB_NAME:-sistema}"
 DB_USER="${DB_USER:-megahnet}"
 ADMIN_EMAIL="${ADMIN_EMAIL:-admin@admin.com}"
