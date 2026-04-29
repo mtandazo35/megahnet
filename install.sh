@@ -213,6 +213,16 @@ elif [[ "$USER_COUNT" -gt "0" ]]; then
     log "Tabla usuarios ya tiene ${USER_COUNT} registros, no se inserta admin"
 fi
 
+# Sembrar configuracion con datos demo solo si la tabla esta vacia (install fresco).
+# El usuario edita desde Sistema > Configuracion despues.
+CFG_COUNT=$(mysql -N -B "${DB_NAME}" -e "SELECT COUNT(*) FROM configuracion" 2>/dev/null || echo "0")
+if [[ "$CFG_COUNT" == "0" ]] && [[ -f "$PROJECT_DIR/db/seed-demo.sql" ]]; then
+    log "Sembrando configuracion DEMO (edita desde Sistema > Configuracion)"
+    mysql "${DB_NAME}" < "$PROJECT_DIR/db/seed-demo.sql"
+elif [[ "$CFG_COUNT" -gt "0" ]]; then
+    log "Tabla configuracion ya tiene ${CFG_COUNT} registros, no se siembra demo"
+fi
+
 # ---------------------------------------------------------------------------
 # 4. Composer
 # ---------------------------------------------------------------------------
