@@ -196,10 +196,13 @@ function suspenderContratos(url, tbl) {
                         timer: 2000
                     })
                     if (res.type == 'success') {
-                        const whatsapp = res.whatsapp;
-                        window.open(whatsapp, '_blank');
+                        // Si el backend dice que no envio por API, ofrecer fallback wa.me manual.
+                        // Si si envio (whatsapp_sent=true) o no hay URL, no abrir nada.
+                        if (res.whatsapp && !res.whatsapp_sent) {
+                            window.open(res.whatsapp, '_blank');
+                        }
                         tbl.ajax.reload();
-						location.reload();
+                        location.reload();
                     }
                 }
             }

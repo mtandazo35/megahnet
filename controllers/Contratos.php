@@ -628,17 +628,38 @@ class Contratos extends Controller
 
             //  print_r($getIp);          exit;
 
-            if ($getIp['telefono'] == '') {
-
+            $waOk = false; $waMsg = null;
+            if (empty($getIp['telefono'])) {
                 $resWathsapp = null;
+                $waMsg = 'Cliente sin telefono registrado';
             } else {
-                // $resWathsapp = "https://wa.me/593{$getInfoClientes['telefono']}?text=Buen Dia estimado cliente *MEGAHNET*! Su abono es de: ' . '$' . $total . ', *Su saldo a favor es de: ' . '$' . $anticipo . '*    Su deuda Total es de:' . '$' . $restante . ', INCLUIDO SERVICIO DE *' . $mesActualLetra . '*";
-                //$resWathsapp = 'https://web.whatsapp.com/send?text=Buen Dia estimado cliente *MEGAHNET*! Su deuda Total es de:' . '$' . $restante . ', INCLUIDO SERVICIO DE *' . $mesActualLetra . '*    &phone=+593' . $getInfoClientes['telefono'] . '&abid=+593' . $getInfoClientes['telefono'] . '';.$restante.'
-                $resWathsapp = 'https://web.whatsapp.com/send?phone=593' . $getIp['telefono'] . '&text=Buen%20d%C3%ADa%20estimado%2Fa%20cliente%0A%20%20%20%20%20%20%20%20%20%20*MEGAHNET*%0A%20%20%20*SUSPENDIDO%20POR%20PAGO*%0A%0A%20%20su%20saldo%20a%20la%20fecha%20es%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20%24*' . $restante . '* . %0A*' . $getIp['nombre'] . '*';
+                // Renderizar plantilla whatsapp_suspension y enviar via API (no mas wa.me/web.whatsapp).
+                $tpl = function_exists('renderPlantilla') ? renderPlantilla('whatsapp_suspension', [
+                    'cliente_nombre' => $getIp['nombre'],
+                    'cliente_saldo'  => number_format(max(0, $restante), 2),
+                ]) : null;
+                $mensajeWA = is_array($tpl) && !empty($tpl['cuerpo'])
+                    ? $tpl['cuerpo']
+                    : ('SUSPENDIDO POR PAGO' . PHP_EOL . '*' . $getIp['nombre'] . '*' . PHP_EOL . 'Saldo: $' . $restante);
+
+                if (function_exists('enviarWhatsappTexto')) {
+                    $apiRes = enviarWhatsappTexto($getIp['telefono'], $mensajeWA);
+                    $waOk   = !empty($apiRes['ok']);
+                    $waMsg  = $apiRes['msg'] ?? null;
+                }
+                // Solo dejar URL fallback si la API fallo, para que el frontend pueda ofrecer apertura manual.
+                $resWathsapp = $waOk ? null : ('https://web.whatsapp.com/send?phone=593' . $getIp['telefono']
+                    . '&text=' . rawurlencode($mensajeWA));
             }
 
             if ($data > 0) {
-                $res = ['msg' => 'CONTRATO SUSPENDIDO EXITOSAMENTE', 'type' => 'success', 'whatsapp' => $resWathsapp];
+                $res = [
+                    'msg'           => 'CONTRATO SUSPENDIDO EXITOSAMENTE',
+                    'type'          => 'success',
+                    'whatsapp'      => $resWathsapp,
+                    'whatsapp_sent' => $waOk,
+                    'whatsapp_msg'  => $waMsg,
+                ];
             } else {
                 $res = ['msg' => 'ERROR AL SUSPENDER', 'type' => 'error'];
             }
@@ -939,17 +960,36 @@ class Contratos extends Controller
 
             habilitarIp($getIp, $getMikrotik);
 
-            if ($getIp['telefono'] == '') {
-
+            $waOk = false; $waMsg = null;
+            if (empty($getIp['telefono'])) {
                 $resWathsapp = null;
+                $waMsg = 'Cliente sin telefono registrado';
             } else {
-                // $resWathsapp = "https://wa.me/593{$getInfoClientes['telefono']}?text=Buen Dia estimado cliente *MEGAHNET*! Su abono es de: ' . '$' . $total . ', *Su saldo a favor es de: ' . '$' . $anticipo . '*    Su deuda Total es de:' . '$' . $restante . ', INCLUIDO SERVICIO DE *' . $mesActualLetra . '*";
-                //$resWathsapp = 'https://web.whatsapp.com/send?text=Buen Dia estimado cliente *MEGAHNET*! Su deuda Total es de:' . '$' . $restante . ', INCLUIDO SERVICIO DE *' . $mesActualLetra . '*    &phone=+593' . $getInfoClientes['telefono'] . '&abid=+593' . $getInfoClientes['telefono'] . '';.$restante.'
-                $resWathsapp = 'https://web.whatsapp.com/send?phone=593' . $getIp['telefono'] . '&text=Buen%20d%C3%ADa%20estimado%2Fa%20cliente%0A%20%20%20%20%20%20%20%20%20%20*MEGAHNET*%0A%20%20%20*SERVICIO%20ACTIVADO*%0A%0A%20%20%0A*' . $getIp['nombre'] . '*';
+                // Renderizar plantilla whatsapp_activacion y enviar via API.
+                $tpl = function_exists('renderPlantilla') ? renderPlantilla('whatsapp_activacion', [
+                    'cliente_nombre' => $getIp['nombre'],
+                ]) : null;
+                $mensajeWA = is_array($tpl) && !empty($tpl['cuerpo'])
+                    ? $tpl['cuerpo']
+                    : ('SERVICIO ACTIVADO' . PHP_EOL . '*' . $getIp['nombre'] . '*');
+
+                if (function_exists('enviarWhatsappTexto')) {
+                    $apiRes = enviarWhatsappTexto($getIp['telefono'], $mensajeWA);
+                    $waOk   = !empty($apiRes['ok']);
+                    $waMsg  = $apiRes['msg'] ?? null;
+                }
+                $resWathsapp = $waOk ? null : ('https://web.whatsapp.com/send?phone=593' . $getIp['telefono']
+                    . '&text=' . rawurlencode($mensajeWA));
             }
 
             if ($data > 0) {
-                $res = ['msg' => 'CONTRATO RESTAURADO EXITOSAMENTE', 'type' => 'success', 'whatsapp' => $resWathsapp];
+                $res = [
+                    'msg'           => 'CONTRATO RESTAURADO EXITOSAMENTE',
+                    'type'          => 'success',
+                    'whatsapp'      => $resWathsapp,
+                    'whatsapp_sent' => $waOk,
+                    'whatsapp_msg'  => $waMsg,
+                ];
             } else {
                 $res = ['msg' => 'ERROR AL RESTAURAR', 'type' => 'error'];
             }

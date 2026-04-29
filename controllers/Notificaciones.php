@@ -657,6 +657,11 @@ class Notificaciones extends Controller
                 'asunto'      => 'SUSPENDIDO POR PAGO',
                 'cuerpo'      => "Buen dia estimado/a cliente\n          *{{empresa_nombre}}*\n   *SUSPENDIDO POR PAGO*\n\n  su saldo a la fecha es:\n            \$*{{cliente_saldo}}*\n*{{cliente_nombre}}*",
             ],
+            'whatsapp_activacion' => [
+                'descripcion' => 'WhatsApp - Aviso de reactivacion del servicio',
+                'asunto'      => 'SERVICIO ACTIVADO',
+                'cuerpo'      => "Buen dia estimado/a cliente\n          *{{empresa_nombre}}*\n   *SERVICIO ACTIVADO*\n\nGracias por su pago. Su servicio ha sido reactivado.\n*{{cliente_nombre}}*",
+            ],
             'whatsapp_pago_recibido' => [
                 'descripcion' => 'WhatsApp - Confirmacion de pago recibido',
                 'asunto'      => 'GRACIAS POR SU PAGO',
