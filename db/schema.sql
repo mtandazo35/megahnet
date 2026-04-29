@@ -474,6 +474,9 @@ CREATE TABLE `mikrotik` (
   `clave` text NOT NULL,
   `puerto` varchar(10) NOT NULL,
   `estado` int(11) NOT NULL DEFAULT 1,
+  `estado_conexion` varchar(20) DEFAULT 'unknown',
+  `ultima_verificacion` datetime DEFAULT NULL,
+  `ultimo_error` text DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
