@@ -796,25 +796,52 @@ class Contratos extends Controller
             $data['resWhatsapp'] = null;
             $data['ok']          = false;
             $data['msg']         = 'El cliente no tiene telefono registrado';
-        } else {
-            // Renderizar plantilla configurable (storage/plantillas.json -> whatsapp_recordatorio).
-            // renderPlantilla auto-inyecta empresa_*, empresa_cuentas, empresa_titular_cuenta.
-            $tpl = function_exists('renderPlantilla') ? renderPlantilla('whatsapp_recordatorio', [
-                'cliente_nombre' => $data['nombre'],
-                'cliente_saldo'  => $data['deudaTotal'],
-            ]) : null;
-            $mensaje = is_array($tpl) && !empty($tpl['cuerpo'])
-                ? $tpl['cuerpo']
-                : ('RECORDATORIO DE PAGO\n*' . $data['nombre'] . "*\nSaldo pendiente: $" . $data['deudaTotal']);
-
-            $resApi = enviarWhatsappTexto($data['telefono'], $mensaje);
-            $data['ok']   = !empty($resApi['ok']);
-            $data['msg']  = $resApi['msg'] ?? null;
-            $data['http'] = $resApi['http'] ?? 0;
-            // Mantener URL como fallback por si el JS quiere ofrecer abrir WhatsApp Web manualmente
-            $data['resWhatsapp'] = 'https://web.whatsapp.com/send?phone=' . ($resApi['tel'] ?? ('593' . $data['telefono']))
-                . '&text=' . rawurlencode($mensaje);
+            echo json_encode($data, JSON_UNESCAPED_UNICODE);
+            die();
         }
+
+        // Renderizar plantilla configurable (storage/plantillas.json -> whatsapp_recordatorio).
+        $tpl = function_exists('renderPlantilla') ? renderPlantilla('whatsapp_recordatorio', [
+            'cliente_nombre' => $data['nombre'],
+            'cliente_saldo'  => $data['deudaTotal'],
+        ]) : null;
+        $mensajeRendered = is_array($tpl) && !empty($tpl['cuerpo'])
+            ? $tpl['cuerpo']
+            : ('RECORDATORIO DE PAGO' . PHP_EOL . '*' . $data['nombre'] . '*' . PHP_EOL . 'Saldo pendiente: $' . $data['deudaTotal']);
+
+        // Telefono normalizado al formato 593XXXXXXXXX que se mandara al API.
+        $telN = preg_replace('/[^0-9]/', '', (string)$data['telefono']);
+        if (strlen($telN) === 10 && $telN[0] === '0') $telN = '593' . substr($telN, 1);
+        elseif (strlen($telN) === 9) $telN = '593' . $telN;
+
+        // ?preview=1 -> devolver el mensaje sin enviar para que el JS muestre Swal editable.
+        if (!empty($_GET['preview']) || !empty($_POST['preview'])) {
+            echo json_encode([
+                'ok'            => true,
+                'preview'       => true,
+                'plantilla_key' => 'whatsapp_recordatorio',
+                'tipo'          => 'pendiente',
+                'telefono'      => $telN,
+                'mensaje'       => $mensajeRendered,
+                'deudaTotal'    => $data['deudaTotal'],
+                'nombre'        => $data['nombre'],
+            ], JSON_UNESCAPED_UNICODE);
+            die();
+        }
+
+        // Si el frontend manda mensaje custom (editado en preview), usarlo; sino el renderizado.
+        $bodyIn        = json_decode(file_get_contents('php://input'), true) ?: [];
+        $mensajeCustom = isset($bodyIn['mensaje']) ? trim((string)$bodyIn['mensaje']) : '';
+        $mensajeFinal  = $mensajeCustom !== '' ? $mensajeCustom : $mensajeRendered;
+
+        $resApi = enviarWhatsappTexto($data['telefono'], $mensajeFinal);
+        $data['ok']      = !empty($resApi['ok']);
+        $data['msg']     = $resApi['msg'] ?? null;
+        $data['http']    = $resApi['http'] ?? 0;
+        $data['telefono'] = $telN;
+        // Fallback URL solo si la API fallo (frontend ofrece apertura manual).
+        $data['resWhatsapp'] = $data['ok'] ? null : ('https://web.whatsapp.com/send?phone=' . $telN
+            . '&text=' . rawurlencode($mensajeFinal));
 
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         die();

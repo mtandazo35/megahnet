@@ -729,41 +729,70 @@ function Editar(idContrato) {
 
 
 function enviarMsm(idContrato) {
-  // Envio directo via WA API (la pagina ya no abre wa.me).
-  // El backend (Contratos::enviarMsm) llama enviarWhatsappTexto() y devuelve {ok,msg,resWhatsapp}.
+  // Flujo: 1) preview del mensaje (sin enviar) -> 2) editar en Swal -> 3) confirmar y enviar.
+  // El backend (Contratos::enviarMsm) acepta ?preview=1 para devolver el render sin disparar la API.
   Swal.fire({
-    title: 'Enviando recordatorio...',
+    title: 'Cargando vista previa...',
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading()
   });
-  fetch(base_url + 'contratos/enviarMsm/' + idContrato, { credentials: 'same-origin' })
+  fetch(base_url + 'contratos/enviarMsm/' + idContrato + '?preview=1', { credentials: 'same-origin' })
     .then(r => r.json())
-    .then(res => {
-      if (res.ok) {
-        Swal.fire({
-          icon: 'success',
-          title: 'Mensaje enviado',
-          text: 'Recordatorio enviado por WhatsApp',
-          timer: 2200, showConfirmButton: false
-        });
+    .then(d => {
+      if (!d.ok) {
+        Swal.fire({ icon: 'info', title: 'No se puede preparar', text: d.msg || 'Sin telefono registrado' });
         return;
       }
-      // Fallo: ofrecer fallback de abrir WhatsApp Web si tenemos URL
-      if (res.resWhatsapp) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'No se envio por la API',
-          text: (res.msg || 'Fallo el envio') + '. Abrir WhatsApp Web para enviar manualmente?',
-          showCancelButton: true,
-          confirmButtonText: 'Abrir WhatsApp Web',
-          cancelButtonText: 'Cerrar'
-        }).then(r => { if (r.isConfirmed) window.open(res.resWhatsapp, '_blank'); });
-      } else {
-        Swal.fire({ icon: 'error', title: 'No se pudo enviar', text: res.msg || 'Sin telefono o WhatsApp no configurado' });
-      }
+      var msgEsc = String(d.mensaje || '').replace(/[&<>"']/g, function(c){
+        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+      });
+      Swal.fire({
+        title: 'Recordatorio de pago',
+        html: '<div style="text-align:left;font-size:.85rem;color:#374151;margin-bottom:.5rem;">' +
+              '<i class="bx bxl-whatsapp" style="color:#16a34a;font-size:18px;vertical-align:-3px;"></i> Se enviara a <b>+' + d.telefono + '</b>' +
+              ' <small class="text-muted ms-2">(editable)</small></div>' +
+              '<textarea id="swalEdMsgContrato" style="width:100%;background:#dcfce7;color:#0f172a;padding:.75rem .9rem;border-radius:10px;font-family:ui-monospace,Menlo,monospace;font-size:.8rem;line-height:1.45;height:240px;border:1px solid #bbf7d0;resize:vertical;">' + msgEsc + '</textarea>' +
+              '<small class="text-muted d-block mt-1" style="font-size:.7rem;">Edita el texto si necesitas. Asteriscos para *negrita*, guion bajo para _cursiva_. <a href="' + base_url + 'notificaciones?plantilla=' + encodeURIComponent(d.plantilla_key || 'whatsapp_recordatorio') + '#nav-plantillas" target="_blank">Editar plantilla</a></small>',
+        showCancelButton: true,
+        confirmButtonText: '<i class="bx bx-paper-plane me-1"></i>Enviar',
+        cancelButtonText: 'Cancelar',
+        width: 580,
+        didOpen: function(){ var ta = document.getElementById('swalEdMsgContrato'); if (ta) ta.focus(); }
+      }).then(function(r){
+        if (!r.isConfirmed) return;
+        var ta = document.getElementById('swalEdMsgContrato');
+        var mensajeEdit = ta ? ta.value : (d.mensaje || '');
+        fetch(base_url + 'contratos/enviarMsm/' + idContrato, {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mensaje: mensajeEdit })
+        })
+          .then(r2 => r2.json())
+          .then(res => {
+            if (res.ok) {
+              Swal.fire({ icon: 'success', title: 'Mensaje enviado', text: 'WhatsApp a +' + (res.telefono || d.telefono), timer: 2200, showConfirmButton: false });
+              return;
+            }
+            if (res.resWhatsapp) {
+              Swal.fire({
+                icon: 'warning',
+                title: 'No se envio por la API',
+                text: (res.msg || 'Fallo el envio') + '. Abrir WhatsApp Web para enviar manualmente?',
+                showCancelButton: true,
+                confirmButtonText: 'Abrir WhatsApp Web',
+                cancelButtonText: 'Cerrar'
+              }).then(r => { if (r.isConfirmed) window.open(res.resWhatsapp, '_blank'); });
+            } else {
+              Swal.fire({ icon: 'error', title: 'No se pudo enviar', text: res.msg || 'WhatsApp no configurado' });
+            }
+          })
+          .catch(e => {
+            Swal.fire({ icon: 'error', title: 'Error de red', text: e.message || 'No se pudo contactar al servidor' });
+          });
+      });
     })
     .catch(e => {
-      Swal.fire({ icon: 'error', title: 'Error de red', text: e.message || 'No se pudo contactar al servidor' });
+      Swal.fire({ icon: 'error', title: 'Error preview', text: e.message || 'No se pudo contactar al servidor' });
     });
 }
 
