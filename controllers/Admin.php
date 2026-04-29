@@ -189,21 +189,10 @@ class Admin extends Controller
                 $res = array('msg' => 'EL IMPUESTO ES REQUERIDO', 'type' => 'warning');
             } else if (empty($totalitems)) {
                 $res = array('msg' => 'EL TOTAL DE ITEMS ES REQUERIDO', 'type' => 'warning');
-            } else if (empty($establecimiento)) {
-                $res = array('msg' => 'EL ESTABLECIMIENTO ES REQUERIDO', 'type' => 'warning');
-            } else if (empty($emision)) {
-                $res = array('msg' => 'EL PUNTO DE EMISION ES REQUERIDO', 'type' => 'warning');
-            } else if (empty($contabilidad)) {
-                $res = array('msg' => 'LA FECHA FIRMA INICIO ES REQUERIDO', 'type' => 'warning');
-            }   else if (empty($firmainicio)) {
-                $res = array('msg' => 'LA FECHA FIRMA FINAL ES REQUERIDO', 'type' => 'warning');
-            }  else if (empty($firmafinal)) {
-                $res = array('msg' => 'LA CONTABILIDAD ES REQUERIDO', 'type' => 'warning');
-            }else if (empty($cantidaddocumento)) {
-                $res = array('msg' => 'LA CANTIDAD DOCUMENTO ES REQUERIDO', 'type' => 'warning');
             }
-            
-            
+            // establecimiento/emision/contabilidad/cantidaddocumento ya no se editan aqui
+            // (se manejan en /sucursales). firmainicio/firmafinal son opcionales y se validan
+            // automaticamente al subir el .p12.
             else {
                 $data = $this->model->actualizar(
                     $ruc,
