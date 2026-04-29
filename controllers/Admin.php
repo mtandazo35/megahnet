@@ -670,9 +670,44 @@ class Admin extends Controller
 
         $bin = @file_get_contents($pathToValidate);
         $certs = null;
-        if ($bin === false || !@openssl_pkcs12_read($bin, $certs, $pass)) {
-            $res['msg'] = 'FIRMA NO SE PUDO LEER: contrasena incorrecta o archivo danado.';
-            echo json_encode($res); die();
+        $opensslOk = ($bin !== false) && @openssl_pkcs12_read($bin, $certs, $pass);
+
+        // Fallback: si openssl_pkcs12_read fallo, intentar con CLI -legacy
+        // (firmas SRI Ecuador suelen usar RC2-40 que el provider default 3.x rechaza
+        //  y a veces PHP no respeta el legacy provider del openssl.cnf).
+        if (!$opensslOk) {
+            $tmpPem = tempnam(sys_get_temp_dir(), 'p12_');
+            $cmd = sprintf(
+                'openssl pkcs12 -legacy -in %s -passin env:P12PASS -nokeys -out %s 2>&1',
+                escapeshellarg($pathToValidate),
+                escapeshellarg($tmpPem)
+            );
+            $env = ['P12PASS' => $pass];
+            $descriptors = [1 => ['pipe','w'], 2 => ['pipe','w']];
+            $proc = @proc_open($cmd, $descriptors, $pipes, null, $env);
+            $cliOk = false; $cliErr = '';
+            if (is_resource($proc)) {
+                $cliErr = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
+                fclose($pipes[1]); fclose($pipes[2]);
+                $rc = proc_close($proc);
+                $cliOk = ($rc === 0) && is_file($tmpPem) && filesize($tmpPem) > 0;
+            }
+            if ($cliOk) {
+                $pem = file_get_contents($tmpPem);
+                @unlink($tmpPem);
+                // Reconstruir array $certs como espera el resto del flujo
+                if (preg_match('/-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----/s', $pem, $m)) {
+                    $certs = ['cert' => $m[0]];
+                    $opensslOk = true;
+                }
+            } else {
+                @unlink($tmpPem);
+            }
+            if (!$opensslOk) {
+                $res['msg'] = 'FIRMA NO SE PUDO LEER: contrasena incorrecta o archivo danado.';
+                $res['debug'] = trim(substr($cliErr, 0, 200));
+                echo json_encode($res); die();
+            }
         }
 
         $parsed = @openssl_x509_parse($certs['cert']);

@@ -141,6 +141,29 @@ EOF
     cp "/etc/php/$PHP_VER/apache2/conf.d/99-megahnet-uploads.ini" "/etc/php/$PHP_VER/cli/conf.d/99-megahnet-uploads.ini" 2>/dev/null || true
 fi
 
+# OpenSSL: habilitar legacy provider (firmas SRI Ecuador usan algoritmos
+# RC2-40/RC4 que el provider default 3.x no soporta).
+# IMPORTANTE: al agregar legacy hay que ACTIVAR explicitamente el default,
+# si no se rompe sshd con "PRNG is not seeded".
+OPENSSL_CNF="/etc/ssl/openssl.cnf"
+if [[ -f "$OPENSSL_CNF" ]] && ! grep -q '^legacy = legacy_sect' "$OPENSSL_CNF"; then
+    log "Habilitando OpenSSL legacy provider para firmas .p12 SRI"
+    cp "$OPENSSL_CNF" "${OPENSSL_CNF}.bak.$(date +%s)"
+    python3 - <<PYEOF
+import pathlib
+p = pathlib.Path("$OPENSSL_CNF")
+s = p.read_text()
+old = "[provider_sect]\ndefault = default_sect"
+new = "[provider_sect]\ndefault = default_sect\nlegacy = legacy_sect\n\n[legacy_sect]\nactivate = 1"
+if old in s and "legacy = legacy_sect" not in s:
+    s = s.replace(old, new, 1)
+# Activar default_sect (estaba comentado por default en Debian)
+s = s.replace("[default_sect]\n# activate = 1", "[default_sect]\nactivate = 1", 1)
+p.write_text(s)
+PYEOF
+fi
+
+
 # ---------------------------------------------------------------------------
 # 2. .env (genera DB password + crypt key si no existe)
 # ---------------------------------------------------------------------------
