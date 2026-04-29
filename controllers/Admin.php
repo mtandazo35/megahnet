@@ -121,6 +121,9 @@ class Admin extends Controller
                 if ($firmafinal === null)        $firmafinal        = $__cur['firmafinal']        ?? '';
                 if ($cantidaddocumento === null) $cantidaddocumento = $__cur['cantidaddocumento'] ?? '';
             }
+            // Normalizar fechas vacias a NULL (MariaDB rechaza '' en columnas DATE).
+            if ($firmainicio === '') $firmainicio = null;
+            if ($firmafinal  === '') $firmafinal  = null;
             $chelectronica = (strClean(isset($_POST['chelectronica']))) ?  $_POST['chelectronica'] : 0;
             //$logo = $_FILES['foto'];
             $id = strClean($_POST['id']);
