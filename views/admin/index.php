@@ -89,7 +89,7 @@
         <a href="<?php echo BASE_URL; ?>sucursales" class="btn btn-outline-primary">
             <i class="bx bx-store-alt me-1"></i>Sucursales
         </a>
-        <button type="submit" class="btn btn-primary" form="formulario" id="btnGuardarTop">
+        <button type="submit" class="btn btn-primary" form="formulario" id="btnAccion">
             <i class="bx bx-save me-1"></i>Guardar cambios
         </button>
     </div>
@@ -318,14 +318,6 @@
         </div>
     </div>
 
-    <!-- ============================================================== -->
-    <!-- ===== FOOTER: Guardar ========================================= -->
-    <!-- ============================================================== -->
-    <div class="d-flex justify-content-end mb-4">
-        <button class="btn btn-primary px-4" type="submit" id="btnAccion">
-            <i class="bx bx-save me-1"></i>Actualizar
-        </button>
-    </div>
 </form>
 
 <?php include_once 'views/templates/footer.php'; ?>
