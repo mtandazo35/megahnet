@@ -215,6 +215,11 @@ document.addEventListener('DOMContentLoaded', function () {
       if (passInput && passInput.value) {
         fd.append('firma_password', passInput.value)
       }
+      // Si seleccionaste un .p12 nuevo, lo mandamos para validarlo sin guardar.
+      const fileInput = document.querySelector('#firma_p12')
+      if (fileInput && fileInput.files && fileInput.files[0]) {
+        fd.append('firma_p12', fileInput.files[0])
+      }
       btnVerificarFirma.disabled = true
       btnVerificarFirma.innerHTML = '<i class="bx bx-loader bx-spin"></i> Verificando...'
       fetch(base_url + 'admin/verificarFirma', { method: 'POST', body: fd, credentials: 'same-origin' })

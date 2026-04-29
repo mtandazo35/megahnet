@@ -634,8 +634,16 @@ class Admin extends Controller
         $tokenPath = FCPATH . 'public/archivos/token/FIRMA.p12';
         $res = ['ok' => false];
 
-        if (!file_exists($tokenPath) || filesize($tokenPath) <= 0) {
-            $res['msg'] = 'NO HAY FIRMA CARGADA';
+        // Si vino un .p12 nuevo en el request lo usamos para validar (sin guardarlo).
+        // Asi el usuario puede verificar antes de hacer Guardar cambios.
+        $tempUploaded = null;
+        if (!empty($_FILES['firma_p12']['tmp_name']) && is_uploaded_file($_FILES['firma_p12']['tmp_name'])) {
+            $tempUploaded = $_FILES['firma_p12']['tmp_name'];
+        }
+        $pathToValidate = $tempUploaded ?: $tokenPath;
+
+        if (!file_exists($pathToValidate) || filesize($pathToValidate) <= 0) {
+            $res['msg'] = 'NO HAY FIRMA CARGADA. Selecciona el archivo .p12 y volve a verificar.';
             echo json_encode($res); die();
         }
 
@@ -660,7 +668,7 @@ class Admin extends Controller
             echo json_encode($res); die();
         }
 
-        $bin = @file_get_contents($tokenPath);
+        $bin = @file_get_contents($pathToValidate);
         $certs = null;
         if ($bin === false || !@openssl_pkcs12_read($bin, $certs, $pass)) {
             $res['msg'] = 'FIRMA NO SE PUDO LEER: contrasena incorrecta o archivo danado.';
@@ -697,7 +705,7 @@ class Admin extends Controller
             'validFrom'       => $validFromTs ? date('d/m/Y', $validFromTs) : '',
             'validTo'         => date('d/m/Y', $validToTs),
             'diasRestantes'   => $diasRestantes,
-            'archivoBytes'    => filesize($tokenPath),
+            'archivoBytes'    => filesize($pathToValidate),
             'claveDesdeBD'    => $clavePersistida,
         ];
         echo json_encode($res, JSON_UNESCAPED_UNICODE);
