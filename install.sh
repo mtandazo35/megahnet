@@ -245,6 +245,19 @@ elif [[ "$CFG_COUNT" -gt "0" ]]; then
     log "Tabla configuracion ya tiene ${CFG_COUNT} registros, no se siembra demo"
 fi
 
+# Copiar logo generico si no hay uno custom subido por el cliente.
+# Ambos archivos (Logo.jpg + LogoFactura.jpg) estan gitignored para que cada instalacion
+# tenga su propio logo. logo-default.jpg si esta versionado y sirve de placeholder.
+LOGO_DEFAULT="$PROJECT_DIR/assets/images/logo-default.jpg"
+if [[ -f "$LOGO_DEFAULT" ]]; then
+    for L in Logo.jpg LogoFactura.jpg; do
+        if [[ ! -f "$PROJECT_DIR/assets/images/$L" ]]; then
+            cp "$LOGO_DEFAULT" "$PROJECT_DIR/assets/images/$L"
+            log "Logo placeholder copiado a assets/images/$L"
+        fi
+    done
+fi
+
 # ---------------------------------------------------------------------------
 # 4. Composer
 # ---------------------------------------------------------------------------
