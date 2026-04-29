@@ -13,7 +13,7 @@ INSERT INTO configuracion (
 ) VALUES (
     1, '0000000000001', 'EMPRESA DEMO', 'EMPRESA DEMO S.A.', '0000000000', 'demo@empresa.com', 'Direccion de la empresa',
     15, 'Gracias por su preferencia',
-    0, '001', '001', 'NO',
+    50, '001', '001', 'NO',
     0, 'Logo.jpg',
     NULL, NULL, NULL,
     50

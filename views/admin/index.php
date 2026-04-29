@@ -101,7 +101,6 @@
     <!-- ===== Hidden fields: datos legacy de facturación que ahora se manejan en Sucursales.
                 Se mantienen aquí para no romper /admin/modificar mientras se migra a la
                 nueva tabla sucursales. ===== -->
-    <input type="hidden" name="totalitems"        value="<?php echo htmlspecialchars($data['empresa']['totalitems']        ?? '', ENT_QUOTES); ?>">
     <input type="hidden" name="establecimiento"   value="<?php echo htmlspecialchars($data['empresa']['establecimiento']   ?? '', ENT_QUOTES); ?>">
     <input type="hidden" name="emision"           value="<?php echo htmlspecialchars($data['empresa']['puntoemi']          ?? '', ENT_QUOTES); ?>">
     <input type="hidden" name="contabilidad"      value="<?php echo htmlspecialchars($data['empresa']['contabilidad']      ?? '', ENT_QUOTES); ?>">
@@ -158,7 +157,7 @@
                         </div>
                         <span id="errorCorreo" class="text-danger small"></span>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-2">
                         <label class="form-label">Impuesto IVA % <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-percent"></i></span>
@@ -166,6 +165,15 @@
                         </div>
                         <small class="text-muted">Vigente desde abril/2024: 15%.</small>
                         <span id="errorImpuesto" class="text-danger small d-block"></span>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Total Items <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-list-ol"></i></span>
+                            <input type="number" id="totalitems" name="totalitems" class="form-control" min="1" value="<?php echo htmlspecialchars($data['empresa']['totalitems'] ?? '', ENT_QUOTES); ?>" placeholder="50">
+                        </div>
+                        <small class="text-muted">Maximo de items por factura.</small>
+                        <span id="errorTotalitems" class="text-danger small d-block"></span>
                     </div>
 
                     <div class="col-md-12">
