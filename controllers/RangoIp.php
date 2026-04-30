@@ -123,7 +123,9 @@ class RangoIp extends Controller
                         ? $this->model->contarClientesEnRango($original['red'], $original['final'])
                         : 0;
 
-                    if ($hasClientes > 0 && ($original['red'] !== $red || $original['final'] !== $final)) {
+                    // === TEMP DESBLOQUEO: solicitado para corregir asignacion de Mikrotik en rangos legacy.
+                    //     Quitar el "false &&" cuando se termine para restaurar el bloqueo. ===
+                    if (false && $hasClientes > 0 && ($original['red'] !== $red || $original['final'] !== $final)) {
                         $res = array('msg' => 'EL RANGO TIENE CLIENTES ACTIVOS. SOLO PUEDES CAMBIAR EL GATEWAY.', 'type' => 'warning');
                     } else if ($this->model->contarContratosConIp($gateway) > 0) {
                         $res = array('msg' => 'EL GATEWAY YA ESTA EN USO POR UN CLIENTE. Liberalo primero.', 'type' => 'warning');
