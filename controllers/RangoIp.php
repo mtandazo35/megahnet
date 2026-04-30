@@ -57,11 +57,14 @@ class RangoIp extends Controller
                 ? '<span class="badge bg-light text-dark border">' . htmlspecialchars($data[$i]['mikrotik_nombre']) . '</span>'
                 : '<span class="text-muted small">—</span>';
 
-            $data[$i]['acciones'] = '
-            <div> <button class="btn btn-info" type="button" onclick="editarRangoIp(' . $data[$i]['id'] . ')"><i class="fas fa-edit text-white"></i></button>
-            </div>
-            ';
-            /* <button class="btn btn-danger" type="button" onclick="eliminarIp(' . $data[$i]['id'] . ')"><i class="fas fa-trash"></i></button> */
+            $totalClientesRow = $this->model->contarClientesEnRango($data[$i]['red'], $data[$i]['final']);
+            $btnEliminar = $totalClientesRow > 0
+                ? '<button class="btn btn-danger" type="button" disabled title="No se puede eliminar: ' . $totalClientesRow . ' cliente(s) asociado(s)"><i class="fas fa-trash"></i></button>'
+                : '<button class="btn btn-danger" type="button" onclick="eliminarRangoIp(' . $data[$i]['id'] . ')"><i class="fas fa-trash"></i></button>';
+            $data[$i]['acciones'] = '<div class="d-flex gap-1 justify-content-center">
+                <button class="btn btn-info" type="button" onclick="editarRangoIp(' . $data[$i]['id'] . ')"><i class="fas fa-edit text-white"></i></button>
+                ' . $btnEliminar . '
+            </div>';
 
             if ($data[$i]['estado'] == 1) {
                 $data[$i]['estado'] = '<div style="text-align: center;"><span class="badge bg-success">DISPONIBLE</span></div>';
@@ -151,6 +154,15 @@ class RangoIp extends Controller
     public function eliminar($idIp)
     {
         if (isset($_GET) && is_numeric($idIp)) {
+            $original = $this->model->editar($idIp);
+            if (!empty($original)) {
+                $totalClientes = $this->model->contarClientesEnRango($original['red'], $original['final']);
+                if ($totalClientes > 0) {
+                    $res = array('msg' => 'NO SE PUEDE ELIMINAR: ' . $totalClientes . ' CLIENTE(S) ASOCIADO(S) AL RANGO', 'type' => 'warning');
+                    echo json_encode($res, JSON_UNESCAPED_UNICODE);
+                    die();
+                }
+            }
             $data = $this->model->eliminar(0, $idIp);
             if ($data == 1) {
                 $res = array('msg' => 'IP ELIMINADO EXITOSAMENTE', 'type' => 'success');
