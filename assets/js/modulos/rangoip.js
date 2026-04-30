@@ -52,6 +52,7 @@ const zona = document.querySelector('#zona');
 const btnAccion = document.querySelector('#btnAccion');
 const btnNuevo = document.querySelector('#btnNuevo');
 let redCidrUserChanged = false;
+let zonaUserChanged = false;
 let originalClientes = 0;
 document.addEventListener('DOMContentLoaded', function(){
     //cargar datos con el plugin datatables
@@ -88,6 +89,9 @@ document.addEventListener('DOMContentLoaded', function(){
         order: [[0, 'asc']],
     });
 
+    // Detectar cambio en zona
+    zona.addEventListener('change', function(){ zonaUserChanged = true; });
+
     // Auto-calcular Final desde CIDR
     redCidr.addEventListener('input', function(){
         redCidrUserChanged = true;
@@ -119,6 +123,7 @@ document.addEventListener('DOMContentLoaded', function(){
         red.value = '';
         final.value = '';
         redCidrUserChanged = false;
+        zonaUserChanged = false;
         originalClientes = 0;
         redCidr.readOnly = false;
         gateway.disabled = false;
@@ -153,10 +158,10 @@ document.addEventListener('DOMContentLoaded', function(){
                 const url = base_url + 'rangoip/registrar';
                 insertarRegistros(url, form, tblIp, btnAccion, false);
             };
-            if (id.value && originalClientes > 0 && redCidrUserChanged) {
+            if (id.value && originalClientes > 0 && (redCidrUserChanged || zonaUserChanged)) {
                 Swal.fire({
-                    title: 'CAMBIO DE CIDR EN RANGO CON CLIENTES ACTIVOS',
-                    html: 'Este rango tiene <b>' + originalClientes + '</b> cliente(s) activo(s).<br>Cambiar el CIDR puede afectar la conectividad de esos clientes.<br><br><b>Continuar bajo tu responsabilidad?</b>',
+                    title: 'CAMBIO EN RANGO CON CLIENTES ACTIVOS',
+                    html: 'Este rango tiene <b>' + originalClientes + '</b> cliente(s) activo(s).<br>Cambiar CIDR o Zona puede afectar la conectividad de esos clientes.<br><br><b>Continuar bajo tu responsabilidad?</b>',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
@@ -204,10 +209,11 @@ function editarRangoIp(idip) {
 
             // Aviso si el rango tiene clientes activos (editable bajo responsabilidad del operador)
             redCidrUserChanged = false;
+            zonaUserChanged = false;
             originalClientes = res.total_clientes || 0;
             const hasClientes = originalClientes > 0;
             redCidr.readOnly = false;
-            zona.disabled = hasClientes;
+            zona.disabled = false;
             redCidr.classList.toggle('bg-light', false);
             const old = document.getElementById('avisoClientes');
             if (old) old.remove();
@@ -215,7 +221,7 @@ function editarRangoIp(idip) {
                 const div = document.createElement('div');
                 div.id = 'avisoClientes';
                 div.className = 'alert alert-warning mt-2 mb-0';
-                div.innerHTML = '<i class=\"bx bx-info-circle\"></i> Este rango tiene <strong>' + res.total_clientes + '</strong> cliente(s) activo(s). Editar el CIDR es posible <strong>bajo responsabilidad del operador</strong>: puede afectar a esos clientes.';
+                div.innerHTML = '<i class=\"bx bx-info-circle\"></i> Este rango tiene <strong>' + res.total_clientes + '</strong> cliente(s) activo(s). Editar el CIDR o la Zona es posible <strong>bajo responsabilidad del operador</strong>: puede afectar a esos clientes.';
                 formulario.appendChild(div);
             }
 
