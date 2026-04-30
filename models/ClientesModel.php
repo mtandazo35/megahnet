@@ -20,9 +20,9 @@ class ClientesModel extends Query{
     public function getValidar($campo, $valor, $accion, $id)
     {
         if ($accion == 'registrar' && $id == 0) {
-            $sql = "SELECT id FROM clientes WHERE $campo = '$valor'";
+            $sql = "SELECT id, nombre, num_identidad, estado FROM clientes WHERE $campo = '$valor'";
         }else{
-            $sql = "SELECT id FROM clientes WHERE $campo = '$valor' AND id != $id";
+            $sql = "SELECT id, nombre, num_identidad, estado FROM clientes WHERE $campo = '$valor' AND id != $id";
         }
         return $this->select($sql);
     }

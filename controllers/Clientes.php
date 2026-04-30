@@ -113,7 +113,9 @@ class Clientes extends Controller
                             $res = array('msg' => 'ERROR AL REGISTRAR', 'type' => 'error');
                         }
                     } else {
-                        $res = array('msg' => 'LA CEDÚLA / RÚC DEBE SER UNICO', 'type' => 'warning');
+                        $ex = $verificarIdentidad;
+                        $estadoTxt = (isset($ex['estado']) && $ex['estado'] == 1) ? 'ACTIVO' : 'INACTIVO';
+                        $res = array('msg' => 'YA EXISTE CLIENTE CON ESA CEDULA/RUC: ' . ($ex['nombre'] ?? '') . ' (id ' . ($ex['id'] ?? '?') . ', ' . $estadoTxt . ')', 'type' => 'warning');
                     }
                 } else {
                     $verificarIdentidad = $this->model->getValidar('num_identidad', $num_identidad, 'actualizar', $id);
@@ -143,7 +145,9 @@ class Clientes extends Controller
                             }
                         
                     } else {
-                        $res = array('msg' => 'LA IDENTIDAD DEBE SER UNICO', 'type' => 'warning');
+                        $ex = $verificarIdentidad;
+                        $estadoTxt = (isset($ex['estado']) && $ex['estado'] == 1) ? 'ACTIVO' : 'INACTIVO';
+                        $res = array('msg' => 'OTRA CUENTA YA TIENE ESA CEDULA/RUC: ' . ($ex['nombre'] ?? '') . ' (id ' . ($ex['id'] ?? '?') . ', ' . $estadoTxt . ')', 'type' => 'warning');
                     }
                 }
             }
