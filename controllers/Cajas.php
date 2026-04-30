@@ -221,11 +221,11 @@ class Cajas extends Controller
        // $consultaDescuento = $this->model->getVentas('descuento', $this->id_usuario);
         //$descuento = ($consultaDescuento['total'] != null) ? $consultaDescuento['total'] : 0;
    
-        $data['efectivo'] = number_format($TPEfectivoElectronica + $TPEfectivoOrden + $TPEfectivoAbonos, 2, '.', ',');
-        $data['depositos'] = number_format($TPDepositosElectronica + $TPDepositosOrden + $TPDepositosAbonos, 2, '.', ',');
-        $data['transferencia'] = number_format($TPTransferenciaElectronica + $TPTransferenciaOrden + $TPTransferenciaAbonos , 2, '.', ',');
-        $data['cheque'] = number_format($TPChequeElectronica + $TPChequeOrden + $TPChequeAbonos, 2, '.', ',');
-        $data['bancarisado'] =  number_format($data['depositos'] + $data['transferencia'] + $data['cheque'], 2, '.', ',');
+        $data['efectivo'] = number_format($TPEfectivoElectronica + $TPEfectivoOrden + $TPEfectivoAbonos, 2, '.', '');
+        $data['depositos'] = number_format($TPDepositosElectronica + $TPDepositosOrden + $TPDepositosAbonos, 2, '.', '');
+        $data['transferencia'] = number_format($TPTransferenciaElectronica + $TPTransferenciaOrden + $TPTransferenciaAbonos , 2, '.', '');
+        $data['cheque'] = number_format($TPChequeElectronica + $TPChequeOrden + $TPChequeAbonos, 2, '.', '');
+        $data['bancarisado'] =  number_format($data['depositos'] + $data['transferencia'] + $data['cheque'], 2, '.', '');
 
 
        // $data['saldo'] = number_format(($data['ingresos'] + $data['montoInicial']) - $data['egresos'], 2, '.', '');
