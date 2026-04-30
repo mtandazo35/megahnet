@@ -124,6 +124,8 @@ document.addEventListener('DOMContentLoaded', function(){
     //registrar categorias
     formulario.addEventListener('submit', function(e){
         e.preventDefault();
+        // Re-habilitar campos disabled para que sus valores se incluyan en FormData
+        formulario.querySelectorAll('select:disabled, input:disabled').forEach(function(f){ f.disabled = false; });
         errorRed.textContent = '';
         errorGateway.textContent = '';
         errorFinal.textContent = '';
