@@ -9,7 +9,7 @@ class RangoIpModel extends Query{
                 z.descripcion AS zona, m.nombre AS mikrotik_nombre, i.id_mikrotik, i.estado
                 FROM ip i
                 INNER JOIN zonas z ON z.id=i.id_zona
-                LEFT JOIN mikrotik m ON m.id = i.id_mikrotik";
+                LEFT JOIN mikrotik m ON m.id = i.id_mikrotik WHERE i.estado = 1";
         return $this->selectAll($sql);
     }
     public function getMikrotiks()
