@@ -176,9 +176,28 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 })
 
-function eliminarRangoIp(idip) {
-    const url = base_url + 'rangoip/eliminar/' + idip;
-    eliminarRegistros(url, tblIp);
+function eliminarRangoIp(idip, totalClientes) {
+    totalClientes = totalClientes || 0;
+    if (totalClientes > 0) {
+        Swal.fire({
+            title: 'RANGO CON CLIENTES ACTIVOS',
+            html: 'Este rango tiene <b>' + totalClientes + '</b> cliente(s) asociado(s).<br>Eliminarlo puede afectar la conectividad y facturacion.<br><br><b>Continuar bajo tu responsabilidad?</b>',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Si, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then(function(r){
+            if (r.isConfirmed) {
+                const url = base_url + 'rangoip/eliminar/' + idip + '?force=1';
+                eliminarRegistros(url, tblIp);
+            }
+        });
+    } else {
+        const url = base_url + 'rangoip/eliminar/' + idip;
+        eliminarRegistros(url, tblIp);
+    }
 }
 
 function editarRangoIp(idip) {

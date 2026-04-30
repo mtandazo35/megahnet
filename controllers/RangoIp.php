@@ -58,9 +58,8 @@ class RangoIp extends Controller
                 : '<span class="text-muted small">—</span>';
 
             $totalClientesRow = $this->model->contarClientesEnRango($data[$i]['red'], $data[$i]['final']);
-            $btnEliminar = $totalClientesRow > 0
-                ? '<button class="btn btn-danger" type="button" disabled title="No se puede eliminar: ' . $totalClientesRow . ' cliente(s) asociado(s)"><i class="fas fa-trash"></i></button>'
-                : '<button class="btn btn-danger" type="button" onclick="eliminarRangoIp(' . $data[$i]['id'] . ')"><i class="fas fa-trash"></i></button>';
+            $btnTitle = $totalClientesRow > 0 ? $totalClientesRow . ' cliente(s) asociado(s)' : 'Eliminar rango';
+            $btnEliminar = '<button class="btn btn-danger" type="button" onclick="eliminarRangoIp(' . $data[$i]['id'] . ', ' . $totalClientesRow . ')" title="' . $btnTitle . '"><i class="fas fa-trash"></i></button>';
             $data[$i]['acciones'] = '<div class="d-flex gap-1 justify-content-center">
                 <button class="btn btn-info" type="button" onclick="editarRangoIp(' . $data[$i]['id'] . ')"><i class="fas fa-edit text-white"></i></button>
                 ' . $btnEliminar . '
@@ -154,8 +153,9 @@ class RangoIp extends Controller
     public function eliminar($idIp)
     {
         if (isset($_GET) && is_numeric($idIp)) {
+            $force = isset($_GET['force']) && $_GET['force'] == '1';
             $original = $this->model->editar($idIp);
-            if (!empty($original)) {
+            if (!empty($original) && !$force) {
                 $totalClientes = $this->model->contarClientesEnRango($original['red'], $original['final']);
                 if ($totalClientes > 0) {
                     $res = array('msg' => 'NO SE PUEDE ELIMINAR: ' . $totalClientes . ' CLIENTE(S) ASOCIADO(S) AL RANGO', 'type' => 'warning');
