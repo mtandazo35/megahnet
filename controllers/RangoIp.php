@@ -130,7 +130,8 @@ class RangoIp extends Controller
                     } else {
                         $verificar = $this->model->getValidar('red', $red, 'actualizar', $id);
                         if (empty($verificar)) {
-                            $data = $this->model->actualizar($red, $final, $id, $zona, $gateway);
+                            $idMik = isset($_POST['id_mikrotik']) ? trim($_POST['id_mikrotik']) : null;
+                            $data = $this->model->actualizar($red, $final, $id, $zona, $gateway, $idMik);
                             $res = $data > 0
                                 ? array('msg' => 'IP ACTUALIZADA EXITOSAMENTE', 'type' => 'success')
                                 : array('msg' => 'ERROR AL ACTUALIZAR', 'type' => 'error');
