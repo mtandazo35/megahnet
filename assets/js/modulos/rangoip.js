@@ -51,6 +51,8 @@ const zona = document.querySelector('#zona');
 
 const btnAccion = document.querySelector('#btnAccion');
 const btnNuevo = document.querySelector('#btnNuevo');
+let redCidrUserChanged = false;
+let originalClientes = 0;
 document.addEventListener('DOMContentLoaded', function(){
     //cargar datos con el plugin datatables
     tblIp = $('#tblIp').DataTable({
@@ -88,6 +90,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     // Auto-calcular Final desde CIDR
     redCidr.addEventListener('input', function(){
+        redCidrUserChanged = true;
         const p = parseCidr(redCidr.value);
         if (p) {
             red.value = num2ip(p.network);
@@ -115,6 +118,8 @@ document.addEventListener('DOMContentLoaded', function(){
         rangoInfo.textContent = '';
         red.value = '';
         final.value = '';
+        redCidrUserChanged = false;
+        originalClientes = 0;
         redCidr.readOnly = false;
         gateway.disabled = false;
         zona.disabled = false;
@@ -143,8 +148,25 @@ document.addEventListener('DOMContentLoaded', function(){
             else if (g < r || g > f) { errorGateway.textContent = 'GATEWAY debe estar dentro del CIDR'; ok = false; }
         }
         if (ok) {
-            const url = base_url + 'rangoip/registrar';
-            insertarRegistros(url, this, tblIp, btnAccion, false);
+            const form = this;
+            const doSend = function(){
+                const url = base_url + 'rangoip/registrar';
+                insertarRegistros(url, form, tblIp, btnAccion, false);
+            };
+            if (id.value && originalClientes > 0 && redCidrUserChanged) {
+                Swal.fire({
+                    title: 'CAMBIO DE CIDR EN RANGO CON CLIENTES ACTIVOS',
+                    html: 'Este rango tiene <b>' + originalClientes + '</b> cliente(s) activo(s).<br>Cambiar el CIDR puede afectar la conectividad de esos clientes.<br><br><b>Continuar bajo tu responsabilidad?</b>',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Si, modificar',
+                    cancelButtonText: 'Cancelar'
+                }).then(function(r){ if (r.isConfirmed) doSend(); });
+            } else {
+                doSend();
+            }
         }
     });
 })
@@ -180,18 +202,20 @@ function editarRangoIp(idip) {
             redCidr.value = inferred || (res.red + '   final: ' + res.final);
             rangoInfo.textContent = inferred ? 'Mascara inferida' : 'Sin CIDR exacto (rango legacy)';
 
-            // Bloqueo si el rango tiene clientes activos
-            const hasClientes = (res.total_clientes || 0) > 0;
-            redCidr.readOnly = hasClientes;
+            // Aviso si el rango tiene clientes activos (editable bajo responsabilidad del operador)
+            redCidrUserChanged = false;
+            originalClientes = res.total_clientes || 0;
+            const hasClientes = originalClientes > 0;
+            redCidr.readOnly = false;
             zona.disabled = hasClientes;
-            redCidr.classList.toggle('bg-light', hasClientes);
+            redCidr.classList.toggle('bg-light', false);
             const old = document.getElementById('avisoClientes');
             if (old) old.remove();
             if (hasClientes) {
                 const div = document.createElement('div');
                 div.id = 'avisoClientes';
                 div.className = 'alert alert-warning mt-2 mb-0';
-                div.innerHTML = '<i class=\"bx bx-info-circle\"></i> Este rango tiene <strong>' + res.total_clientes + '</strong> cliente(s) activo(s). Solo se puede modificar el <strong>Gateway</strong>.';
+                div.innerHTML = '<i class=\"bx bx-info-circle\"></i> Este rango tiene <strong>' + res.total_clientes + '</strong> cliente(s) activo(s). Editar el CIDR es posible <strong>bajo responsabilidad del operador</strong>: puede afectar a esos clientes.';
                 formulario.appendChild(div);
             }
 
