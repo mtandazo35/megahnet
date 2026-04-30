@@ -828,9 +828,11 @@ class Creditos extends Controller
 
         // Mes (en espanol, mayusculas) del servicio cubierto por este credito.
         // Se deriva de cr.fecha; si falta, fallback a la fecha actual.
+        // Usar el mes EN CURSO (no la fecha del credito) — el cliente puede estar
+        // pagando atrasos de meses anteriores, pero el mensaje confirma el saldo a la fecha de hoy.
         $mesesEs = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
-        $tsServ = !empty($r['fecha']) ? strtotime((string)$r['fecha']) : time();
-        $servicioMesesTxt = $tsServ ? ($mesesEs[(int)date('n', $tsServ) - 1] . ' ' . date('Y', $tsServ)) : '';
+        $tsServ = time();
+        $servicioMesesTxt = $mesesEs[(int)date('n', $tsServ) - 1] . ' ' . date('Y', $tsServ);
 
         // Renderizar plantilla con SALDO TOTAL REAL del cliente
         $vars = [
