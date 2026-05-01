@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   tblHistorialFE = $('#tblHistorialFE').DataTable({
     deferRender: true,
-    stateSave: false,
+    stateSave: true,
     stateDuration: -1,
     colReorder: true,
     pageLength: 10,
@@ -252,8 +252,8 @@ document.addEventListener('DOMContentLoaded', function () {
           acum.ok   += (res.procesadas || 0);
           acum.fail += (res.fallidas   || 0);
           if (res.fallidos && res.fallidos.length) acum.fallidos = acum.fallidos.concat(res.fallidos);
-          var  = document.getElementById('reOk');  if () .textContent = acum.ok;
-          var  = document.getElementById('reErr'); if () .textContent = acum.fail;
+          var elOk = document.getElementById('reOk');  if (elOk) elOk.textContent = acum.ok;
+          var elErr = document.getElementById('reErr'); if (elErr) elErr.textContent = acum.fail;
           if ((res.lote || 0) === 0) return finalizar();
           siguiente(i + 1);
         })
