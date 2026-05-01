@@ -26,6 +26,14 @@ const buttons = [
         footer: true,
         titleAttr: 'Imprimir',
         text: '<i class="bx bx-printer me-1"></i>Imprimir'
+    },
+    {
+        extend: 'colvis',
+        className: 'btn btn-outline-secondary btn-sm',
+        titleAttr: 'Mostrar / ocultar columnas',
+        text: '<i class="bx bx-columns me-1"></i>Columnas',
+        // Excluir la primera col (acciones) del menu para que siempre quede visible
+        columns: ':not(:first-child)'
     }
 ];
 
