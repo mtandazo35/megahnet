@@ -103,7 +103,9 @@ class Automaticas extends Controller
         //echo date('c');
         // $fechamovimiento =  "2018-06-05";
 
+        $fallidos = []; // acumular contratos que fallaron sin abortar el batch
         foreach ($getContratosFacturar as $datosContrato) {
+            try {
 
             $fecha = date('Y-m-d');
             $hora = date('H:i:s');
@@ -392,6 +394,21 @@ class Automaticas extends Controller
 
                  
             }
+            } catch (\Throwable $eFor) {
+                $fallidos[] = [
+                    'idContrato' => $datosContrato['id']     ?? '?',
+                    'cliente'    => $datosContrato['nombre'] ?? '',
+                    'error'      => $eFor->getMessage(),
+                ];
+                $logDir = __DIR__ . '/../storage';
+                if (!is_dir($logDir)) { @mkdir($logDir, 0755, true); }
+                @file_put_contents(
+                    $logDir . '/automaticas_facturacion.log',
+                    '[' . date('Y-m-d H:i:s') . '] contrato=' . ($datosContrato['id'] ?? '?') . ' cliente=' . ($datosContrato['nombre'] ?? '') . ' error=' . $eFor->getMessage() . PHP_EOL,
+                    FILE_APPEND | LOCK_EX
+                );
+                continue;
+            }
         }
         // $datosOrdenVenta = json_encode($array['numOrdenVenta'], JSON_UNESCAPED_UNICODE);
         $datosnumOrden = json_encode($array['numOrdenVenta'], JSON_UNESCAPED_UNICODE);
@@ -404,7 +421,24 @@ class Automaticas extends Controller
         $this->model->actualizarCorte($fechaCorte, $fechas.' '.$horas, $campo);
 
 
-        $res = array('msg' => $countFacturas . ' FACTURAS GENERADAS EXITOSAMENTE Y ' . $countOrdenVentas . ' ORDEN VENTA GENRADAS EXITOSAMENTE', 'type' => 'success', 'OrdenesVenta' => $datosnumOrden, 'FacturasElectronicas' => $datosFacturasElectronicas);
+        $totalProc  = $countFacturas + $countOrdenVentas;
+        $nFallidos  = count($fallidos);
+        $resMsg     = $totalProc . ' procesados (' . $countFacturas . ' facturas + ' . $countOrdenVentas . ' ordenes)';
+        if ($nFallidos > 0) {
+            $resMsg .= '. ' . $nFallidos . ' contrato(s) fallaron — revisar storage/automaticas_facturacion.log';
+            $resType = 'warning';
+        } else {
+            $resType = 'success';
+        }
+        $res = array(
+            'msg'                  => $resMsg,
+            'type'                 => $resType,
+            'OrdenesVenta'         => $datosnumOrden,
+            'FacturasElectronicas' => $datosFacturasElectronicas,
+            'totalProcesados'      => $totalProc,
+            'totalFallidos'        => $nFallidos,
+            'fallidos'             => $fallidos,
+        );
         //exit;
         echo json_encode($res, JSON_UNESCAPED_UNICODE);
     }
