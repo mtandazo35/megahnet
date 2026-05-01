@@ -1647,6 +1647,41 @@ class Automaticas extends Controller
         die();
     }
 
+    /** Estado en vivo del batch de facturacion para mostrar progreso. */
+    public function estadoBatch()
+    {
+        $mesActual = MESES[date('n')];
+        $total = $this->model->getContratosFacturarConEstado($mesActual, 1, 1);
+        $tot = count($total);
+        $emit = 0;
+        foreach ($total as $c) { if ((int)($c['mfemitido'] ?? 0) === 1) $emit++; }
+        // Errores: leer log y contar contratos unicos
+        $err = [];
+        $logFile = __DIR__ . '/../storage/automaticas_facturacion.log';
+        if (file_exists($logFile)) {
+            $lineas = @file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            if (is_array($lineas)) {
+                foreach ($lineas as $l) {
+                    if (preg_match('/contrato=(\d+)/', $l, $m)) $err[(int)$m[1]] = true;
+                }
+            }
+        }
+        // Solo contar errores de contratos que aun no estan emitidas
+        $emitidasIds = [];
+        foreach ($total as $c) { if ((int)($c['mfemitido'] ?? 0) === 1) $emitidasIds[(int)$c['id']] = true; }
+        $errCount = 0;
+        foreach ($err as $idC => $_) { if (empty($emitidasIds[$idC])) $errCount++; }
+        header('Content-Type: application/json');
+        echo json_encode([
+            'total'      => $tot,
+            'emitidas'   => $emit,
+            'errores'    => $errCount,
+            'pendientes' => max(0, $tot - $emit - $errCount),
+        ]);
+        die();
+    }
+
+
 
     public function listarOrdenVenta()
     {

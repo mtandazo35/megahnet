@@ -66,21 +66,61 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 function programada() {
-  // metodopago = 'CREDITO';
-  divLoading.style.display = "flex";
+  divLoading.style.display = "none"; // ocultamos el loading viejo, usamos Swal con progreso
+
+  // Modal de progreso con polling al backend cada 3s
+  Swal.fire({
+    title: 'Procesando facturación...',
+    html: '<div class="mb-2 text-muted small">No cierres esta pestaña hasta terminar.</div>'
+        + '<div id="progressBarWrap" class="progress mb-2" style="height: 20px;">'
+        + '<div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%;">0%</div>'
+        + '</div>'
+        + '<div class="d-flex justify-content-between small">'
+        + '<span>Emitidas: <b id="pgEmit" class="text-success">0</b></span>'
+        + '<span>Errores: <b id="pgErr" class="text-danger">0</b></span>'
+        + '<span>Pendientes: <b id="pgPend" class="text-warning">--</b></span>'
+        + '<span>Total: <b id="pgTot">--</b></span>'
+        + '</div>',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    showConfirmButton: false,
+    showCancelButton: false,
+    didOpen: function(){ Swal.showLoading(); }
+  });
+
+  // Polling de estado
+  var pollHandle = setInterval(function(){
+    fetch(base_url + 'automaticas/estadoBatch', { cache: 'no-store' })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        var tot  = j.total || 0;
+        var emit = j.emitidas || 0;
+        var err  = j.errores || 0;
+        var pend = j.pendientes || 0;
+        var pct = tot > 0 ? Math.round(((emit + err) * 100) / tot) : 0;
+        var bar = document.getElementById('progressBar');
+        if (bar) { bar.style.width = pct + '%'; bar.textContent = pct + '%'; }
+        var  = document.getElementById('pgEmit');
+        var   = document.getElementById('pgErr');
+        var  = document.getElementById('pgPend');
+        var   = document.getElementById('pgTot');
+        if () .textContent = emit;
+        if ()  .textContent  = err;
+        if () .textContent = pend;
+        if ()  .textContent  = tot;
+      })
+      .catch(function(){ /* silencioso */ });
+  }, 3000);
 
   const url = base_url + 'automaticas/registrarVentaAutomatico/' + 1
-  // hacer una instancia del objeto XMLHttpRequest 
   const http = new XMLHttpRequest()
-  // Abrir una Conexion - POST - GET
   http.open('POST', url, true)
-  // Enviar Datos
-  http.send(JSON.stringify({
-    //credito: metodopago
-
-  }))
-  // verificar estados
+  http.send(JSON.stringify({}))
   http.onreadystatechange = function () {
+    if (this.readyState == 4) {
+      clearInterval(pollHandle);
+      Swal.close();
+    }
     if (this.readyState == 4 && this.status == 200) {
       const res = JSON.parse(this.responseText)
       nombreKey = 'posContrato';
