@@ -73,8 +73,28 @@ function programada() {
       const res = JSON.parse(this.responseText)
       nombreKey = 'posContrato';
       console.log(this.responseText)
-      alertaPersonalizada(res.type, res.msg)
-      if (res.type == 'success') {
+      const tieneFallidos = (res.totalFallidos || 0) > 0;
+      if (tieneFallidos) {
+        // Construir tabla de fallidos
+        let htmlF = '<p class="text-muted small mb-2">' + (res.totalProcesados || 0) + ' procesado(s), <b class="text-danger">' + res.totalFallidos + '</b> fallaron.</p>';
+        htmlF += '<div style="max-height:380px; overflow:auto;"><table class="table table-sm table-striped table-hover mb-0"><thead class="table-light"><tr><th>#</th><th>Cliente</th><th>Error</th></tr></thead><tbody>';
+        (res.fallidos || []).forEach(function(f){
+          htmlF += '<tr><td>' + (f.idContrato || '?') + '</td><td>' + ((f.cliente || '').replace(/[<>]/g, '')) + '</td><td class="small text-danger">' + ((f.error || '').replace(/[<>]/g, '').substring(0, 200)) + '</td></tr>';
+        });
+        htmlF += '</tbody></table></div>';
+        Swal.fire({
+          icon: 'warning',
+          title: 'Facturacion completada con errores',
+          html: htmlF,
+          width: 800,
+          showCancelButton: false,
+          confirmButtonText: 'Cerrar'
+        }).then(function(){
+          divLoading.style.display = "none";
+          localStorage.removeItem(nombreKey);
+          window.location.reload();
+        });
+      } else if (res.type == 'success') {
         localStorage.removeItem(nombreKey)
         setTimeout(() => {
           Swal.fire({
