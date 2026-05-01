@@ -31,7 +31,7 @@ class OrdenVentaModel extends Query
 
     public function getOrdenVentas()
     {
-        $sql = "SELECT ov.id,ov.productos,ov.total,CONCAT(ov.fecha,' ',ov.hora) AS fecha,ov.metodo,ov.serie,cl.nombre,ov.estado FROM orden_venta ov INNER JOIN clientes cl ON ov.id_cliente = cl.id";
+        $sql = "SELECT ov.id,ov.id_cliente,ov.productos,ov.total,CONCAT(ov.fecha,' ',ov.hora) AS fecha,ov.metodo,ov.serie,cl.nombre,ov.estado FROM orden_venta ov INNER JOIN clientes cl ON ov.id_cliente = cl.id";
         return $this->selectAll($sql);
     }
 

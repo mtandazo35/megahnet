@@ -262,6 +262,13 @@ class OrdenVenta extends Controller
     {
         $data = $this->model->getOrdenVentas();
         for ($i = 0; $i < count($data); $i++) {
+            // Fallback: si el nombre del cliente esta corrupto (empieza con [ o {),
+            // mostrar un placeholder identificable con el id_cliente.
+            $nombreActual = $data[$i]['nombre'] ?? '';
+            $prim = strlen($nombreActual) > 0 ? $nombreActual[0] : '';
+            if ($prim === '[' || $prim === '{') {
+                $data[$i]['nombre'] = '⚠ CLIENTE CORRUPTO id=' . ($data[$i]['id_cliente'] ?? '?') . ' — revisar';
+            }
             if ($data[$i]['estado'] == 1 || $data[$i]['estado'] == 2) {
                 $data[$i]['acciones'] = '<div>
                 <a class="btn btn-danger" href="#" onclick="verReporte(' . $data[$i]['id'] . ')"><i class="fas fa-file-pdf"></i></a>
