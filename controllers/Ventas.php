@@ -637,13 +637,15 @@ class Ventas extends Controller
             $correoRaw = trim((string)($data[$i]['correo'] ?? ''));
             $tieneTexto = $correoRaw !== '';
             $emailValido = $tieneTexto && filter_var($correoRaw, FILTER_VALIDATE_EMAIL);
-            $enviado = (int)($data[$i]['correo_enviado'] ?? 0) === 1;
+            $correoEstado = (int)($data[$i]['correo_enviado'] ?? 0);
             if (!$tieneTexto) {
                 $data[$i]['correoBadge'] = '<span class="badge bg-secondary" title="Cliente sin email registrado">SIN CORREO</span>';
             } else if (!$emailValido) {
                 $data[$i]['correoBadge'] = '<span class="badge bg-danger" title="Email mal escrito en BD: ' . htmlspecialchars($correoRaw) . '">EMAIL INVÁLIDO</span>';
-            } else if ($enviado) {
+            } else if ($correoEstado === 1) {
                 $data[$i]['correoBadge'] = '<span class="badge bg-success" title="Enviado a ' . htmlspecialchars($correoRaw) . '">ENVIADO</span>';
+            } else if ($correoEstado === 2) {
+                $data[$i]['correoBadge'] = '<span class="badge bg-dark" title="Archivos RIDE/XML no existen en disco para esta factura">ARCHIVOS PERDIDOS</span>';
             } else {
                 $data[$i]['correoBadge'] = '<span class="badge bg-warning text-dark" title="Pendiente de envio a ' . htmlspecialchars($correoRaw) . '">NO ENVIADO</span>';
             }
@@ -921,6 +923,11 @@ class Ventas extends Controller
                 $xmlPath = 'facturaelectronica/public/archivos/autorizados/' . $claveAcceso . '.xml';
                 if (!file_exists($pdfPath) || !file_exists($xmlPath)) {
                     $fallidos[] = ['orden_no' => $row['orden_no'], 'cliente' => $row['cliente'], 'error' => 'Archivos RIDE/XML no encontrados'];
+                    // Marcar como 2 (=archivos perdidos, no se puede reenviar) para no reintentar
+                    try {
+                        $pdoMark = new \PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, PASSWORD);
+                        $pdoMark->prepare('UPDATE datos_cabecera_electronica SET correo_enviado=2 WHERE orden_no=?')->execute([$row['orden_no']]);
+                    } catch (\Throwable $e) {}
                     continue;
                 }
                 $dataInfo = [
