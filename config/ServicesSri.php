@@ -130,7 +130,7 @@ function sendEmail($data, $template, $vista)
         //Create an instance; passing `true` enables exceptions
         $mail = new PHPMailer(true);
         ob_start();
-        include("views/" . $vista . "/" . $template . ".php");
+        include(__DIR__ . "/../views/" . $vista . "/" . $template . ".php");
         $mensaje = ob_get_clean();
         $dompdf = new Dompdf();
         $dompdf->loadHtml($mensaje);
@@ -194,7 +194,7 @@ function sendEmailCotizacion($data, $template, $vista)
     //Create an instance; passing `true` enables exceptions
     $mail = new PHPMailer(true);
     ob_start();
-    include("views/" . $vista . "/" . $template . ".php");
+    include(__DIR__ . "/../views/" . $vista . "/" . $template . ".php");
     $mensaje = ob_get_clean();
     $dompdf = new Dompdf();
     $dompdf->loadHtml($mensaje);
@@ -323,7 +323,7 @@ function sendEmailOrden($data, $template)
     //Create an instance; passing `true` enables exceptions
     $mail = new PHPMailer(true);
     ob_start();
-    include("views/automaticas/" . $template . ".php");
+    include(__DIR__ . "/../views/automaticas/" . $template . ".php");
     $mensaje = ob_get_clean();
     $dompdf = new Dompdf();
     $dompdf->loadHtml($mensaje);
