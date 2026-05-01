@@ -90,7 +90,7 @@
           ['grupotrabajos', 'Grupos de Trabajo', 'bx-sitemap'],
           ['repetidoras', 'Repetidoras', 'bx-broadcast'],
       ],
-      'Administracion' => [
+      'Sistema' => [
           ['usuarios', 'Usuarios', 'bx-user'],
           ['admin/datos', 'Configuracion', 'bx-buildings'],
           ['admin/contrato', 'Modelo de Contrato', 'bx-file-blank'],
