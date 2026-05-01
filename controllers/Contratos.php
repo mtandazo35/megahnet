@@ -156,6 +156,14 @@ class Contratos extends Controller
                 } else if (empty($ciudad)) {
                     $res = ['msg' => 'LA CIUDAD ES REQUERIDO', 'type' => 'warning'];
                 } else {
+                    // Validacion: IP no debe estar duplicada con otro contrato activo
+                    $idExcluir = ($id == '') ? 0 : (int)$id;
+                    $ipDupe = $this->model->getContratoPorIp($ipUsuario, $idExcluir);
+                    if (!empty($ipDupe)) {
+                        $res = ['msg' => 'IP ' . $ipUsuario . ' YA EN USO POR EL CONTRATO #' . $ipDupe['id'] . ' (' . $ipDupe['nombre_cliente'] . '). Anular ese contrato o usar otra IP.', 'type' => 'warning'];
+                        echo json_encode($res, JSON_UNESCAPED_UNICODE);
+                        die();
+                    }
                     if ($id == '') {
                         foreach ($datos['productos'] as $producto) {
                             $result = $this->model->getProducto($producto['id']);

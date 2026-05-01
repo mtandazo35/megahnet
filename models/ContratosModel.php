@@ -16,6 +16,15 @@ class ContratosModel extends Query
         $array = array($fecha, $hora, $idCliente, $idUsuario, $datosProductos, $total, $ipUsuario, $repetidora, $ap, $coordenada, $direccion, $comentario, $medio, $comparticion, $chelectronica, $anchoBanda, $discapacidad, $idMikrotik,$ciudad);
         return $this->insertar($sql, $array);
     }
+    public function getContratoPorIp($ipUsuario, $idExcluir = 0)
+    {
+        $sql = "SELECT c.id, cl.nombre AS nombre_cliente
+                FROM contratos c
+                INNER JOIN clientes cl ON cl.id = c.id_cliente
+                WHERE c.ip_usuario = ? AND c.estado = 1 AND c.id != ?";
+        return $this->select($sql, [$ipUsuario, $idExcluir]);
+    }
+
     public function actualizarContrato($fecha, $hora, $idCliente, $idUsuario, $datosProductos, $total, $ipUsuario, $repetidora, $ap, $coordenada, $direccion, $comentario, $medio, $comparticion, $chelectronica, $anchoBanda, $discapacidad, $idMikrotik,$ciudad, $id)
     {
         $sql = "UPDATE contratos SET fecha=?,hora=?,id_cliente=?,id_usuario=?,productos=?, total=?,ip_usuario=?,repetidora=?,ap=?,coordenada=?,direccion=?,comentario=?,medio=?,comparticion=?,factura=?,ancho_banda=?,discapacidad=?,id_mikrotik=?,ciudad=? WHERE id=?";
