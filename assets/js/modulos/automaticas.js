@@ -66,9 +66,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 function programada() {
-  divLoading.style.display = "none"; // ocultamos el loading viejo, usamos Swal con progreso
+  divLoading.style.display = 'none';
 
-  // Modal de progreso con polling al backend cada 3s
+  const lote = 25;
+  const maxIter = 500;
+  let acum = { totalProcesados: 0, totalFallidos: 0, fallidos: [] };
+  let pollHandle = null;
+
   Swal.fire({
     title: 'Procesando facturación...',
     html: '<div class="mb-2 text-muted small">No cierres esta pestaña hasta terminar.</div>'
@@ -88,96 +92,74 @@ function programada() {
     didOpen: function(){ Swal.showLoading(); }
   });
 
-  // Polling de estado
-  var pollHandle = setInterval(function(){
+  pollHandle = setInterval(function(){
     fetch(base_url + 'automaticas/estadoBatch', { cache: 'no-store' })
       .then(function(r){ return r.json(); })
       .then(function(j){
-        var tot  = j.total || 0;
-        var emit = j.emitidas || 0;
-        var err  = j.errores || 0;
-        var pend = j.pendientes || 0;
-        var pct = tot > 0 ? Math.round(((emit + err) * 100) / tot) : 0;
+        var tot = j.total || 0, emit = j.emitidas || 0, err = j.errores || 0, pend = j.pendientes || 0;
+        var done = emit + err;
+        var pct = tot > 0 ? Math.round((done * 100) / tot) : 0;
         var bar = document.getElementById('progressBar');
         if (bar) { bar.style.width = pct + '%'; bar.textContent = pct + '%'; }
-        var  = document.getElementById('pgEmit');
-        var   = document.getElementById('pgErr');
-        var  = document.getElementById('pgPend');
-        var   = document.getElementById('pgTot');
-        if () .textContent = emit;
-        if ()  .textContent  = err;
-        if () .textContent = pend;
-        if ()  .textContent  = tot;
+        var $e = document.getElementById('pgEmit'); if ($e) $e.textContent = emit;
+        var $r = document.getElementById('pgErr');  if ($r) $r.textContent = err;
+        var $p = document.getElementById('pgPend'); if ($p) $p.textContent = pend;
+        var $t = document.getElementById('pgTot');  if ($t) $t.textContent = tot;
       })
-      .catch(function(){ /* silencioso */ });
+      .catch(function(){});
   }, 3000);
 
-  const url = base_url + 'automaticas/registrarVentaAutomatico/' + 1
-  const http = new XMLHttpRequest()
-  http.open('POST', url, true)
-  http.send(JSON.stringify({}))
-  http.onreadystatechange = function () {
-    if (this.readyState == 4) {
-      clearInterval(pollHandle);
-      Swal.close();
-    }
-    if (this.readyState == 4 && this.status == 200) {
-      const res = JSON.parse(this.responseText)
-      nombreKey = 'posContrato';
-      console.log(this.responseText)
-      const tieneFallidos = (res.totalFallidos || 0) > 0;
-      if (tieneFallidos) {
-        // Construir tabla de fallidos
-        let htmlF = '<p class="text-muted small mb-2">' + (res.totalProcesados || 0) + ' procesado(s), <b class="text-danger">' + res.totalFallidos + '</b> fallaron.</p>';
-        htmlF += '<div style="max-height:380px; overflow:auto;"><table class="table table-sm table-striped table-hover mb-0"><thead class="table-light"><tr><th>#</th><th>Cliente</th><th>Error</th></tr></thead><tbody>';
-        (res.fallidos || []).forEach(function(f){
-          htmlF += '<tr><td>' + (f.idContrato || '?') + '</td><td>' + ((f.cliente || '').replace(/[<>]/g, '')) + '</td><td class="small text-danger">' + ((f.error || '').replace(/[<>]/g, '').substring(0, 200)) + '</td></tr>';
-        });
-        htmlF += '</tbody></table></div>';
-        const todosFallaron = (res.totalProcesados || 0) === 0;
-        Swal.fire({
-          icon: todosFallaron ? 'error' : 'warning',
-          title: todosFallaron ? 'Facturacion FALLIDA: ningun contrato procesado' : 'Facturacion completada con errores',
-          html: htmlF,
-          width: 800,
-          showCancelButton: false,
-          confirmButtonText: 'Cerrar'
-        }).then(function(){
-          divLoading.style.display = "none";
-          localStorage.removeItem(nombreKey);
-          window.location.reload();
-        });
-      } else if (res.type == 'success') {
-        localStorage.removeItem(nombreKey)
-        setTimeout(() => {
-          Swal.fire({
-            icon: 'success',
-            title: 'IMPRIMIR REPORTES ELECTRONICÓS?',
-            showCancelButton: true,
-            confirmButtonText: 'Reportes',
-          }).then((result) => {
-            /* Read more about isConfirmed, isDenied below */
-            if (result.isConfirmed) {
-              divLoading.style.display = "none";
+  function llamarLote(i){
+    if (i >= maxIter) { return finalizar(); }
+    fetch(base_url + 'automaticas/registrarVentaAutomatico/1?limite=' + lote, {
+      method: 'POST', body: JSON.stringify({}), cache: 'no-store'
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        acum.totalProcesados += (res.totalProcesados || 0);
+        acum.totalFallidos   += (res.totalFallidos   || 0);
+        if (res.fallidos && res.fallidos.length) acum.fallidos = acum.fallidos.concat(res.fallidos);
+        if ((res.totalProcesados || 0) === 0 && (res.totalFallidos || 0) === 0) return finalizar();
+        llamarLote(i + 1);
+      })
+      .catch(function(err){ console.error('Error lote', i, err); finalizar(); });
+  }
 
-            } else if (result.isDenied) {
-              divLoading.style.display = "none";
+  function finalizar(){
+    if (pollHandle) clearInterval(pollHandle);
+    Swal.close();
+    nombreKey = 'posContrato';
+    localStorage.removeItem(nombreKey);
+    setTimeout(function(){ mostrarResumen(); }, 200);
+  }
 
-            }
-            window.location.reload()
-          })
-        }, 2000)
-
-      } else {
-        divLoading.style.display = "none";
-
-      }
+  function mostrarResumen(){
+    if (acum.totalFallidos > 0) {
+      var todosFallaron = (acum.totalProcesados || 0) === 0;
+      var htmlF = '<p class="text-muted small mb-2">' + (acum.totalProcesados || 0) + ' procesado(s), <b class="text-danger">' + acum.totalFallidos + '</b> fallaron.</p>';
+      htmlF += '<div style="max-height:380px; overflow:auto;"><table class="table table-sm table-striped table-hover mb-0"><thead class="table-light"><tr><th>#</th><th>Cliente</th><th>Error</th></tr></thead><tbody>';
+      (acum.fallidos || []).forEach(function(f){
+        htmlF += '<tr><td>' + (f.idContrato || '?') + '</td><td>' + ((f.cliente || '').replace(/[<>]/g, '')) + '</td><td class="small text-danger">' + ((f.error || '').replace(/[<>]/g, '').substring(0, 200)) + '</td></tr>';
+      });
+      htmlF += '</tbody></table></div>';
+      Swal.fire({
+        icon: todosFallaron ? 'error' : 'warning',
+        title: todosFallaron ? 'Facturacion FALLIDA: ningun contrato procesado' : 'Facturacion completada con errores',
+        html: htmlF, width: 800, showCancelButton: false, confirmButtonText: 'Cerrar'
+      }).then(function(){ window.location.reload(); });
     } else {
-      divLoading.style.display = "none";
-
+      Swal.fire({
+        icon: 'success',
+        title: '¡Facturación completada!',
+        html: '<b>' + acum.totalProcesados + '</b> contratos facturados con éxito.',
+        confirmButtonText: 'Cerrar'
+      }).then(function(){ window.location.reload(); });
     }
   }
+
+  llamarLote(0);
 }
+
 
 
 

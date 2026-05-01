@@ -69,9 +69,11 @@ class Automaticas extends Controller
        public function registrarVentaAutomatico($factura)
     {
         $this->cargarSri();
-        // El proceso puede iterar cientos de contratos; aumentar timeouts.
         @set_time_limit(0);
         @ini_set('memory_limit', '512M');
+        // Limite por lote (querystring ?limite=25). Default 25 para no chocar con el timeout
+        // del reverse proxy openresty/NPM (60s). El frontend llama en bucle.
+        $limiteLote = isset($_GET['limite']) ? max(1, min(500, (int)$_GET['limite'])) : 25;
 
         $valorFactura = ($factura == 2) ? 0 : 1 ;
 
@@ -87,7 +89,7 @@ class Automaticas extends Controller
 
 
         $empresa = $this->model->getEmpresa();
-        $getContratosFacturar = $this->model->getContratosFacturar($mesActualLetra, 1,$valorFactura);
+        $getContratosFacturar = $this->model->getContratosFacturar($mesActualLetra, 1, $valorFactura, $limiteLote);
         //$getProductos = $this->model->getProductoAutomatico(1);
         // print_r($getContratosFacturar);exit;
         // $idpro =  $getProducto[ 'id' ];

@@ -56,12 +56,14 @@ class AutomaticasModel extends Query
         return $this->selectAll($sql);
     }
 
-    public function getContratosFacturar($mesFacturar, $estado, $valor)
+    public function getContratosFacturar($mesFacturar, $estado, $valor, $limite = 0)
     {
         $sql = "SELECT c.id,c.productos,c.total,c.direccion,c.comentario,cl.id AS idCliente ,cl.nombre,c.estado,c.factura FROM contratos c 
         INNER JOIN clientes cl ON cl.id=c.id_cliente
         INNER JOIN mes_facturar mf ON mf.id_contrato=c.id
         WHERE mf.$mesFacturar = 0 AND c.estado = $estado AND c.factura = $valor";
+        $limite = (int)$limite;
+        if ($limite > 0) { $sql .= " LIMIT " . $limite; }
         return $this->selectAll($sql);
     }
 
