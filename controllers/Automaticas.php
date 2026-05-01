@@ -251,8 +251,7 @@ class Automaticas extends Controller
                             $this->model->registrarCredito($monto, $fecha, $hora, null, $ventaEncabezado, null, $idContrato);
                         }
 
-                        $this->model->actualizarMesContratoF($mesActualLetra, 1, $idContrato, 'UNO');
-
+                        // No marcar mes_facturar todavia: solo si SRI autoriza.
                         array_push($array['numFacturasElectronica'], $ventaEncabezado);
 
                         // SRI try/catch automaticas: si falla SOAP, no rompe la respuesta JSON
@@ -272,13 +271,12 @@ class Automaticas extends Controller
                         $this->model->actualizarClaveAccesso($claveAcceso, $numSerieElectronica);
                         //$result = mysqli_num_rows( $update_clave );
 
+                        $autorizado = false;
                         if ($autorizacion['numeroComprobantes'] == 0) {
-                            $this->envioSriElectronica($numSerieElectronica);
-                        }else{  
-						if ($autorizacion['autorizaciones']['autorizacion']['estado'] == 'AUTORIZADO') {
-
+                            try { $this->envioSriElectronica($numSerieElectronica); } catch (\Throwable $eRetry) {}
+                        } else if (($autorizacion['autorizaciones']['autorizacion']['estado'] ?? '') == 'AUTORIZADO') {
+                            $autorizado = true;
                             $facturaElectronica = $this->model->getFacturaElectronica($claveAcceso);
-
                             $dataInfo = array(
                                 'ruc' => $facturaElectronica['ruc'],
                                 'email' => $facturaElectronica['correo'],
@@ -295,11 +293,34 @@ class Automaticas extends Controller
                                 'tipo' => 'factura',
                                 'asunto' => 'Adjuntamos Comprobante Electronico'
                             );
-                            // $res = array('msg' => 'FACTURA ELECTRONICA GENERADA EXITOSAMENTE', 'type' => 'success', 'ClaveAcceso' => $claveAcceso, 'factura' => 'electronica', 'idVenta' => $numSerieElectronica);
                             sendEmailAutomatias($dataInfo);
-                        } 
-
-                    }
+                        }
+                        if ($autorizado) {
+                            $this->model->actualizarMesContratoF($mesActualLetra, 1, $idContrato, 'UNO');
+                            $this->model->actualizarMesContratoF($mesAnteriorLetra, 0, $idContrato, 'UNO');
+                            $countFacturas += 1;
+                        } else {
+                            $estadoSri = $autorizacion['autorizaciones']['autorizacion']['estado'] ?? 'DESCONOCIDO';
+                            $mens = $autorizacion['autorizaciones']['autorizacion']['mensajes']['mensaje'] ?? null;
+                            $detalles = '';
+                            if ($mens) {
+                                $lista = isset($mens['identificador']) ? [$mens] : (is_array($mens) ? $mens : []);
+                                $tmp = [];
+                                foreach ($lista as $m) {
+                                    if (is_array($m)) {
+                                        $tmp[] = trim(($m['mensaje'] ?? '') . ' ' . ($m['informacionAdicional'] ?? ''));
+                                    }
+                                }
+                                $detalles = implode(' | ', $tmp);
+                            }
+                            $logDir = __DIR__ . '/../storage';
+                            if (!is_dir($logDir)) { @mkdir($logDir, 0755, true); }
+                            @file_put_contents(
+                                $logDir . '/automaticas_facturacion.log',
+                                '[' . date('Y-m-d H:i:s') . '] contrato=' . $idContrato . ' cliente=' . ($datosContrato['nombre'] ?? '') . ' error=SRI ' . $estadoSri . ': ' . $detalles . PHP_EOL,
+                                FILE_APPEND | LOCK_EX
+                            );
+                        }
 
                         //print_r( $dataInfo );
                         //  exit;
@@ -315,7 +336,7 @@ class Automaticas extends Controller
                 }
 
                 //die();
-                $countFacturas += 1;
+                // $countFacturas solo se incrementa si SRI autorizo (mas arriba).
             } else {
 
                 $productos = json_decode($datosContrato['productos'], true);
@@ -601,8 +622,7 @@ class Automaticas extends Controller
                             $this->model->registrarCredito($monto, $fecha, $hora, null, $ventaEncabezado, null, $idContrato);
                         }
 
-                        $this->model->actualizarMesContratoF($mesActualLetra, 1, $idContrato, 'UNO');
-
+                        // No marcar mes_facturar todavia: solo si SRI autoriza.
                         array_push($array['numFacturasElectronica'], $ventaEncabezado);
 
                         // SRI try/catch automaticas: si falla SOAP, no rompe la respuesta JSON
@@ -855,8 +875,7 @@ class Automaticas extends Controller
                             $this->model->registrarCredito($monto, $fecha, $hora, null, $ventaEncabezado, null, $idContrato);
                         }
 
-                        $this->model->actualizarMesContratoF($mesActualLetra, 1, $idContrato, 'UNO');
-
+                        // No marcar mes_facturar todavia: solo si SRI autoriza.
                         array_push($array['numFacturasElectronica'], $ventaEncabezado);
 
                         // SRI try/catch automaticas: si falla SOAP, no rompe la respuesta JSON
@@ -919,7 +938,7 @@ class Automaticas extends Controller
                 }
 
                 //die();
-                $countFacturas += 1;
+                // $countFacturas solo se incrementa si SRI autorizo (mas arriba).
             } else {
 
                 $productos = json_decode($datosContrato['productos'], true);
