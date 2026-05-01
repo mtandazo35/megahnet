@@ -45,7 +45,7 @@
       <div class="kpi-body">
         <div class="kpi-icon"><i class="bx bx-time-five"></i></div>
         <div class="flex-grow-1">
-          <small class="kpi-label">Pendiente por cobrar</small>
+          <small class="kpi-label">Pendiente por cobrar (mes)</small>
           <h3 class="kpi-value text-danger">$<?= number_format($pendiente, 2) ?></h3>
           <div class="progress mt-2" style="height:6px;">
             <div class="progress-bar bg-success" style="width:<?= max(0, min(100, $pctCobrado)) ?>%"></div>

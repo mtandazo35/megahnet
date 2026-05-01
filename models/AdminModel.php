@@ -257,7 +257,8 @@ HAVING COUNT(*) > $estado) AS subconsulta";
     }
 
     /**
-     * Saldo pendiente de cobro: suma de (monto - abonado) sobre creditos activos.
+     * Saldo pendiente de cobro del MES EN CURSO: suma de (monto - abonado)
+     * sobre creditos activos cuya fecha cae dentro del mes actual.
      */
     public function getPendienteCobro()
     {
@@ -272,7 +273,9 @@ HAVING COUNT(*) > $estado) AS subconsulta";
                     FROM abonos
                     GROUP BY id_credito
                 ) a ON a.id_credito = c.id
-                WHERE c.estado = 1";
+                WHERE c.estado = 1
+                  AND c.fecha >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+                  AND c.fecha <  DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')";
         return $this->select($sql);
     }
 
