@@ -247,6 +247,7 @@ class VentasModel extends Query
                 INNER JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
                 WHERE rs.estado = 'AUTORIZADO' AND dce.correo_enviado = 0
                   AND dce.correo IS NOT NULL AND dce.correo != ''
+                  AND dce.correo REGEXP '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
                 ORDER BY dce.id DESC
                 LIMIT $limite";
         return $this->selectAll($sql);

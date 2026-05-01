@@ -307,6 +307,7 @@ $totalDocumento    = $limiteDocumento - $cantidadDocumento;
                                 <option value="">— Todas —</option>
                                 <option value="ENVIADO">ENVIADO</option>
                                 <option value="NO ENVIADO">NO ENVIADO</option>
+                                <option value="EMAIL INVÁLIDO">EMAIL INVÁLIDO</option>
                                 <option value="SIN CORREO">SIN CORREO</option>
                             </select>
                         </div>

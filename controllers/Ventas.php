@@ -634,14 +634,18 @@ class Ventas extends Controller
             $data[$i]['factura'] = $this->generate_numbers($data[$i]['orden_no'], 1, 9);
 
             // Estado de envio de correo al cliente
-            $tieneCorreo = !empty($data[$i]['correo']) && filter_var($data[$i]['correo'], FILTER_VALIDATE_EMAIL);
+            $correoRaw = trim((string)($data[$i]['correo'] ?? ''));
+            $tieneTexto = $correoRaw !== '';
+            $emailValido = $tieneTexto && filter_var($correoRaw, FILTER_VALIDATE_EMAIL);
             $enviado = (int)($data[$i]['correo_enviado'] ?? 0) === 1;
-            if (!$tieneCorreo) {
-                $data[$i]['correoBadge'] = '<span class="badge bg-secondary" title="Cliente sin email">SIN CORREO</span>';
+            if (!$tieneTexto) {
+                $data[$i]['correoBadge'] = '<span class="badge bg-secondary" title="Cliente sin email registrado">SIN CORREO</span>';
+            } else if (!$emailValido) {
+                $data[$i]['correoBadge'] = '<span class="badge bg-danger" title="Email mal escrito en BD: ' . htmlspecialchars($correoRaw) . '">EMAIL INVÁLIDO</span>';
             } else if ($enviado) {
-                $data[$i]['correoBadge'] = '<span class="badge bg-success" title="Enviado a ' . htmlspecialchars($data[$i]['correo']) . '">ENVIADO</span>';
+                $data[$i]['correoBadge'] = '<span class="badge bg-success" title="Enviado a ' . htmlspecialchars($correoRaw) . '">ENVIADO</span>';
             } else {
-                $data[$i]['correoBadge'] = '<span class="badge bg-warning text-dark" title="Pendiente de envio a ' . htmlspecialchars($data[$i]['correo']) . '">NO ENVIADO</span>';
+                $data[$i]['correoBadge'] = '<span class="badge bg-warning text-dark" title="Pendiente de envio a ' . htmlspecialchars($correoRaw) . '">NO ENVIADO</span>';
             }
         }
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
@@ -963,7 +967,8 @@ class Ventas extends Controller
         $pdo = new \PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, PASSWORD);
         $stmt = $pdo->query("SELECT COUNT(*) FROM datos_cabecera_electronica dce
             INNER JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
-            WHERE rs.estado='AUTORIZADO' AND dce.correo_enviado=0 AND dce.correo IS NOT NULL AND dce.correo!=''");
+            WHERE rs.estado='AUTORIZADO' AND dce.correo_enviado=0 AND dce.correo IS NOT NULL AND dce.correo!=''
+              AND dce.correo REGEXP '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'");
         $count = (int)$stmt->fetchColumn();
         header('Content-Type: application/json');
         echo json_encode(['pendientes' => $count]);
