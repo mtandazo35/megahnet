@@ -184,6 +184,85 @@ document.addEventListener('DOMContentLoaded', function () {
     tblHistorialFE.column(9).search(this.value || '', false, false).draw();
   });
 
+  // === Reenvio masivo de correos pendientes ===
+  function refrescarBadgePendientes(){
+    fetch(base_url + 'ventas/contarPendientesCorreo', { cache: 'no-store' })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        var b = document.getElementById('badgePendientes');
+        if (b) b.textContent = (j.pendientes != null) ? j.pendientes : '--';
+      })
+      .catch(function(){});
+  }
+  refrescarBadgePendientes();
+  setInterval(refrescarBadgePendientes, 30000);
+
+  var btnReen = document.getElementById('btnReenviarCorreos');
+  if (btnReen) btnReen.addEventListener('click', function(){
+    Swal.fire({
+      title: 'Reenviar correos pendientes',
+      html: '<p class="small text-muted mb-0">Se enviara el RIDE+XML a los clientes con correo válido cuya factura ya está autorizada por el SRI y aún no recibió notificación.</p>',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#198754',
+      confirmButtonText: 'Sí, reenviar',
+      cancelButtonText: 'Cancelar'
+    }).then(function(r){
+      if (!r.isConfirmed) return;
+      ejecutarReenvio();
+    });
+  });
+
+  function ejecutarReenvio(){
+    var lote = 20, maxIter = 200;
+    var acum = { ok: 0, fail: 0, fallidos: [] };
+    Swal.fire({
+      title: 'Reenviando correos…',
+      html: '<div class="mb-2 text-muted small">No cierres esta pestaña hasta terminar.</div>'
+          + '<div class="d-flex justify-content-between small"><span>Enviados: <b id="reOk" class="text-success">0</b></span>'
+          + '<span>Fallidos: <b id="reErr" class="text-danger">0</b></span></div>',
+      allowOutsideClick: false, allowEscapeKey: false,
+      showConfirmButton: false, showCancelButton: false,
+      didOpen: function(){ Swal.showLoading(); }
+    });
+    function siguiente(i){
+      if (i >= maxIter) return finalizar();
+      fetch(base_url + 'ventas/reenviarCorreoMasivo?limite=' + lote, { cache: 'no-store' })
+        .then(function(r){ return r.json(); })
+        .then(function(res){
+          acum.ok   += (res.procesadas || 0);
+          acum.fail += (res.fallidas   || 0);
+          if (res.fallidos && res.fallidos.length) acum.fallidos = acum.fallidos.concat(res.fallidos);
+          var  = document.getElementById('reOk');  if () .textContent = acum.ok;
+          var  = document.getElementById('reErr'); if () .textContent = acum.fail;
+          if ((res.lote || 0) === 0) return finalizar();
+          siguiente(i + 1);
+        })
+        .catch(function(err){ console.error(err); finalizar(); });
+    }
+    function finalizar(){
+      Swal.close();
+      setTimeout(function(){
+        var icon = acum.fail > 0 ? 'warning' : 'success';
+        var title = (acum.ok === 0 && acum.fail === 0) ? 'No habia correos pendientes' : 'Reenvio finalizado';
+        var html = '<p>Enviados: <b class="text-success">' + acum.ok + '</b><br>Fallidos: <b class="text-danger">' + acum.fail + '</b></p>';
+        if (acum.fail > 0) {
+          html += '<div style="max-height:280px;overflow:auto;"><table class="table table-sm table-striped"><thead><tr><th>Factura</th><th>Cliente</th><th>Error</th></tr></thead><tbody>';
+          acum.fallidos.forEach(function(f){
+            html += '<tr><td>' + (f.orden_no || '?') + '</td><td>' + ((f.cliente || '').replace(/[<>]/g, '')) + '</td><td class="small text-danger">' + ((f.error || '').replace(/[<>]/g, '').substring(0, 200)) + '</td></tr>';
+          });
+          html += '</tbody></table></div>';
+        }
+        Swal.fire({ icon: icon, title: title, html: html, width: 700, confirmButtonText: 'Cerrar' })
+          .then(function(){
+            refrescarBadgePendientes();
+            try { tblHistorialFE.ajax.reload(null, false); } catch(e) {}
+          });
+      }, 200);
+    }
+    siguiente(0);
+  }
+
   // Auto-reload cada 15s del listado de Factura Electronica
   // - Usa ajax.reload(null, false) para no resetear paginacion ni filtros
   // - Pausa cuando la pestaña no esta visible (ahorra ancho de banda)

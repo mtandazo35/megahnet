@@ -892,4 +892,81 @@ class Ventas extends Controller
         }
         return $result;
     }
+
+    /**
+     * Reenvio masivo del correo (RIDE+XML) a clientes con correo_enviado=0.
+     * Procesa en lote pequeno para no chocar con timeout del proxy.
+     * Acepta ?limite=20 (default 20, max 100). Loop desde el frontend.
+     */
+    public function reenviarCorreoMasivo()
+    {
+        $this->cargarSri();
+        @set_time_limit(0);
+        @ini_set('memory_limit', '512M');
+        $limite = isset($_GET['limite']) ? (int)$_GET['limite'] : 20;
+        $pendientes = $this->model->getCorreosPendientes($limite);
+        $empresa = $this->model->getEmpresa();
+
+        $ok = 0;
+        $fallidos = [];
+
+        foreach ($pendientes as $row) {
+            try {
+                $claveAcceso = $row['claveacceso'] ?? '';
+                $pdfPath = 'facturaelectronica/public/archivos/ride/' . $claveAcceso . '.pdf';
+                $xmlPath = 'facturaelectronica/public/archivos/autorizados/' . $claveAcceso . '.xml';
+                if (!file_exists($pdfPath) || !file_exists($xmlPath)) {
+                    $fallidos[] = ['orden_no' => $row['orden_no'], 'cliente' => $row['cliente'], 'error' => 'Archivos RIDE/XML no encontrados'];
+                    continue;
+                }
+                $dataInfo = [
+                    'ruc'             => $row['ruc'],
+                    'email'           => $row['correo'],
+                    'fecha'           => $row['fecha'],
+                    'totalfactura'    => $row['totalfactura'],
+                    'cliente'         => $row['cliente'],
+                    'claveAcceso'     => $claveAcceso,
+                    'empresa'         => $empresa['nombre'],
+                    'factura'         => str_pad($row['orden_no'], 9, '0', STR_PAD_LEFT),
+                    'enviroment'      => ENVIROMENT,
+                    'emailremitente'  => $empresa['correo'],
+                    'establecimiento' => $row['establecimiento'],
+                    'puntoemi'        => $row['punto_emi'],
+                    'tipo'            => 'factura',
+                    'asunto'          => 'Adjuntamos Comprobante Electronico',
+                ];
+                $res = sendEmail($dataInfo, 'email_facturaelectronica', 'ventas');
+                if ($res === true) {
+                    $this->model->marcarCorreoEnviado($row['orden_no']);
+                    $ok++;
+                } else {
+                    $fallidos[] = ['orden_no' => $row['orden_no'], 'cliente' => $row['cliente'], 'error' => 'sendEmail retorno false'];
+                }
+            } catch (\Throwable $e) {
+                $fallidos[] = ['orden_no' => $row['orden_no'] ?? '?', 'cliente' => $row['cliente'] ?? '', 'error' => $e->getMessage()];
+            }
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode([
+            'procesadas' => $ok,
+            'fallidas'   => count($fallidos),
+            'fallidos'   => $fallidos,
+            'lote'       => count($pendientes),
+        ], JSON_UNESCAPED_UNICODE);
+        die();
+    }
+
+    /** Cuenta facturas con correo pendiente de envio (para badge en boton). */
+    public function contarPendientesCorreo()
+    {
+        $pdo = new \PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, PASSWORD);
+        $stmt = $pdo->query("SELECT COUNT(*) FROM datos_cabecera_electronica dce
+            INNER JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
+            WHERE rs.estado='AUTORIZADO' AND dce.correo_enviado=0 AND dce.correo IS NOT NULL AND dce.correo!=''");
+        $count = (int)$stmt->fetchColumn();
+        header('Content-Type: application/json');
+        echo json_encode(['pendientes' => $count]);
+        die();
+    }
 }

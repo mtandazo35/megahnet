@@ -310,6 +310,12 @@ $totalDocumento    = $limiteDocumento - $cantidadDocumento;
                                 <option value="SIN CORREO">SIN CORREO</option>
                             </select>
                         </div>
+                        <div class="ms-auto">
+                            <button id="btnReenviarCorreos" type="button" class="btn btn-success btn-sm">
+                                <i class="bx bx-mail-send me-1"></i>Reenviar correos pendientes
+                                <span id="badgePendientes" class="badge bg-light text-dark ms-1">--</span>
+                            </button>
+                        </div>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-bordered table-striped table-hover align-middle nowrap" id="tblHistorialFE" style="width: 100%;">

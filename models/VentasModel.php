@@ -237,4 +237,24 @@ class VentasModel extends Query
         $sql = "SELECT * FROM tipo_pago";
         return $this->selectAll($sql);
     }
+
+    /** Facturas autorizadas con email valido y correo_enviado=0, listas para reenviar. */
+    public function getCorreosPendientes($limite = 20)
+    {
+        $limite = max(1, min(100, (int)$limite));
+        $sql = "SELECT dce.orden_no, dce.cliente, dce.correo, dce.claveacceso, dce.fecha, dce.totalfactura, dce.ruc, dce.establecimiento, dce.punto_emi
+                FROM datos_cabecera_electronica dce
+                INNER JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
+                WHERE rs.estado = 'AUTORIZADO' AND dce.correo_enviado = 0
+                  AND dce.correo IS NOT NULL AND dce.correo != ''
+                ORDER BY dce.id DESC
+                LIMIT $limite";
+        return $this->selectAll($sql);
+    }
+
+    public function marcarCorreoEnviado($ordenNo)
+    {
+        $sql = "UPDATE datos_cabecera_electronica SET correo_enviado = 1 WHERE orden_no = ?";
+        return $this->save($sql, [$ordenNo]);
+    }
 }
