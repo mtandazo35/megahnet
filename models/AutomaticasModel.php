@@ -65,6 +65,22 @@ class AutomaticasModel extends Query
         return $this->selectAll($sql);
     }
 
+    /**
+     * Lista TODOS los contratos activos del mes con su estado de emision.
+     * mfemitido = 1 si ya esta marcado como facturado en mes_facturar.<mesFacturar>.
+     */
+    public function getContratosFacturarConEstado($mesFacturar, $estado, $valor)
+    {
+        $sql = "SELECT c.id, c.productos, c.total, c.direccion, c.comentario,
+                       cl.id AS idCliente, cl.nombre, c.estado, c.factura,
+                       mf.$mesFacturar AS mfemitido
+                FROM contratos c
+                INNER JOIN clientes cl ON cl.id = c.id_cliente
+                INNER JOIN mes_facturar mf ON mf.id_contrato = c.id
+                WHERE c.estado = $estado AND c.factura = $valor";
+        return $this->selectAll($sql);
+    }
+
     public function anularCredito($idVenta, $tabla)
     {
         if ($tabla == 'fisico') {

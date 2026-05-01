@@ -32,6 +32,7 @@
                         <th>Total</th>
                         <th>Tributario</th>
                         <th>Estado</th>
+                        <th>Emisión</th>
                         <th># Contrato</th>
                         <th>Fecha</th>
                     </tr>

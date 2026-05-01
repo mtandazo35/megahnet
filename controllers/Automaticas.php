@@ -1582,39 +1582,47 @@ class Automaticas extends Controller
 
     public function listarElectronica()
     {
-        $mesFacturar = date('m');
         $mesActualLetra = MESES[date('n')];
+        $data = $this->model->getContratosFacturarConEstado($mesActualLetra, 1, 1);
 
-        // print_r($mesActualLetra);   exit;
-        //echo date("m", strtotime("-1 months")); exit;
-        $data = $this->model->getContratosFacturar($mesActualLetra, 1, 1);
-        //$getClientes = $this->model->getClientes( $fecha );
-        //$data['fecha'] = date('d/m/Y');
-        //$getClientes[ 'tributario' ] = '';
-        //print_r($data );
-        //exit;
+        // Cargar errores recientes del log para mapear por idContrato (ultimo error gana).
+        $erroresPorContrato = [];
+        $logFile = __DIR__ . '/../storage/automaticas_facturacion.log';
+        if (file_exists($logFile)) {
+            $lineas = @file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            if (is_array($lineas)) {
+                foreach ($lineas as $linea) {
+                    if (preg_match('/contrato=(\d+).*?error=(.+)$/', $linea, $m)) {
+                        $erroresPorContrato[(int)$m[1]] = trim($m[2]);
+                    }
+                }
+            }
+        }
+
         for ($i = 0; $i < count($data); $i++) {
-
             if ($data[$i]['estado'] == 1) {
                 $data[$i]['estado'] = '<div style="text-align: center;"><span class="badge bg-success">ACTIVO</span></div>';
             } else if ($data[$i]['estado'] == 2) {
                 $data[$i]['estado'] = '<div style="text-align: center;"><span class="badge bg-warning">PENDIENTE</span></div>';
             }
 
-            if ($data[$i]['factura'] == 1) {
-                $data[$i]['tributario'] = '<span style="justify-content: center;
-                display: flex;
-                margin: auto;" class="badge bg-success">FACTURA</span>';
+            $data[$i]['tributario'] = ($data[$i]['factura'] == 1)
+                ? '<span class="badge bg-success">FACTURA</span>'
+                : '<span class="badge bg-warning">ORDEN VENTA</span>';
+
+            // Estado de emision: EMITIDA / ERROR / PENDIENTE
+            $idContrato = (int)($data[$i]['id'] ?? 0);
+            $mfEmitido = (int)($data[$i]['mfemitido'] ?? 0);
+            if ($mfEmitido == 1) {
+                $data[$i]['estadoEmision'] = '<span class="badge bg-success">EMITIDA</span>';
+            } else if (isset($erroresPorContrato[$idContrato])) {
+                $msg = htmlspecialchars(substr($erroresPorContrato[$idContrato], 0, 200), ENT_QUOTES, 'UTF-8');
+                $data[$i]['estadoEmision'] = '<span class="badge bg-danger" title="' . $msg . '" data-bs-toggle="tooltip">ERROR</span>';
             } else {
-                $data[$i]['tributario'] = '<span style="justify-content: center;
-                display: flex;
-                margin: auto;" class="badge bg-warning">ORDEN VENTA</span>';
+                $data[$i]['estadoEmision'] = '<span class="badge bg-warning text-dark">PENDIENTE</span>';
             }
 
-
             $data[$i]['fecha'] = date('d-m-Y');
-
-            //$data[ $i ][ 'factura' ] = $this->generate_numbers( $data[ $i ][ 'orden_no' ], 1, 9 );
         }
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         die();

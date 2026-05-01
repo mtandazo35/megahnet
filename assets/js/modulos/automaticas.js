@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', function () {
         { data: 'total' },
         { data: 'tributario' },
         { data: 'estado' },
+        { data: 'estadoEmision' },
         { data: 'id' },
         { data: 'fecha' }
       ],
