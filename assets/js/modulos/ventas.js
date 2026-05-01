@@ -156,6 +156,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	{ data: 'acciones' },
       { data: 'cliente' },
 	  { data: 'fecha' },
+      { data: 'hora', defaultContent: '' },
       { data: 'factura' },      
       { data: 'claveacceso' },
       { data: 'estado' },
@@ -169,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function () {
     dom,
     buttons,
     responsive: true,
-    order: [[3, 'desc']]
+    order: [[4, 'desc']]
   })
 
   // Auto-reload cada 15s del listado de Factura Electronica

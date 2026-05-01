@@ -297,6 +297,7 @@ $totalDocumento    = $limiteDocumento - $cantidadDocumento;
 								<th></th>
 									<th>Cliente</th>
                                     <th>Fecha</th>
+                                    <th>Hora</th>
                                     <th>Factura</th>                                    
                                     <th>Clave Accesso</th>
                                     <th>Estado</th>

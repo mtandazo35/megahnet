@@ -60,7 +60,8 @@ class VentasModel extends Query
     public function getVentasElectronica()
     {
         // LEFT JOIN: mostrar ventas aunque aun no tengan respuesta del SRI
-        $sql = "SELECT dce.fecha, dce.orden_no, dce.cliente, dce.estado, dce.totalfactura, dce.claveacceso,
+        $sql = "SELECT dce.fecha, TIME_FORMAT(rs.createdAt, '%H:%i:%s') AS hora,
+                       dce.orden_no, dce.cliente, dce.estado, dce.totalfactura, dce.claveacceso,
                        COALESCE(rs.estado, 'PENDIENTE') AS autorizacion
                 FROM datos_cabecera_electronica dce
                 LEFT JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
