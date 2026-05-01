@@ -83,18 +83,28 @@ function sendEmail($data, $template, $vista)
         require_once(__DIR__ . "/../views/" . $vista . "/" . $template . ".php");
         $mensaje = ob_get_clean();
 
-        // Fix migracion: usar PHPMailer SMTP en vez de mail() nativo (no pierde attachments)
+        // SMTP via notifSmtpSettings() (storage/alertas-config.json con fallback al .env).
+        // Asi la config editada desde /notificaciones aplica tambien al envio de facturas.
+        $smtpCfg = function_exists('notifSmtpSettings') ? notifSmtpSettings() : [
+            'host'      => defined('HOST_SMTP')   ? HOST_SMTP   : 'smtp.gmail.com',
+            'port'      => defined('PUERTO_SMTP') ? (int)PUERTO_SMTP : 465,
+            'secure'    => defined('SECURE_SMTP') ? (int)SECURE_SMTP : 1,
+            'user'      => defined('USER_SMTP')   ? USER_SMTP   : '',
+            'password'  => defined('CLAVE_SMTP')  ? CLAVE_SMTP  : '',
+            'from_email'=> null,
+        ];
         try {
             $mail = new PHPMailer(true);
             $mail->isSMTP();
-            $mail->Host       = HOST_SMTP;
+            $mail->Host       = $smtpCfg['host'];
             $mail->SMTPAuth   = true;
-            $mail->Username   = USER_SMTP;
-            $mail->Password   = CLAVE_SMTP;
-            $mail->SMTPSecure = (SECURE_SMTP == 1) ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port       = PUERTO_SMTP;
+            $mail->Username   = $smtpCfg['user'];
+            $mail->Password   = $smtpCfg['password'];
+            $mail->SMTPSecure = ((int)$smtpCfg['secure'] === 1) ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port       = (int)$smtpCfg['port'];
             $mail->CharSet    = "UTF-8";
-            $mail->setFrom(USER_SMTP, "Factura Electronica - " . $Empresa);
+            $fromEmail = !empty($smtpCfg['from_email']) ? $smtpCfg['from_email'] : $smtpCfg['user'];
+            $mail->setFrom($fromEmail, "Factura Electronica - " . $Empresa);
             $mail->addAddress($emailDestino);
             if (!empty($emailCopia)) { $mail->addBCC($emailCopia); }
             $mail->isHTML(true);
