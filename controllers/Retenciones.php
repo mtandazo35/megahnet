@@ -189,7 +189,23 @@ class Retenciones extends Controller
                                         $res = array('msg' => 'RETENCION EMITIDA EXITOSAMENTE', 'type' => 'success', 'ClaveAcceso' => $claveAcceso, 'idRetencion' => $numSerieRetenciones);
                                        try { sendEmail($dataInfo, 'email_retencionelectronica','retenciones'); } catch (\Throwable $e) { error_log('Email retencion fallo: ' . $e->getMessage()); }
                                     } else {
-                                        $res = array('msg' => 'ERROR EN LA FACTURA, CONTACTE CON SOPORTE', 'type' => 'error');
+                                        $msgSri = 'ERROR EN LA FACTURA';
+                                                $estadoSri = $autorizacion['autorizaciones']['autorizacion']['estado'] ?? '';
+                                                $mens = $autorizacion['autorizaciones']['autorizacion']['mensajes']['mensaje'] ?? null;
+                                                if ($mens) {
+                                                    $lista = isset($mens['identificador']) ? [$mens] : (is_array($mens) ? $mens : []);
+                                                    $detalles = [];
+                                                    foreach ($lista as $m) {
+                                                        if (is_array($m)) {
+                                                            $detalles[] = trim(($m['mensaje'] ?? '') . ' ' . ($m['informacionAdicional'] ?? ''));
+                                                        }
+                                                    }
+                                                    if ($detalles) $msgSri .= ' (' . $estadoSri . '): ' . implode(' | ', $detalles);
+                                                } else if ($estadoSri) {
+                                                    $msgSri .= ' (' . $estadoSri . ')';
+                                                }
+                                                error_log('SRI rechazo en ' . __FILE__ . ': clave=' . ($claveAcceso ?? '') . ' estado=' . $estadoSri . ' detalle=' . json_encode($mens, JSON_UNESCAPED_UNICODE));
+                                                $res = array('msg' => $msgSri, 'type' => 'error');
                                     }
                                     //print_r($dataInfo); exit;
 
