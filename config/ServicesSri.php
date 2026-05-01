@@ -103,6 +103,8 @@ function sendEmail($data, $template, $vista)
             $mail->SMTPSecure = ((int)$smtpCfg['secure'] === 1) ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port       = (int)$smtpCfg['port'];
             $mail->CharSet    = "UTF-8";
+            $mail->Timeout    = 15;
+            $mail->SMTPKeepAlive = false;
             $fromEmail = !empty($smtpCfg['from_email']) ? $smtpCfg['from_email'] : $smtpCfg['user'];
             $mail->setFrom($fromEmail, "Factura Electronica - " . $Empresa);
             $mail->addAddress($emailDestino);
@@ -282,6 +284,8 @@ function sendEmailAutomatias($data)
         $mail->SMTPSecure = ((int)$smtpCfg['secure'] === 1) ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = (int)$smtpCfg['port'];
         $mail->CharSet    = 'UTF-8';
+        $mail->Timeout    = 15;
+        $mail->SMTPKeepAlive = false;
 
         $fromEmail = !empty($smtpCfg['from_email']) ? $smtpCfg['from_email'] : $smtpCfg['user'];
         $mail->setFrom($fromEmail, 'Factura Electronica - ' . $Empresa);

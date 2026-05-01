@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   function ejecutarReenvio(){
-    var lote = 20, maxIter = 200;
+    var lote = 5, maxIter = 1000;
     var acum = { ok: 0, fail: 0, fallidos: [] };
     Swal.fire({
       title: 'Reenviando correos…',
