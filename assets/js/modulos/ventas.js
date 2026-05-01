@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   tblHistorialFE = $('#tblHistorialFE').DataTable({
     deferRender: true,
-    stateSave: true,
+    stateSave: false,
     stateDuration: -1,
     colReorder: true,
     pageLength: 10,
