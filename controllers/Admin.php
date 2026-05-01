@@ -1178,4 +1178,109 @@ class Admin extends Controller
         echo json_encode(['ok'=>true,'msg'=>'Plantilla actualizada','tam'=>filesize($plantilla),'mtime'=>date('Y-m-d H:i:s', filemtime($plantilla))]);
         exit;
     }
+
+    /** Lista los ultimos contratos para el selector del simulador. */
+    public function contratosRecientes()
+    {
+        if ($_SESSION['rol'] == 2) { http_response_code(403); echo '[]'; exit; }
+        require_once __DIR__ . '/../models/ContratosModel.php';
+        $m = new \ContratosModel();
+        $pdo = new \PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, PASSWORD);
+        $stmt = $pdo->query("SELECT c.id, c.fecha, cl.nombre AS cliente FROM contratos c INNER JOIN clientes cl ON cl.id = c.id_cliente WHERE c.estado = 1 ORDER BY c.id DESC LIMIT 30");
+        header('Content-Type: application/json');
+        echo json_encode($stmt->fetchAll(\PDO::FETCH_ASSOC), JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    /**
+     * Simulador del contrato: rellena la plantilla con datos reales del contrato
+     * indicado y devuelve el resultado como PDF inline (no descarga).
+     */
+    public function previewContrato($idContrato = null)
+    {
+        if ($_SESSION['rol'] == 2) {
+            header('Location: ' . BASE_URL . 'admin/permisos');
+            exit;
+        }
+        $idContrato = (int)$idContrato;
+        if ($idContrato <= 0) { http_response_code(400); echo 'idContrato requerido'; exit; }
+
+        $plantilla = __DIR__ . '/../assets/docs/CONTRATO.docx';
+        if (!file_exists($plantilla)) { http_response_code(404); echo 'Plantilla no encontrada'; exit; }
+
+        require_once __DIR__ . '/../models/ContratosModel.php';
+        $model = new \ContratosModel();
+        $contrato = $model->getContrato($idContrato);
+        if (empty($contrato)) { http_response_code(404); echo 'Contrato no encontrado'; exit; }
+        $empresa = $model->getEmpresa() ?: [];
+
+        // Generar docx temporal con los placeholders rellenos (mismo mapeo que Contratos::reporte)
+        $tmpDocx = sys_get_temp_dir() . '/preview_contrato_' . $idContrato . '_' . uniqid() . '.docx';
+        try {
+            $tpl = new \PhpOffice\PhpWord\TemplateProcessor($plantilla);
+            // Empresa
+            $tpl->setValue('empresaRazonSocial', $empresa['razon_social'] ?? '');
+            $tpl->setValue('empresaNombre',      $empresa['nombre']       ?? '');
+            $tpl->setValue('empresaRuc',         $empresa['ruc']          ?? '');
+            $tpl->setValue('empresaTelefono',    $empresa['telefono']     ?? '');
+            $tpl->setValue('empresaCorreo',      $empresa['correo']       ?? '');
+            $tpl->setValue('empresaDireccion',   $empresa['direccion']    ?? '');
+            $tpl->setValue('provincia',  $empresa['provincia'] ?? 'LOS RIOS');
+            $tpl->setValue('provinvia',  $empresa['provincia'] ?? 'LOS RIOS');
+            $tpl->setValue('canton',     $empresa['canton']    ?? 'QUEVEDO');
+            $tpl->setValue('parroquia',  $empresa['parroquia'] ?? '7 DE OCTUBRE');
+            // Cliente
+            $tpl->setValue('cliente',          $contrato['nombre']           ?? '');
+            $tpl->setValue('tipoIdentidad',    $contrato['identidad']        ?? '');
+            $tpl->setValue('cedula',           $contrato['num_identidad']    ?? '');
+            $tpl->setValue('correo',           $contrato['correo']           ?? '');
+            $tpl->setValue('telefono',         $contrato['telefono']         ?? '');
+            $tpl->setValue('direccionCliente', $contrato['direccionCliente'] ?? '');
+            // Contrato
+            $tpl->setValue('contratoNumero',    str_pad((string)$idContrato, 7, '0', STR_PAD_LEFT));
+            $tpl->setValue('fechaContrato',     $contrato['fecha']        ?? '');
+            $tpl->setValue('direccionServicio', $contrato['direccion']    ?? '');
+            $tpl->setValue('ciudad',            $contrato['ciudad']       ?: ($empresa['canton'] ?? 'QUEVEDO'));
+            $tpl->setValue('ipUsuario',         $contrato['ip_usuario']   ?? '');
+            $tpl->setValue('repetidora',        $contrato['repetidora']   ?? '');
+            $tpl->setValue('ap',                $contrato['ap']           ?? '');
+            $tpl->setValue('medio',             $contrato['medio']        ?? '');
+            $tpl->setValue('anchoBanda',        $contrato['ancho_banda']  ?? '');
+            $tpl->setValue('comparticion',      $contrato['comparticion'] ?? '');
+            $tpl->setValue('total',             $contrato['total']        ?? '');
+            $tpl->setValue('discapacidad',      strtoupper((string)($contrato['discapacidad'] ?? 'NO')));
+            try {
+                $logoFile = !empty($empresa['img']) ? __DIR__ . '/../assets/images/empresa/' . $empresa['img'] : '';
+                if ($logoFile && file_exists($logoFile)) {
+                    $tpl->setImageValue('logo', ['path' => $logoFile, 'width' => 150, 'height' => 60, 'ratio' => true]);
+                }
+            } catch (\Throwable $e) { /* logo opcional */ }
+            $tpl->saveAs($tmpDocx);
+
+            // Convertir docx a PDF usando PhpWord + Dompdf
+            \PhpOffice\PhpWord\Settings::setPdfRendererName('DomPDF');
+            \PhpOffice\PhpWord\Settings::setPdfRendererPath(__DIR__ . '/../vendor/dompdf/dompdf');
+            $phpWord = \PhpOffice\PhpWord\IOFactory::load($tmpDocx);
+            $pdfWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'PDF');
+
+            ob_start();
+            $pdfWriter->save('php://output');
+            $pdfBin = ob_get_clean();
+
+            @unlink($tmpDocx);
+
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="preview_contrato_' . $idContrato . '.pdf"');
+            header('Content-Length: ' . strlen($pdfBin));
+            header('Cache-Control: no-cache, no-store, must-revalidate');
+            echo $pdfBin;
+            exit;
+        } catch (\Throwable $e) {
+            @unlink($tmpDocx);
+            http_response_code(500);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo 'Error al generar preview: ' . $e->getMessage();
+            exit;
+        }
+    }
 }

@@ -43,6 +43,28 @@
 
           <hr class="my-4">
 
+          <h5 class="mb-3"><i class="bx bx-show"></i> Simulador de contrato</h5>
+          <p class="text-muted small">Selecciona un contrato real para ver como se veria con la plantilla actual rellenada.</p>
+          <div class="row g-2 align-items-end mb-3">
+            <div class="col-md-8">
+              <label class="form-label small">Contrato</label>
+              <select id="selContrato" class="form-select form-select-sm">
+                <option value="">-- Cargando contratos --</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <button id="btnPreview" type="button" class="btn btn-primary btn-sm w-100" disabled>
+                <i class="bx bx-show"></i> Generar vista previa PDF
+              </button>
+            </div>
+          </div>
+          <div id="previewWrap" class="border rounded" style="display:none;">
+            <iframe id="previewIframe" style="width:100%; height:780px; border:0;"></iframe>
+          </div>
+          <div id="previewError" class="small mt-2"></div>
+
+          <hr class="my-4">
+
           <h5 class="mb-3"><i class="bx bx-code-curly"></i> Variables disponibles para la plantilla</h5>
           <p class="text-muted small">Insertalas en el .docx con la sintaxis <code>${nombre}</code>. Click sobre una para copiarla.</p>
 
@@ -72,6 +94,39 @@
 </div>
 
 <script>
+// Cargar contratos recientes
+fetch('<?= BASE_URL ?>admin/contratosRecientes')
+  .then(function(r){ return r.json(); })
+  .then(function(arr){
+    const sel = document.getElementById('selContrato');
+    sel.innerHTML = '<option value="">-- Selecciona un contrato --</option>';
+    (arr || []).forEach(function(c){
+      const op = document.createElement('option');
+      op.value = c.id;
+      op.textContent = '#' + c.id + ' - ' + c.cliente + '  (' + c.fecha + ')';
+      sel.appendChild(op);
+    });
+  })
+  .catch(function(){
+    document.getElementById('selContrato').innerHTML = '<option value="">No se pudo cargar</option>';
+  });
+document.getElementById('selContrato').addEventListener('change', function(){
+  document.getElementById('btnPreview').disabled = !this.value;
+});
+document.getElementById('btnPreview').addEventListener('click', function(){
+  const id = document.getElementById('selContrato').value;
+  if (!id) return;
+  const wrap = document.getElementById('previewWrap');
+  const iframe = document.getElementById('previewIframe');
+  const err = document.getElementById('previewError');
+  err.innerHTML = '<span class="text-muted">Generando PDF...</span>';
+  wrap.style.display = 'block';
+  iframe.src = '<?= BASE_URL ?>admin/previewContrato/' + id + '?t=' + Date.now();
+  iframe.onload = function(){
+    err.innerHTML = '<span class="text-success small"><i class="bx bx-check"></i> Vista previa generada</span>';
+  };
+});
+
 document.querySelectorAll('.copy-var').forEach(function(el){
   el.addEventListener('click', function(){
     const txt = el.dataset.var;
