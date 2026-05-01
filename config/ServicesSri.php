@@ -80,7 +80,7 @@ function sendEmail($data, $template, $vista)
         $de .= "From: {$Empresa} <{$emailRemitente}>\r\n";
         $de .= "Bcc: $emailCopia\r\n";
         ob_start(); // cargar la plantilla HTML del correo
-        require_once(__DIR__ . "/../views/" . $vista . "/" . $template . ".php");
+        include(__DIR__ . "/../views/" . $vista . "/" . $template . ".php");
         $mensaje = ob_get_clean();
 
         // SMTP via notifSmtpSettings() (storage/alertas-config.json con fallback al .env).
@@ -130,7 +130,7 @@ function sendEmail($data, $template, $vista)
         //Create an instance; passing `true` enables exceptions
         $mail = new PHPMailer(true);
         ob_start();
-        require_once("views/" . $vista . "/" . $template . ".php");
+        include("views/" . $vista . "/" . $template . ".php");
         $mensaje = ob_get_clean();
         $dompdf = new Dompdf();
         $dompdf->loadHtml($mensaje);
@@ -194,7 +194,7 @@ function sendEmailCotizacion($data, $template, $vista)
     //Create an instance; passing `true` enables exceptions
     $mail = new PHPMailer(true);
     ob_start();
-    require_once("views/" . $vista . "/" . $template . ".php");
+    include("views/" . $vista . "/" . $template . ".php");
     $mensaje = ob_get_clean();
     $dompdf = new Dompdf();
     $dompdf->loadHtml($mensaje);
@@ -323,7 +323,7 @@ function sendEmailOrden($data, $template)
     //Create an instance; passing `true` enables exceptions
     $mail = new PHPMailer(true);
     ob_start();
-    require_once("views/automaticas/" . $template . ".php");
+    include("views/automaticas/" . $template . ".php");
     $mensaje = ob_get_clean();
     $dompdf = new Dompdf();
     $dompdf->loadHtml($mensaje);
