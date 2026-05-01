@@ -33,45 +33,18 @@ function sendEmailAutomatias($data)
         $ArchivoPDF = ROOT_PATH . "/facturaelectronica/public/archivos/Retenciones/ride/" . $claveAcceso . ".pdf";
         $ArchivoXML = ROOT_PATH . "/facturaelectronica/public/archivos/Retenciones/autorizados/" . $claveAcceso . ".xml";
     }
-    //Create an instance; passing `true` enables exceptions
-    $mail = new PHPMailer(true);
-
-
-    try {
-        //Server settings
-        $mail->SMTPDebug = 0;                      //Enable verbose debug output
-        $mail->isSMTP();                                            //Send using SMTP
-        $mail->Host = HOST_SMTP;                     //Set the SMTP server to send through
-        $mail->SMTPAuth = true;                                   //Enable SMTP authentication
-        $mail->Username = USER_SMTP;                     //SMTP username
-        $mail->Password = CLAVE_SMTP;                               //SMTP password
-        if (SECURE_SMTP == 1) {
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;            //Enable implicit TLS encryption
-
-        } else {
-            $mail->SMTPSecure = 'STARTTLS';            //Enable implicit TLS encryption
-        }
-        $mail->Port = PUERTO_SMTP;                                    //TCP port to connect to; use 587 if you have set `SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS`
-
-        //Recipients
-        $mail->setFrom(USER_SMTP, 'Factura Electronica - ' . $Empresa);
-        $mail->addAddress($data['email']);     //Add a recipient
-        if (!empty($data['emailCopia'])) {
-            $mail->addBCC($data['emailCopia']);
-        }
-
-        //Content
-        $mail->isHTML(true);                                  //Set email format to HTML
-        $mail->Subject = $data['asunto'];
-        $mail->Body = 'BIENVENIDO A ' . $Empresa . ' ESTIMADO(A) ' . $data['cliente'] . ' ,HEMOS EMITIDO EL COMPROBANTE ELECTRONICO: FACTURA Nro. ' . $data['establecimiento'] . '-' . $data['puntoemi'] . '-' . $data['factura'] . ' ,FECHA AUTORIZADA: ' . $data['fecha'] . ' , TOTAL DE LA FACTURA ' . $data['totalfactura'];
-        $mail->addAttachment($ArchivoPDF);
-        $mail->addAttachment($ArchivoXML);
-        $mail->send();
-        return true;
-    } catch (Exception $e) {
-        return false;
-    }
-
+    $cuerpo = 'BIENVENIDO A ' . $Empresa . ' ESTIMADO(A) ' . $data['cliente'] . ' ,HEMOS EMITIDO EL COMPROBANTE ELECTRONICO: FACTURA Nro. ' . $data['establecimiento'] . '-' . $data['puntoemi'] . '-' . $data['factura'] . ' ,FECHA AUTORIZADA: ' . $data['fecha'] . ' , TOTAL DE LA FACTURA ' . $data['totalfactura'];
+    $res = enviarCorreoSMTP(
+        $data['email'],
+        $data['asunto'],
+        $cuerpo,
+        [
+            'from_name'   => 'Factura Electronica - ' . $Empresa,
+            'bcc'         => !empty($data['emailCopia']) ? $data['emailCopia'] : [],
+            'attachments' => [$ArchivoPDF, $ArchivoXML],
+        ]
+    );
+    return !empty($res['ok']);
 }
 
 ?>

@@ -907,4 +907,90 @@ function imagen_normalizar_a_jpg($srcTmp, $destPath, $jpgQuality = 90) {
     return (bool)$ok;
 }
 
+
+/**
+ * Helper centralizado para envio de correos SMTP.
+ * Usa notifSmtpSettings() para que la config provenga del JSON
+ * storage/alertas-config.json (editable desde la UI) con fallback
+ * a las constantes del .env (HOST_SMTP, USER_SMTP, etc).
+ *
+ * @param string|array $to        Email(s) destinatario(s).
+ * @param string       $asunto    Asunto.
+ * @param string       $cuerpoHtml Cuerpo (HTML por defecto).
+ * @param array        $opts      Opcionales:
+ *   - 'from_name' (string)
+ *   - 'cc'        (string|array)
+ *   - 'bcc'       (string|array)
+ *   - 'reply_to'  (string)
+ *   - 'attachments' (array de strings con paths o arrays ['path','name'])
+ *   - 'html'      (bool, default true)
+ *   - 'alt_body'  (string, texto plano alternativo)
+ * @return array ['ok'=>bool, 'msg'=>string]
+ */
+if (!function_exists('enviarCorreoSMTP')) {
+function enviarCorreoSMTP($to, $asunto, $cuerpoHtml, $opts = [])
+{
+    if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+        $base = dirname(__DIR__) . '/libraries/phpmailer/';
+        require_once $base . 'Exception.php';
+        require_once $base . 'PHPMailer.php';
+        require_once $base . 'SMTP.php';
+    }
+    $smtp = function_exists('notifSmtpSettings') ? notifSmtpSettings() : [
+        'host'      => defined('HOST_SMTP') ? HOST_SMTP : 'smtp.gmail.com',
+        'port'      => defined('PUERTO_SMTP') ? (int)PUERTO_SMTP : 465,
+        'secure'    => defined('SECURE_SMTP') ? (int)SECURE_SMTP : 1,
+        'user'      => defined('USER_SMTP') ? USER_SMTP : '',
+        'password'  => defined('CLAVE_SMTP') ? CLAVE_SMTP : '',
+        'from_name' => defined('TITLE') ? TITLE : 'Sistema',
+        'from_email'=> null,
+    ];
+    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+    try {
+        $mail->SMTPDebug = 0;
+        $mail->isSMTP();
+        $mail->Host = $smtp['host'];
+        $mail->SMTPAuth = true;
+        $mail->Username = $smtp['user'];
+        $mail->Password = $smtp['password'];
+        $mail->SMTPSecure = ((int)$smtp['secure'] === 1)
+            ? \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS
+            : \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = (int)$smtp['port'];
+        $mail->CharSet = 'UTF-8';
+
+        $fromEmail = !empty($smtp['from_email']) ? $smtp['from_email'] : $smtp['user'];
+        $fromName  = $opts['from_name'] ?? $smtp['from_name'];
+        $mail->setFrom($fromEmail, $fromName);
+
+        $tos = is_array($to) ? $to : [$to];
+        foreach ($tos as $dest) {
+            $d = trim((string)$dest);
+            if ($d !== '') $mail->addAddress($d);
+        }
+        if (!empty($opts['cc']))       foreach ((array)$opts['cc']  as $c) $mail->addCC(trim($c));
+        if (!empty($opts['bcc']))      foreach ((array)$opts['bcc'] as $c) $mail->addBCC(trim($c));
+        if (!empty($opts['reply_to'])) $mail->addReplyTo(trim($opts['reply_to']));
+        if (!empty($opts['attachments'])) {
+            foreach ((array)$opts['attachments'] as $att) {
+                if (is_array($att) && !empty($att['path'])) {
+                    $mail->addAttachment($att['path'], $att['name'] ?? '');
+                } elseif (is_string($att) && $att !== '') {
+                    $mail->addAttachment($att);
+                }
+            }
+        }
+        $mail->isHTML($opts['html'] ?? true);
+        $mail->Subject = $asunto;
+        $mail->Body    = $cuerpoHtml;
+        if (!empty($opts['alt_body'])) $mail->AltBody = $opts['alt_body'];
+
+        $mail->send();
+        return ['ok' => true, 'msg' => 'sent'];
+    } catch (\Throwable $e) {
+        return ['ok' => false, 'msg' => isset($mail) ? ($mail->ErrorInfo ?: $e->getMessage()) : $e->getMessage()];
+    }
+}
+}
+
 ?>

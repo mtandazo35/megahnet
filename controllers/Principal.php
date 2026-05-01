@@ -99,46 +99,21 @@ class Principal extends Controller
     public function enviarCorreo($correo)
     {
         $verificar = $this->model->verificarCorreo($correo);
-        if (!empty($verificar)) {
-            $mail = new PHPMailer(true);
-            $fecha = date('YmdHis');
-            $token = md5($fecha);
-            try {
-                //Server settings
-                //$mail->SMTPDebug = SMTP::DEBUG_SERVER;                      //Enable verbose debug output
-                $mail->SMTPDebug = 0;                      //Enable verbose debug output
-                $mail->isSMTP();                                            //Send using SMTP
-                $mail->Host       = HOST_SMTP;                     //Set the SMTP server to send through
-                $mail->SMTPAuth   = true;                                   //Enable SMTP authentication
-                $mail->Username   = USER_SMTP;                     //SMTP username
-                $mail->Password   = CLAVE_SMTP;                               //SMTP password
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;            //Enable implicit TLS encryption
-                $mail->Port       = PUERTO_SMTP;                                    //TCP port to connect to; use 587 if you have set `SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS`
-
-                //Recipients
-                $mail->setFrom(USER_SMTP, 'EDESSI');
-                $mail->addAddress($correo);
-
-                //Content
-                $mail->isHTML(true);
-                $mail->CharSet = 'UTF-8';                                  //Set email format to HTML
-                $mail->Subject = 'Restablecer Contraseña - ' . TITLE;
-                $mail->Body    = 'Has pedido restablecer tu contraseña, si no has sido omite este mensaje <br />
-            Para cambiar <a href="' . BASE_URL . 'principal/reset/' . $token . '">CLICK AQUI</a>';
-
-                $mail->send();
-
-                $verificarToken = $this->model->registrarToken($token, $correo);
-                if ($verificarToken == 1) {
-                    $res = array('msg' => 'CORREO ENVIADO CON UN TOKEN DE SEGURIDAD', 'type' => 'success');
-                } else {
-                    $res = array('msg' => 'ERROR AL REGISTRAR EL TOKEN', 'type' => 'error');
-                }
-            } catch (Exception $e) {
-                $res = array('msg' => 'ERROR AL ENVIAR EL CORREO: ' . $mail->ErrorInfo, 'type' => 'error');
-            }
+        if (empty($verificar)) {
+            $res = ['msg' => 'EL CORREO NO ESTA REGISTRADO', 'type' => 'warning'];
+            echo json_encode($res, JSON_UNESCAPED_UNICODE);
+            die();
+        }
+        $token = md5(date('YmdHis'));
+        $cuerpo = 'Has pedido restablecer tu contrasena, si no has sido omite este mensaje <br />Para cambiar <a href="' . BASE_URL . 'principal/reset/' . $token . '">CLICK AQUI</a>';
+        $envio = enviarCorreoSMTP($correo, 'Restablecer Contrasena - ' . TITLE, $cuerpo);
+        if (!$envio['ok']) {
+            $res = ['msg' => 'ERROR AL ENVIAR EL CORREO: ' . $envio['msg'], 'type' => 'error'];
         } else {
-            $res = array('msg' => 'EL CORREO NO ESTA REGISTRADO', 'type' => 'warning');
+            $verificarToken = $this->model->registrarToken($token, $correo);
+            $res = ($verificarToken == 1)
+                ? ['msg' => 'CORREO ENVIADO CON UN TOKEN DE SEGURIDAD', 'type' => 'success']
+                : ['msg' => 'ERROR AL REGISTRAR EL TOKEN', 'type' => 'error'];
         }
         echo json_encode($res, JSON_UNESCAPED_UNICODE);
         die();
