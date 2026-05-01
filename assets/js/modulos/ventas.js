@@ -174,6 +174,16 @@ document.addEventListener('DOMContentLoaded', function () {
     order: [[4, 'desc']]
   })
 
+  // Filtros por SRI (col 8) y Correo (col 9)
+  var fSri = document.getElementById('filtroSri');
+  if (fSri) fSri.addEventListener('change', function(){
+    tblHistorialFE.column(8).search(this.value || '', false, false).draw();
+  });
+  var fCor = document.getElementById('filtroCorreo');
+  if (fCor) fCor.addEventListener('change', function(){
+    tblHistorialFE.column(9).search(this.value || '', false, false).draw();
+  });
+
   // Auto-reload cada 15s del listado de Factura Electronica
   // - Usa ajax.reload(null, false) para no resetear paginacion ni filtros
   // - Pausa cuando la pestaña no esta visible (ahorra ancho de banda)

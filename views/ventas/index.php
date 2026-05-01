@@ -290,6 +290,27 @@ $totalDocumento    = $limiteDocumento - $cantidadDocumento;
                             <input id="hasta" class="form-control" type="date">
                         </div>
                     </div>
+                    <div class="d-flex align-items-end gap-2 mb-2 flex-wrap">
+                        <div>
+                            <label for="filtroSri" class="form-label small mb-1">Filtrar por SRI</label>
+                            <select id="filtroSri" class="form-select form-select-sm" style="min-width: 170px;">
+                                <option value="">— Todas —</option>
+                                <option value="AUTORIZADO">AUTORIZADO</option>
+                                <option value="NO AUTORIZADO">NO AUTORIZADO</option>
+                                <option value="EN PROCESO">EN PROCESO</option>
+                                <option value="DEVUELTA">DEVUELTA</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="filtroCorreo" class="form-label small mb-1">Filtrar por correo</label>
+                            <select id="filtroCorreo" class="form-select form-select-sm" style="min-width: 170px;">
+                                <option value="">— Todas —</option>
+                                <option value="ENVIADO">ENVIADO</option>
+                                <option value="NO ENVIADO">NO ENVIADO</option>
+                                <option value="SIN CORREO">SIN CORREO</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-bordered table-striped table-hover align-middle nowrap" id="tblHistorialFE" style="width: 100%;">
                             <thead>
