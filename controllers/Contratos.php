@@ -155,6 +155,10 @@ class Contratos extends Controller
                     $res = ['msg' => 'EL ANCHO DE BANDA ES REQUERIDO', 'type' => 'warning'];
                 } else if (empty($ciudad)) {
                     $res = ['msg' => 'LA CIUDAD ES REQUERIDO', 'type' => 'warning'];
+                } else if (!filter_var($ipUsuario, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                    $res = ['msg' => 'IP USUARIO invalida: "' . $ipUsuario . '". Use formato IPv4 (ej. 172.20.5.194).', 'type' => 'warning'];
+                } else if (!filter_var($ap, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                    $res = ['msg' => 'AP invalida: "' . $ap . '". Use formato IPv4.', 'type' => 'warning'];
                 } else {
                     // Validacion: IP no debe estar duplicada con otro contrato activo
                     $idExcluir = ($id == '') ? 0 : (int)$id;
