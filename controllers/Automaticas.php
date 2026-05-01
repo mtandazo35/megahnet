@@ -68,6 +68,10 @@ class Automaticas extends Controller
     }
        public function registrarVentaAutomatico($factura)
     {
+        $this->cargarSri();
+        // El proceso puede iterar cientos de contratos; aumentar timeouts.
+        @set_time_limit(0);
+        @ini_set('memory_limit', '512M');
 
         $valorFactura = ($factura == 2) ? 0 : 1 ;
 
