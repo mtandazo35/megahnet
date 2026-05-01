@@ -79,8 +79,8 @@ function sendEmail($data, $template, $vista)
         $de .= "Content-type: text/html; charset=UTF-8\r\n";
         $de .= "From: {$Empresa} <{$emailRemitente}>\r\n";
         $de .= "Bcc: $emailCopia\r\n";
-        ob_start(); //se carga los archivos 
-        //require_once("Views/Template/Email/".$template.".php");
+        ob_start(); // cargar la plantilla HTML del correo
+        require_once(__DIR__ . "/../views/" . $vista . "/" . $template . ".php");
         $mensaje = ob_get_clean();
 
         // Fix migracion: usar PHPMailer SMTP en vez de mail() nativo (no pierde attachments)
