@@ -197,7 +197,8 @@ class Automaticas extends Controller
                     '',
                     $estado,
                     $metodo,
-                    $this->id_usuario
+                    $this->id_usuario,
+                    $idCliente
                 );
                 if ($ventaEncabezado > 0) {
                     foreach ($productos as $producto) {
@@ -542,7 +543,8 @@ class Automaticas extends Controller
                     '',
                     $estado,
                     $metodo,
-                    $this->id_usuario
+                    $this->id_usuario,
+                    $idCliente
                 );
                 if ($ventaEncabezado > 0) {
                     foreach ($productos as $producto) {
@@ -795,7 +797,8 @@ class Automaticas extends Controller
                     '',
                     $estado,
                     $metodo,
-                    $this->id_usuario
+                    $this->id_usuario,
+                    $idCliente
                 );
                 if ($ventaEncabezado > 0) {
                     foreach ($productos as $producto) {
