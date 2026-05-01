@@ -223,7 +223,7 @@ class Automaticas extends Controller
                         //$descuento=0;
                         $subTotal = round($precio_siniva * $cantidad, 4);
                         $descuentoDetalle = round(($subTotal * $descuento) / 100, 2);
-                        $ventaDetalle =  $this->model->registrarDetalle($numSerieElectronica, $cantidad, $descripcion, $precio_siniva, $subTotal, $iva, $codigo, $descuentoDetalle);
+                        $ventaDetalle =  $this->model->registrarDetalle($numSerieElectronica, $cantidad, $descripcion, $precio_siniva, $subTotal, $iva, $codigo, $descuentoDetalle, $precio, $descuento, $producto['id']);
                     }
                     if ($ventaDetalle > 0) {
                         foreach ($productos as $producto) {
@@ -594,7 +594,7 @@ class Automaticas extends Controller
                         //$descuento=0;
                         $subTotal = round($precio_siniva * $cantidad, 4);
                         $descuentoDetalle = round(($subTotal * $descuento) / 100, 2);
-                        $ventaDetalle = $this->model->registrarDetalle($numSerieElectronica, $cantidad, $descripcion, $precio_siniva, $subTotal, $iva, $codigo, $descuentoDetalle);
+                        $ventaDetalle = $this->model->registrarDetalle($numSerieElectronica, $cantidad, $descripcion, $precio_siniva, $subTotal, $iva, $codigo, $descuentoDetalle, $precio, $descuento, $producto['id']);
                     }
                     if ($ventaDetalle > 0) {
                         foreach ($productos as $producto) {
@@ -847,7 +847,7 @@ class Automaticas extends Controller
                         //$descuento=0;
                         $subTotal = round($precio_siniva * $cantidad, 4);
                         $descuentoDetalle = round(($subTotal * $descuento) / 100, 2);
-                        $ventaDetalle = $this->model->registrarDetalle($numSerieElectronica, $cantidad, $descripcion, $precio_siniva, $subTotal, $iva, $codigo, $descuentoDetalle);
+                        $ventaDetalle = $this->model->registrarDetalle($numSerieElectronica, $cantidad, $descripcion, $precio_siniva, $subTotal, $iva, $codigo, $descuentoDetalle, $precio, $descuento, $producto['id']);
                     }
                     if ($ventaDetalle > 0) {
                         foreach ($productos as $producto) {

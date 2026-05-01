@@ -94,9 +94,10 @@ function programada() {
           htmlF += '<tr><td>' + (f.idContrato || '?') + '</td><td>' + ((f.cliente || '').replace(/[<>]/g, '')) + '</td><td class="small text-danger">' + ((f.error || '').replace(/[<>]/g, '').substring(0, 200)) + '</td></tr>';
         });
         htmlF += '</tbody></table></div>';
+        const todosFallaron = (res.totalProcesados || 0) === 0;
         Swal.fire({
-          icon: 'warning',
-          title: 'Facturacion completada con errores',
+          icon: todosFallaron ? 'error' : 'warning',
+          title: todosFallaron ? 'Facturacion FALLIDA: ningun contrato procesado' : 'Facturacion completada con errores',
           html: htmlF,
           width: 800,
           showCancelButton: false,
