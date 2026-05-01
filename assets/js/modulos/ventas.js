@@ -139,6 +139,17 @@ document.addEventListener('DOMContentLoaded', function () {
   })
 
   // cargar datos con el plugin datatables Factura Electronica
+  // Invalidar state previo si la firma de columnas cambio (evita que el listado quede vacio
+  // por estado guardado con menos/mas columnas).
+  try {
+    var __sigKey = 'DataTables_tblHistorialFE_colSig';
+    var __sigActual = 'fe_v3'; // bump cuando cambien columnas
+    if (localStorage.getItem(__sigKey) !== __sigActual) {
+      Object.keys(localStorage).filter(function(k){ return k.indexOf('tblHistorialFE') !== -1; }).forEach(function(k){ localStorage.removeItem(k); });
+      localStorage.setItem(__sigKey, __sigActual);
+    }
+  } catch(e){}
+
   tblHistorialFE = $('#tblHistorialFE').DataTable({
     deferRender: true,
     stateSave: true,
@@ -146,7 +157,15 @@ document.addEventListener('DOMContentLoaded', function () {
     colReorder: true,
     pageLength: 10,
     lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
-    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
+    stateLoadParams: function(settings, data){
+      // Si el estado guardado tiene distinto numero de columnas que el actual, descartarlo.
+      try {
+        var actualCols = settings.aoColumns ? settings.aoColumns.length : 0;
+        var savedCols  = data && data.columns ? data.columns.length : 0;
+        if (actualCols && savedCols && actualCols !== savedCols) { return false; }
+      } catch(e){}
+      var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; }
+    },
     
     ajax: {
       url: base_url + 'ventas/listarElectronica',
