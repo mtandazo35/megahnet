@@ -419,7 +419,11 @@ class Automaticas extends Controller
         //print_r($datosFacturasElectronicas); 
        // $this->model->actualizarMesContratoF($mesActualLetra, 0, $idContrato, 'TODOS');
         //$this->model->actualizarEstadoCorte(0);
-        $this->model->actualizarCorte($fechaCorte, $fechas.' '.$horas, $campo);
+        // Solo cerrar el corte si efectivamente se proceso al menos un contrato.
+        // Si todos fallaron, el operador debe poder reintentar sin reabrir manualmente.
+        if (($countFacturas + $countOrdenVentas) > 0) {
+            $this->model->actualizarCorte($fechaCorte, $fechas.' '.$horas, $campo);
+        }
 
 
         $totalProc  = $countFacturas + $countOrdenVentas;
