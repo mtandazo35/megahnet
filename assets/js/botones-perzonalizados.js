@@ -29,10 +29,9 @@ const buttons = [
     },
     {
         extend: 'colvis',
-        className: 'btn btn-outline-secondary btn-sm',
+        className: 'btn btn-secondary btn-sm dt-btn-colvis',
         titleAttr: 'Mostrar / ocultar columnas',
-        text: '<i class="bx bx-columns me-1"></i>Columnas',
-        // Excluir la primera col (acciones) del menu para que siempre quede visible
+        text: '<i class="bx bx-columns me-1"></i><span>Columnas</span>',
         columns: ':not(:first-child)'
     }
 ];
@@ -49,6 +48,10 @@ const buttons = [
         ".dt-buttons .dt-button.btn:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.10)}",
         ".dt-buttons .dt-button.btn:focus{box-shadow:0 0 0 .2rem rgba(13,110,253,.25)}",
         ".dt-buttons .dt-button.btn i{vertical-align:-2px}",
+        ".dt-buttons .dt-button.dt-btn-colvis{background:#6b7280!important;border-color:#6b7280!important;color:#fff!important;display:inline-flex;align-items:center;gap:.35rem}",
+        ".dt-buttons .dt-button.dt-btn-colvis:hover{background:#4b5563!important;border-color:#4b5563!important;color:#fff!important}",
+        ".dt-buttons .dt-button.dt-btn-colvis i{color:#fff}",
+        ".dt-buttons .dt-button.dt-btn-colvis span{color:#fff;font-weight:500}",
         // === Menu desplegable de Columnas (ColVis) ===
         ".dt-button-collection{padding:.4rem 0!important;border-radius:.6rem!important;box-shadow:0 6px 24px rgba(0,0,0,.12)!important;border:1px solid #e5e7eb!important;min-width:220px!important;background:#fff!important}",
         ".dt-button-collection .dt-button{display:flex!important;align-items:center;gap:.6rem;width:100%!important;padding:.5rem 1rem!important;margin:0!important;border-radius:0!important;background:transparent!important;color:#374151!important;font-size:.875rem;border:0!important;text-align:left!important;cursor:pointer;transition:background .12s ease}",
