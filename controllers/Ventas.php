@@ -632,6 +632,17 @@ class Ventas extends Controller
             }
 
             $data[$i]['factura'] = $this->generate_numbers($data[$i]['orden_no'], 1, 9);
+
+            // Estado de envio de correo al cliente
+            $tieneCorreo = !empty($data[$i]['correo']) && filter_var($data[$i]['correo'], FILTER_VALIDATE_EMAIL);
+            $enviado = (int)($data[$i]['correo_enviado'] ?? 0) === 1;
+            if (!$tieneCorreo) {
+                $data[$i]['correoBadge'] = '<span class="badge bg-secondary" title="Cliente sin email">SIN CORREO</span>';
+            } else if ($enviado) {
+                $data[$i]['correoBadge'] = '<span class="badge bg-success" title="Enviado a ' . htmlspecialchars($data[$i]['correo']) . '">ENVIADO</span>';
+            } else {
+                $data[$i]['correoBadge'] = '<span class="badge bg-warning text-dark" title="Pendiente de envio a ' . htmlspecialchars($data[$i]['correo']) . '">NO ENVIADO</span>';
+            }
         }
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         die();

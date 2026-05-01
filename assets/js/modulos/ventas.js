@@ -161,7 +161,8 @@ document.addEventListener('DOMContentLoaded', function () {
       { data: 'claveacceso' },
       { data: 'estado' },
       { data: 'totalfactura' },
-      { data: 'autorizacion' }
+      { data: 'autorizacion' },
+      { data: 'correoBadge', defaultContent: '' }
       
     ],
     language: {

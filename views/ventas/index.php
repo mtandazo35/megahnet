@@ -303,6 +303,7 @@ $totalDocumento    = $limiteDocumento - $cantidadDocumento;
                                     <th>Estado</th>
                                     <th>Total</th>
                                     <th>Sri</th>
+                                    <th>Correo</th>
                                     
                                 </tr>
                             </thead>
