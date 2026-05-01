@@ -6,7 +6,7 @@
     <div class="notif-header-icon"><i class="bx bx-bell"></i></div>
     <div class="ms-3">
       <h4 class="mb-0 fw-semibold notif-header-title">Notificaciones</h4>
-      <small class="text-muted">Historial de alertas, configuracion y plantillas de mensajes</small>
+      <small class="text-muted">Servidor SMTP centralizado: alertas, facturas electronicas y respaldos automaticos</small>
     </div>
   </div>
   <div class="d-flex gap-2">
@@ -488,11 +488,19 @@
 
     <?php $smtp = $data['config']['smtp'] ?? []; ?>
 
+    <div class="alert alert-info py-2 px-3 mb-3 small" role="alert">
+      <i class="bx bx-info-circle me-1"></i>
+      <b>Configuracion unica para todos los envios de correo del sistema:</b>
+      alertas administrativas internas, comprobantes electronicos a clientes (SRI),
+      respaldos automaticos de base de datos y mensajes desde plantillas.
+      Cambiar estos valores afecta a todos los envios.
+    </div>
+
     <div class="card cfg-section smtp-card mb-3">
       <div class="card-header d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center">
           <i class="bx bx-server text-primary me-2" style="font-size:18px;"></i>
-          <h6 class="fw-semibold text-dark">Servidor SMTP <span class="small ms-1">— credenciales para enviar los correos</span></h6>
+          <h6 class="fw-semibold text-dark">Servidor SMTP <span class="small ms-1">— centralizado para alertas administrativas, facturas electronicas a clientes y respaldos automaticos</span></h6>
         </div>
         <div class="dropdown">
           <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
