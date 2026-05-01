@@ -404,29 +404,52 @@ class Contratos extends Controller
          * 1️⃣ GENERAR WORD
          * ================================================== */
 
-            //DATOS DEL CLIENTE 
             $template = new TemplateProcessor($plantilla);
-            $template->setValue('cliente', $contrato['nombre']);
-            $template->setValue('cedula', $contrato['num_identidad']);
-            $template->setValue('correo', $contrato['correo']);
-            $template->setValue('telefono', $contrato['telefono']);
-            $template->setValue('direccionCliente', $contrato['direccionCliente']);
 
-            //DATOS DEL CONTRATO
-            $template->setValue('direccionServicio', $contrato['direccion']);
-            $template->setValue('provinvia', 'LOS RIOS');
-            $template->setValue('ciudad', 'QUEVEDO');
-            $template->setValue('canton', 'QUEVEDO');
-            $template->setValue('parroquia', '7 DE OCTUBRE');
-            $template->setValue('discapacidad', 'NO');
+            // DATOS DE LA EMPRESA (configuracion) — fijos, vienen de BD
+            $empresa = $this->model->getEmpresa() ?: [];
+            $template->setValue('empresaRazonSocial', $empresa['razon_social']  ?? '');
+            $template->setValue('empresaNombre',      $empresa['nombre']        ?? '');
+            $template->setValue('empresaRuc',         $empresa['ruc']           ?? '');
+            $template->setValue('empresaTelefono',    $empresa['telefono']      ?? '');
+            $template->setValue('empresaCorreo',      $empresa['correo']        ?? '');
+            $template->setValue('empresaDireccion',   $empresa['direccion']     ?? '');
 
-            $template->setValue('medio', $contrato['medio']);
-            $template->setValue('anchoBanda', $contrato['ancho_banda']);
-            $template->setValue('total', $contrato['total']);
+            // LOCALIZACION (configuracion) — antes hardcoded
+            $template->setValue('provincia',  $empresa['provincia'] ?? 'LOS RIOS');
+            $template->setValue('provinvia',  $empresa['provincia'] ?? 'LOS RIOS'); // typo legacy preservado
+            $template->setValue('canton',     $empresa['canton']    ?? 'QUEVEDO');
+            $template->setValue('parroquia',  $empresa['parroquia'] ?? '7 DE OCTUBRE');
 
-            $template->setValue('comparticion', $contrato['comparticion']);
-            $template->setValue('ipUsuario', $contrato['ip_usuario']);
+            // DATOS DEL CLIENTE
+            $template->setValue('cliente',          $contrato['nombre']           ?? '');
+            $template->setValue('tipoIdentidad',    $contrato['identidad']        ?? '');
+            $template->setValue('cedula',           $contrato['num_identidad']    ?? '');
+            $template->setValue('correo',           $contrato['correo']           ?? '');
+            $template->setValue('telefono',         $contrato['telefono']         ?? '');
+            $template->setValue('direccionCliente', $contrato['direccionCliente'] ?? '');
 
+            // DATOS DEL CONTRATO / SERVICIO
+            $template->setValue('contratoNumero',    str_pad((string)$idContrato, 7, '0', STR_PAD_LEFT));
+            $template->setValue('fechaContrato',     $contrato['fecha']            ?? '');
+            $template->setValue('direccionServicio', $contrato['direccion']        ?? '');
+            $template->setValue('ciudad',            $contrato['ciudad']           ?: ($empresa['canton'] ?? 'QUEVEDO'));
+            $template->setValue('ipUsuario',         $contrato['ip_usuario']       ?? '');
+            $template->setValue('repetidora',        $contrato['repetidora']       ?? '');
+            $template->setValue('ap',                $contrato['ap']               ?? '');
+            $template->setValue('medio',             $contrato['medio']            ?? '');
+            $template->setValue('anchoBanda',        $contrato['ancho_banda']      ?? '');
+            $template->setValue('comparticion',      $contrato['comparticion']     ?? '');
+            $template->setValue('total',             $contrato['total']            ?? '');
+            $template->setValue('discapacidad',      strtoupper((string)($contrato['discapacidad'] ?? 'NO')));
+
+            // LOGO desde configuracion.img (si existe el archivo, se inserta en {logo})
+            try {
+                $logoFile = !empty($empresa['img']) ? __DIR__ . '/../assets/images/empresa/' . $empresa['img'] : '';
+                if ($logoFile && file_exists($logoFile)) {
+                    $template->setImageValue('logo', ['path' => $logoFile, 'width' => 150, 'height' => 60, 'ratio' => true]);
+                }
+            } catch (\Throwable $e) { /* logo opcional, no romper si falla */ }
 
             $template->saveAs($rutaGuardar);
 

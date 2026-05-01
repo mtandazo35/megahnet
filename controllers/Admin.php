@@ -1061,4 +1061,121 @@ class Admin extends Controller
         }
         exit;
     }
+
+    /**
+     * Modulo Modelo de Contrato: vista con plantilla actual, lista de variables
+     * disponibles y formulario de subida de nueva plantilla docx.
+     */
+    public function contrato()
+    {
+        if ($_SESSION['rol'] == 2) {
+            header('Location: ' . BASE_URL . 'admin/permisos');
+            exit;
+        }
+        $plantilla = __DIR__ . '/../assets/docs/CONTRATO.docx';
+        $data['title']    = 'Modelo de Contrato';
+        $data['plantillaExiste'] = file_exists($plantilla);
+        $data['plantillaTam']    = $data['plantillaExiste'] ? filesize($plantilla) : 0;
+        $data['plantillaMtime']  = $data['plantillaExiste'] ? date('Y-m-d H:i:s', filemtime($plantilla)) : '';
+        $data['variables'] = self::variablesContrato();
+        $this->views->getView('admin', 'contrato', $data);
+    }
+
+    /**
+     * Lista canonica de variables que el generador rellena en el contrato.
+     * Mantener sincronizado con Contratos::reporte().
+     */
+    public static function variablesContrato()
+    {
+        return [
+            'Empresa (configuracion)' => [
+                'empresaRazonSocial' => 'Razon social de la empresa',
+                'empresaNombre'      => 'Nombre comercial',
+                'empresaRuc'         => 'RUC',
+                'empresaTelefono'    => 'Telefono',
+                'empresaCorreo'      => 'Correo de contacto',
+                'empresaDireccion'   => 'Direccion oficina',
+                'provincia'          => 'Provincia (configuracion.provincia)',
+                'canton'             => 'Canton (configuracion.canton)',
+                'parroquia'          => 'Parroquia (configuracion.parroquia)',
+                'logo'               => 'Logo de la empresa (imagen, no texto)',
+            ],
+            'Cliente' => [
+                'cliente'           => 'Nombre del cliente',
+                'tipoIdentidad'     => 'CEDULA / RUC / PASAPORTE',
+                'cedula'            => 'Numero de identificacion',
+                'correo'            => 'Correo del cliente',
+                'telefono'          => 'Telefono del cliente',
+                'direccionCliente'  => 'Direccion del cliente (tabla clientes)',
+            ],
+            'Contrato / Servicio' => [
+                'contratoNumero'    => 'Numero de contrato (id formateado a 7 digitos)',
+                'fechaContrato'     => 'Fecha del contrato',
+                'direccionServicio' => 'Direccion donde se presta el servicio',
+                'ciudad'            => 'Ciudad del servicio (fallback: configuracion.canton)',
+                'ipUsuario'         => 'IP asignada al cliente',
+                'repetidora'        => 'Repetidora',
+                'ap'                => 'AP (access point)',
+                'medio'             => 'Medio (INALAMBRICO / FIBRA)',
+                'anchoBanda'        => 'Ancho de banda (Mbps)',
+                'comparticion'      => 'Compartición (ej. 8:1)',
+                'total'             => 'Total mensual',
+                'discapacidad'      => 'SI / NO (de contratos.discapacidad)',
+            ],
+        ];
+    }
+
+    /** Descargar la plantilla actual (.docx). */
+    public function descargarContrato()
+    {
+        if ($_SESSION['rol'] == 2) {
+            header('Location: ' . BASE_URL . 'admin/permisos');
+            exit;
+        }
+        $plantilla = __DIR__ . '/../assets/docs/CONTRATO.docx';
+        if (!file_exists($plantilla)) {
+            http_response_code(404);
+            echo 'Plantilla no encontrada';
+            exit;
+        }
+        header('Content-Description: File Transfer');
+        header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        header('Content-Disposition: attachment; filename="CONTRATO.docx"');
+        header('Content-Length: ' . filesize($plantilla));
+        readfile($plantilla);
+        exit;
+    }
+
+    /** Subir nueva plantilla (con backup automatico de la anterior). */
+    public function subirContrato()
+    {
+        header('Content-Type: application/json');
+        if ($_SESSION['rol'] == 2) { echo json_encode(['ok'=>false,'msg'=>'Sin permiso']); exit; }
+        if (empty($_FILES['plantilla']) || $_FILES['plantilla']['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(['ok'=>false,'msg'=>'Archivo no recibido o con error']); exit;
+        }
+        $tmp = $_FILES['plantilla']['tmp_name'];
+        $nameOrig = $_FILES['plantilla']['name'];
+        $ext = strtolower(pathinfo($nameOrig, PATHINFO_EXTENSION));
+        if ($ext !== 'docx') { echo json_encode(['ok'=>false,'msg'=>'Solo se permiten archivos .docx']); exit; }
+        if ($_FILES['plantilla']['size'] > 5 * 1024 * 1024) { echo json_encode(['ok'=>false,'msg'=>'Maximo 5 MB']); exit; }
+
+        $dir = __DIR__ . '/../assets/docs';
+        if (!is_dir($dir)) { @mkdir($dir, 0755, true); }
+        $plantilla = $dir . '/CONTRATO.docx';
+
+        // Backup automatico de la anterior
+        if (file_exists($plantilla)) {
+            $bakDir = __DIR__ . '/../assets/docs/backups';
+            if (!is_dir($bakDir)) { @mkdir($bakDir, 0755, true); }
+            $bakName = 'CONTRATO_' . date('Ymd_His') . '.docx';
+            @copy($plantilla, $bakDir . '/' . $bakName);
+        }
+
+        if (!move_uploaded_file($tmp, $plantilla)) {
+            echo json_encode(['ok'=>false,'msg'=>'No se pudo guardar el archivo']); exit;
+        }
+        echo json_encode(['ok'=>true,'msg'=>'Plantilla actualizada','tam'=>filesize($plantilla),'mtime'=>date('Y-m-d H:i:s', filemtime($plantilla))]);
+        exit;
+    }
 }
