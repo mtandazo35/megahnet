@@ -49,6 +49,17 @@ document.addEventListener('DOMContentLoaded', function () {
       responsive: true,
       order: [[0, 'desc']]
     });
+
+    // Filtro por columna 'Emisión' (col index 4)
+    var fSel = document.getElementById('filtroEmision');
+    if (fSel) {
+      fSel.addEventListener('change', function () {
+        var val = this.value;
+        var col = tblAutomaticas.column(4);
+        // Buscar el texto del badge sin regex special chars
+        col.search(val ? val : '', false, false).draw();
+      });
+    }
   }
 })
 

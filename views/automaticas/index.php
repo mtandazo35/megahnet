@@ -22,6 +22,17 @@
         <hr>
 
 
+        <div class="d-flex align-items-end gap-2 mb-2 flex-wrap">
+            <div>
+                <label for="filtroEmision" class="form-label small mb-1">Filtrar por emisión</label>
+                <select id="filtroEmision" class="form-select form-select-sm" style="min-width: 180px;">
+                    <option value="">— Todas —</option>
+                    <option value="EMITIDA">EMITIDA</option>
+                    <option value="PENDIENTE">PENDIENTE</option>
+                    <option value="ERROR">ERROR</option>
+                </select>
+            </div>
+        </div>
         <div class="table-responsive">
             <table class="table table-bordered table-striped table-hover align-middle nowrap" id="tblAutomaticas"
                 style="width: 100%;">
