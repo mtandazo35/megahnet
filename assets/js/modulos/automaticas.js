@@ -116,6 +116,17 @@ function programada() {
     })
       .then(function(r){ return r.json(); })
       .then(function(res){
+        if (res.lock_held) {
+          // Otro proceso ya esta facturando. Detener este bucle y avisar al operador.
+          if (pollHandle) clearInterval(pollHandle);
+          Swal.close();
+          setTimeout(function(){
+            Swal.fire({ icon: 'warning', title: 'Facturacion en curso',
+              text: 'Otro usuario o pestana ya esta procesando la facturacion. Espera a que termine antes de reintentar.',
+              confirmButtonText: 'Cerrar' }).then(function(){ window.location.reload(); });
+          }, 200);
+          return;
+        }
         acum.totalProcesados += (res.totalProcesados || 0);
         acum.totalFallidos   += (res.totalFallidos   || 0);
         if (res.fallidos && res.fallidos.length) acum.fallidos = acum.fallidos.concat(res.fallidos);

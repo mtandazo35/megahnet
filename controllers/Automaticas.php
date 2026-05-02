@@ -71,9 +71,33 @@ class Automaticas extends Controller
         $this->cargarSri();
         @set_time_limit(0);
         @ini_set('memory_limit', '512M');
-        // Limite por lote (querystring ?limite=25). Default 25 para no chocar con el timeout
-        // del reverse proxy openresty/NPM (60s). El frontend llama en bucle.
         $limiteLote = isset($_GET['limite']) ? max(1, min(500, (int)$_GET['limite'])) : 25;
+
+        // === LOCK GLOBAL ===
+        // Prevenir clic-multiple / pestanas paralelas que generen facturas duplicadas para el
+        // mismo contrato (race condition: dos lotes leen mes_facturar=0 antes de que el primero
+        // marque =1 al autorizar SRI).
+        $lockDir = __DIR__ . '/../storage';
+        if (!is_dir($lockDir)) @mkdir($lockDir, 0755, true);
+        $lockFile = $lockDir . '/registrarVentaAutomatico.lock';
+        $lockHandle = @fopen($lockFile, 'c');
+        if (!$lockHandle || !@flock($lockHandle, LOCK_EX | LOCK_NB)) {
+            // Otro proceso ya esta facturando. Devolver respuesta vacia para que el bucle JS termine.
+            header('Content-Type: application/json');
+            echo json_encode([
+                'msg' => 'Otro proceso de facturacion ya esta en curso. Esperar a que termine.',
+                'type' => 'warning',
+                'totalProcesados' => 0, 'totalFallidos' => 0, 'fallidos' => [],
+                'OrdenesVenta' => '[]', 'FacturasElectronicas' => '[]',
+                'lock_held' => true,
+            ], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        // Liberar el lock al terminar (incluso si hay excepcion).
+        register_shutdown_function(function() use ($lockHandle, $lockFile) {
+            if ($lockHandle) { @flock($lockHandle, LOCK_UN); @fclose($lockHandle); }
+            @unlink($lockFile);
+        });
 
         $valorFactura = ($factura == 2) ? 0 : 1 ;
 
