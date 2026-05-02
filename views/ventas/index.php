@@ -72,6 +72,8 @@ $totalDocumento    = $limiteDocumento - $cantidadDocumento;
 
                     <button class="nav-link" id="nav-historialfisica-tab" data-bs-toggle="tab" data-bs-target="#nav-historialfisica" type="button" role="tab" aria-controls="nav-historialfisica" aria-selected="false">Factura Fisica</button>
 
+                    <button class="nav-link" id="nav-historialNC-tab" data-bs-toggle="tab" data-bs-target="#nav-historialNC" type="button" role="tab" aria-controls="nav-historialNC" aria-selected="false"><i class="bx bx-minus-circle me-1"></i>Notas de Credito</button>
+
                 </div>
             </nav>
             <script>
@@ -379,6 +381,30 @@ $totalDocumento    = $limiteDocumento - $cantidadDocumento;
                             </tbody>
                         </table>
 
+                    </div>
+                </div>
+
+                <div class="tab-pane fade p-3" id="nav-historialNC" role="tabpanel" aria-labelledby="nav-historialNC-tab" tabindex="0">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-muted"><i class="bx bx-info-circle me-1"></i>Notas de credito emitidas (mes en curso)</small>
+                        <a href="<?= BASE_URL.'notaCredito' ?>" class="btn btn-outline-primary btn-sm"><i class="bx bx-plus-circle me-1"></i>Emitir nueva</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover align-middle nowrap" id="tblHistorialNC" style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Nota Credito</th>
+                                    <th>Fecha</th>
+                                    <th>Clave Acceso</th>
+                                    <th>Estado</th>
+                                    <th>Total</th>
+                                    <th>SRI</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
                     </div>
                 </div>
 

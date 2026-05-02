@@ -138,6 +138,40 @@ document.addEventListener('DOMContentLoaded', function () {
     order: [[5, 'desc']]
   })
 
+  // cargar datos con el plugin datatables Notas de Credito
+  if (document.getElementById('tblHistorialNC')) {
+    var tblHistorialNC = $('#tblHistorialNC').DataTable({
+      deferRender: true,
+      stateSave: true,
+      stateDuration: -1,
+      colReorder: true,
+      pageLength: 10,
+      lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, 'Todos']],
+      ajax: {
+        url: base_url + 'notaCredito/listarElectronica',
+        dataSrc: function(res){
+          if (typeof res.url !== 'undefined' && res.url) { window.location.href = res.url; return []; }
+          return res;
+        }
+      },
+      columns: [
+        { data: 'cliente' },
+        { data: 'secuencial' },
+        { data: 'fecha' },
+        { data: 'claveacceso' },
+        { data: 'estado' },
+        { data: 'total_modificar' },
+        { data: 'autorizacion' },
+        { data: 'acciones' }
+      ],
+      language: { url: base_url + 'assets/js/espanol.json' },
+      dom,
+      buttons,
+      responsive: true,
+      order: [[2, 'desc']]
+    });
+  }
+
   // cargar datos con el plugin datatables Factura Electronica
   // Invalidar state previo si la firma de columnas cambio (evita que el listado quede vacio
   // por estado guardado con menos/mas columnas).
