@@ -649,6 +649,23 @@ class Ventas extends Controller
             } else {
                 $data[$i]['correoBadge'] = '<span class="badge bg-warning text-dark" title="Pendiente de envio a ' . htmlspecialchars($correoRaw) . '">NO ENVIADO</span>';
             }
+
+            // Badge DUPLICADA: si el cliente tiene mas facturas autorizadas en el mes
+            // que contratos activos, y esta fila no es la primera del mes (facturas_previas_mes >= contratos),
+            // marcarla como duplicada.
+            $prev   = (int)($data[$i]['facturas_previas_mes'] ?? 0);
+            $contrs = (int)($data[$i]['contratos_activos']    ?? 0);
+            $esDuplicada = $contrs > 0 && $prev >= $contrs;
+            if ($esDuplicada) {
+                $data[$i]['duplicadaBadge'] = '<span class="badge bg-danger" title="Esta factura excede el numero de contratos activos del cliente — sugerida para Nota de Credito">DUPLICADA</span>';
+                // Inyectar boton 'Emitir NC' en acciones (si la factura esta autorizada)
+                if (strpos((string)$data[$i]['acciones'], 'fas fa-trash') !== false && strpos((string)$data[$i]['acciones'], 'envioCorreoElectronica') !== false) {
+                    $btnNC = '<a class="btn btn-warning btn-sm" href="' . BASE_URL . 'notaCredito/index?cliente=' . (int)$data[$i]['id_cliente'] . '&claveAcceso=' . urlencode($data[$i]['claveacceso']) . '" target="_blank" title="Emitir Nota de Credito (factura duplicada)"><i class="fa-solid fa-file-circle-minus text-white"></i></a>';
+                    $data[$i]['acciones'] = str_replace('</div>', $btnNC . '</div>', $data[$i]['acciones']);
+                }
+            } else {
+                $data[$i]['duplicadaBadge'] = '<span class="badge bg-light text-muted">—</span>';
+            }
         }
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         die();

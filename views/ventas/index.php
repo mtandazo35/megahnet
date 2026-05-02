@@ -333,6 +333,7 @@ $totalDocumento    = $limiteDocumento - $cantidadDocumento;
                                     <th>Total</th>
                                     <th>Sri</th>
                                     <th>Correo</th>
+                                    <th>Duplicada</th>
                                     
                                 </tr>
                             </thead>

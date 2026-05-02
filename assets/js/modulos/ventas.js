@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // por estado guardado con menos/mas columnas).
   try {
     var __sigKey = 'DataTables_tblHistorialFE_colSig';
-    var __sigActual = 'fe_v4'; // bump cuando cambien columnas
+    var __sigActual = 'fe_v5'; // bump cuando cambien columnas
     if (localStorage.getItem(__sigKey) !== __sigActual) {
       Object.keys(localStorage).filter(function(k){ return k.indexOf('tblHistorialFE') !== -1; }).forEach(function(k){ localStorage.removeItem(k); });
       localStorage.setItem(__sigKey, __sigActual);
@@ -181,7 +181,8 @@ document.addEventListener('DOMContentLoaded', function () {
       { data: 'estado' },
       { data: 'totalfactura' },
       { data: 'autorizacion' },
-      { data: 'correoBadge', defaultContent: '' }
+      { data: 'correoBadge', defaultContent: '' },
+      { data: 'duplicadaBadge', defaultContent: '' }
       
     ],
     language: {

@@ -60,23 +60,30 @@ class VentasModel extends Query
     public function getVentasElectronica()
     {
         // LEFT JOIN: mostrar ventas aunque aun no tengan respuesta del SRI
-        // Mostrar solo: facturas AUTORIZADAS + facturas pendientes que NO tienen
-        // una version gemela ya autorizada (mismo ruc+fecha+total). Asi se ocultan
-        // las zombies que quedaron de reintentos previos donde la generacion creaba
-        // una fila nueva en cada intento en vez de actualizar la existente.
+        // Listado del mes con marcador de DUPLICADA (cliente con mas facturas autorizadas
+        // del mes que contratos activos -- las posteriores a la primera son duplicadas).
         $sql = "SELECT dce.fecha, TIME_FORMAT(rs.createdAt, '%H:%i:%s') AS hora,
                        dce.orden_no, dce.cliente, dce.estado, dce.totalfactura, dce.claveacceso,
                        dce.correo, dce.correo_enviado,
-                       COALESCE(rs.estado, 'PENDIENTE') AS autorizacion
+                       cl.id AS id_cliente,
+                       COALESCE(rs.estado, 'PENDIENTE') AS autorizacion,
+                       (
+                         SELECT COUNT(*) FROM datos_cabecera_electronica d2
+                         INNER JOIN respuesta_sri r2 ON r2.claveAcceso=d2.claveacceso
+                         WHERE d2.ruc = dce.ruc AND r2.estado='AUTORIZADO'
+                           AND d2.fecha >= DATE_FORMAT(dce.fecha, '%Y-%m-01')
+                           AND d2.fecha <  DATE_FORMAT(DATE_ADD(dce.fecha, INTERVAL 1 MONTH), '%Y-%m-01')
+                           AND d2.id < dce.id
+                       ) AS facturas_previas_mes,
+                       (
+                         SELECT COUNT(*) FROM contratos c WHERE c.id_cliente=cl.id AND c.estado=1 AND c.factura=1
+                       ) AS contratos_activos
                 FROM datos_cabecera_electronica dce
                 LEFT JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
+                LEFT JOIN clientes cl ON cl.num_identidad = dce.ruc
                 LEFT JOIN datos_cabecera_electronica dce_auth
-                  ON dce_auth.ruc = dce.ruc
-                 AND dce_auth.fecha = dce.fecha
-                 AND dce_auth.totalfactura = dce.totalfactura
-                 AND dce_auth.id != dce.id
-                LEFT JOIN respuesta_sri rs_auth
-                  ON rs_auth.claveAcceso = dce_auth.claveacceso AND rs_auth.estado = 'AUTORIZADO'
+                  ON dce_auth.ruc = dce.ruc AND dce_auth.fecha = dce.fecha AND dce_auth.totalfactura = dce.totalfactura AND dce_auth.id != dce.id
+                LEFT JOIN respuesta_sri rs_auth ON rs_auth.claveAcceso = dce_auth.claveacceso AND rs_auth.estado = 'AUTORIZADO'
                 WHERE dce.fecha >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
                   AND dce.fecha <  DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')
                   AND (rs.estado = 'AUTORIZADO' OR rs_auth.id IS NULL)
