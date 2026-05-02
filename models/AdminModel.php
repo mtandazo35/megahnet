@@ -370,35 +370,26 @@ HAVING COUNT(*) > $estado) AS subconsulta";
      */
     public function getFacturacionDesglose($yyyymm)
     {
-        // Ventas REALES emitidas en el mes (incluye recurrentes + ad-hoc como
-        // instalaciones, ventas de equipos, etc.).
+        // Ventas mensuales por tipo de comprobante:
         //
-        // Facturas electronicas: filtra por respuesta_sri AUTORIZADO o estados
-        // locales activos (1=valida, 4=duplicada-marcada). Excluye estado=2
-        // (anuladas masivas por la limpieza de duplicados).
-        // Tambien excluye "zombies" (anuladas con gemelo autorizado).
+        // VENTAS FACTURAS: monto facturable recurrente segun contratos
+        // activos con factura=1 (factura electronica). Esto cuadra con el
+        // Excel de control del usuario y es estable mes a mes (no depende
+        // de si una factura quedo en estado 1, 2 o 4 tras la limpieza de
+        // duplicados).
         //
-        // Ordenes de venta: incluye estado IN (1, 2) -- ambos representan
-        // recibos emitidos. estado=0 = cancelacion explicita, no se cuenta.
+        // VENTAS ORDENES DE VENTA: SUM(orden_venta.total) del mes con
+        // estado IN (1, 2). Esto refleja recibos mensuales recurrentes
+        // (factura=0) Y ventas ad-hoc (instalaciones, equipos, etc.).
+        // estado=0 = cancelacion explicita, no se cuenta.
         //
-        // Slots FIJOS: Ventas facturas, Ventas ordenes de venta. Ventas fisicas
-        // (POS legado) solo aparece si hay registros del mes.
+        // Slots FIJOS: Ventas facturas, Ventas ordenes de venta. Ventas
+        // fisicas (POS legado) solo aparece si hay registros del mes.
 
-        // Facturas electronicas: emitidas y validas, sin contar duplicados
-        // anulados por la limpieza
-        $sqlFE = "SELECT COUNT(DISTINCT dce.id) AS cantidad,
-                         COALESCE(SUM(dce.totalfactura), 0) AS total
-                  FROM datos_cabecera_electronica dce
-                  LEFT JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
-                  WHERE LEFT(dce.fecha, 7) = ?
-                    AND (
-                          rs.estado = 'AUTORIZADO'
-                       OR (dce.estado IN (1, 4) AND rs.estado IS NULL)
-                    )";
-        $fe = $this->select($sqlFE, [$yyyymm]);
+        $sqlFE = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
+                  FROM contratos WHERE estado = 1 AND factura = 1";
+        $fe = $this->select($sqlFE);
 
-        // Ordenes de venta: estado != 0 (incluye recibos emitidos como
-        // mensuales y ventas ad-hoc tipo INSTALACION)
         $sqlOv = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
                   FROM orden_venta
                   WHERE LEFT(fecha, 7) = ? AND estado IN (1, 2)";
