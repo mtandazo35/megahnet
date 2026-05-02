@@ -311,15 +311,16 @@ HAVING COUNT(*) > $estado) AS subconsulta";
      */
     public function getCobrosDesglose($yyyymm)
     {
-        // Excluir tipo_pago='RETENCIONES': son montos retenidos al cliente, no cobros reales.
-        // Se muestran aparte en la tarjeta de Retenciones.
+        // Mismo criterio que getCobradoMes: excluir RETENCIONES y ANTICIPOS.
+        // - RETENCIONES: retencion tributaria, va al cuadro Retenciones.
+        // - ANTICIPOS: saldos a favor ya cobrados antes; contarlos duplica.
         $sql = "SELECT
                     COALESCE(NULLIF(TRIM(tipo_pago), ''), 'SIN ESPECIFICAR') AS tipo_pago,
                     COUNT(*)            AS cantidad,
                     COALESCE(SUM(abono), 0) AS total
                 FROM abonos
                 WHERE LEFT(fecha, 7) = ?
-                  AND UPPER(TRIM(IFNULL(tipo_pago, ''))) <> 'RETENCIONES'
+                  AND UPPER(TRIM(IFNULL(tipo_pago, ''))) NOT IN ('RETENCIONES','ANTICIPOS')
                 GROUP BY tipo_pago
                 ORDER BY total DESC";
         return $this->selectAll($sql, [$yyyymm]);
@@ -353,7 +354,7 @@ HAVING COUNT(*) > $estado) AS subconsulta";
     public function getFacturacionDesglose($yyyymm)
     {
         // Ventas y electronica: SQL agregado simple
-        $sql = "SELECT 'Ventas Fisicas' AS origen, metodo,
+        $sql = "SELECT 'Ventas fisicas' AS origen, metodo,
                     COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
                 FROM ventas
                 WHERE LEFT(fecha, 7) = ? AND estado = 1
@@ -361,7 +362,7 @@ HAVING COUNT(*) > $estado) AS subconsulta";
 
                 UNION ALL
 
-                SELECT 'Facturacion Electronica' AS origen, metodo,
+                SELECT 'Ventas facturas' AS origen, metodo,
                     COUNT(*) AS cantidad, COALESCE(SUM(totalfactura), 0) AS total
                 FROM datos_cabecera_electronica
                 WHERE LEFT(fecha, 7) = ? AND estado = 1
@@ -391,7 +392,7 @@ HAVING COUNT(*) > $estado) AS subconsulta";
         }
         foreach ($ovAgg as $met => $agg) {
             $rows[] = [
-                'origen'   => 'Orden de Venta',
+                'origen'   => 'Ventas ordenes de venta',
                 'metodo'   => $met,
                 'cantidad' => $agg['cantidad'],
                 'total'    => round($agg['total'], 2),
@@ -408,14 +409,14 @@ HAVING COUNT(*) > $estado) AS subconsulta";
      */
     public function getEgresosDesglose($yyyymm)
     {
-        $sql = "SELECT 'Compras a proveedores' AS concepto,
+        $sql = "SELECT 'Compras' AS concepto,
                     COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
                 FROM compras
                 WHERE LEFT(fecha, 7) = ? AND estado = 1
 
                 UNION ALL
 
-                SELECT 'Gastos operativos' AS concepto,
+                SELECT 'Gastos varios' AS concepto,
                     COUNT(*) AS cantidad, COALESCE(SUM(monto), 0) AS total
                 FROM gastos
                 WHERE LEFT(fecha, 7) = ?";

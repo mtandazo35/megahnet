@@ -269,18 +269,19 @@
           <small class="text-muted d-block mb-2">Retenciones + notas de crédito</small>
           <table class="table table-sm mb-0" style="font-size:.78rem;">
             <tbody>
-            <?php if (!empty($retencionesD)): ?>
+              <?php $retCant = array_sum(array_column($retencionesD, 'cantidad')); ?>
+              <tr>
+                <td class="text-muted">Retenciones
+                  <small class="text-muted">(<?= (int)$retCant ?>)</small>
+                </td>
+                <td class="text-end fw-semibold"><?= $fmt($totRetenciones) ?></td>
+              </tr>
               <?php foreach ($retencionesD as $r): ?>
                 <tr>
-                  <td class="text-muted">Retención <?= htmlspecialchars($r['tipo']) ?>
-                    <small class="text-muted">(<?= (int)$r['cantidad'] ?>)</small>
-                  </td>
-                  <td class="text-end fw-semibold"><?= $fmt($r['total']) ?></td>
+                  <td class="ps-3 text-muted"><small>· <?= htmlspecialchars($r['tipo']) ?> (<?= (int)$r['cantidad'] ?>)</small></td>
+                  <td class="text-end"><small><?= $fmt($r['total']) ?></small></td>
                 </tr>
               <?php endforeach; ?>
-            <?php else: ?>
-              <tr><td class="text-muted" colspan="2"><small>Sin retenciones este mes</small></td></tr>
-            <?php endif; ?>
               <tr>
                 <td class="text-muted">Notas de crédito
                   <small class="text-muted">(<?= (int)($ncMes['cantidad'] ?? 0) ?>)</small>
