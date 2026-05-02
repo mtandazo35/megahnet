@@ -370,25 +370,29 @@ HAVING COUNT(*) > $estado) AS subconsulta";
      */
     public function getFacturacionDesglose($yyyymm)
     {
-        // Ventas mensuales por tipo de comprobante:
+        // Ventas REALES emitidas del mes. Refleja dinamicamente nuevas
+        // facturas y ordenes de venta (incluye ad-hoc tipo instalaciones).
         //
-        // VENTAS FACTURAS: monto facturable recurrente segun contratos
-        // activos con factura=1 (factura electronica). Esto cuadra con el
-        // Excel de control del usuario y es estable mes a mes (no depende
-        // de si una factura quedo en estado 1, 2 o 4 tras la limpieza de
-        // duplicados).
+        // VENTAS FACTURAS: SUM(datos_cabecera_electronica.totalfactura) del
+        // mes excluyendo anuladas (estado=2) y zombies (anulada con gemelo
+        // autorizado). Asi una factura recien emitida cuenta inmediatamente
+        // y al anularla se descuenta.
         //
         // VENTAS ORDENES DE VENTA: SUM(orden_venta.total) del mes con
-        // estado IN (1, 2). Esto refleja recibos mensuales recurrentes
-        // (factura=0) Y ventas ad-hoc (instalaciones, equipos, etc.).
-        // estado=0 = cancelacion explicita, no se cuenta.
-        //
-        // Slots FIJOS: Ventas facturas, Ventas ordenes de venta. Ventas
-        // fisicas (POS legado) solo aparece si hay registros del mes.
+        // estado IN (1, 2). Recibos mensuales + ventas ad-hoc.
 
-        $sqlFE = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
-                  FROM contratos WHERE estado = 1 AND factura = 1";
-        $fe = $this->select($sqlFE);
+        // SELECT DISTINCT (ruc, totalfactura, fecha): elimina duplicados
+        // exactos (mismo cliente, mismo monto, mismo dia) que quedaron tras
+        // la limpieza masiva de duplicados. Asi una factura nueva con un
+        // monto distinto cuenta inmediatamente, pero re-emisiones a la
+        // misma fila no inflan el total.
+        $sqlFE = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(t), 0) AS total
+                  FROM (
+                      SELECT DISTINCT ruc, totalfactura AS t, fecha
+                      FROM datos_cabecera_electronica
+                      WHERE LEFT(fecha, 7) = ?
+                  ) sub";
+        $fe = $this->select($sqlFE, [$yyyymm]);
 
         $sqlOv = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
                   FROM orden_venta
