@@ -370,18 +370,34 @@ HAVING COUNT(*) > $estado) AS subconsulta";
      */
     public function getFacturacionDesglose($yyyymm)
     {
-        // VENTAS FACTURAS: monto facturable recurrente segun contratos
-        // activos con factura=1. Es el valor de control del usuario y
-        // cuadra con su Excel. No depende del estado en que quedaron las
-        // facturas tras la limpieza de duplicados.
+        // VENTAS FACTURAS: facturas electronicas reales del mes,
+        // deduplicadas por (ruc, totalfactura, fecha) priorizando la
+        // version autorizada por SRI. Excluye anuladas (estado=0) y
+        // anuladas por NC (estado=4).
+        //
+        // Asi captura emisiones nuevas del usuario en tiempo real,
+        // descuenta anulaciones, y filtra los duplicados de la limpieza
+        // masiva de mayo. Cuadra con el Excel de control del usuario.
         //
         // VENTAS ORDENES DE VENTA: SUM(orden_venta.total) del mes con
-        // estado IN (1, 2) -- dinamico, refleja recibos mensuales Y
-        // ventas ad-hoc (instalaciones). estado=0 = anulada explicita.
+        // estado IN (1, 2). Refleja recibos mensuales Y ventas ad-hoc.
+        // estado=0 = anulada explicita.
 
-        $sqlFE = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
-                  FROM contratos WHERE estado = 1 AND factura = 1";
-        $fe = $this->select($sqlFE);
+        $sqlFE = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(totalfactura), 0) AS total
+                  FROM (
+                      SELECT dce.id, dce.totalfactura,
+                        ROW_NUMBER() OVER (
+                          PARTITION BY dce.ruc, dce.totalfactura, dce.fecha
+                          ORDER BY CASE WHEN rs.estado = 'AUTORIZADO' THEN 1 ELSE 2 END,
+                                   dce.id DESC
+                        ) AS rn
+                      FROM datos_cabecera_electronica dce
+                      LEFT JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
+                      WHERE LEFT(dce.fecha, 7) = ?
+                        AND dce.estado NOT IN (0, 4)
+                  ) sub
+                  WHERE rn = 1";
+        $fe = $this->select($sqlFE, [$yyyymm]);
 
         $sqlOv = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
                   FROM orden_venta
