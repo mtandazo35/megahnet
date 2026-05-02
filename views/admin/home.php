@@ -176,22 +176,14 @@
           <small class="text-muted d-block mb-2">Facturas + notas de venta (con IVA)</small>
           <table class="table table-sm mb-0" style="font-size:.78rem;">
             <tbody>
-            <?php
-              $ventasCantTotal = 0;
-              foreach ($facturacionD as $f) { $ventasCantTotal += (int)$f['cantidad']; }
-            ?>
             <?php foreach ($facturacionD as $f): ?>
               <tr>
-                <td class="text-muted"><?= htmlspecialchars(strtoupper($f['origen'])) ?>
-                  <small class="text-muted">(<?= (int)$f['cantidad'] ?>)</small>
-                </td>
+                <td class="text-muted"><?= htmlspecialchars(strtoupper($f['origen'])) ?></td>
                 <td class="text-end fw-semibold"><?= $fmt($f['total']) ?></td>
               </tr>
             <?php endforeach; ?>
               <tr class="border-top">
-                <td class="fw-bold text-primary">TOTAL VENTAS
-                  <small class="text-muted">(<?= $ventasCantTotal ?>)</small>
-                </td>
+                <td class="fw-bold text-primary">TOTAL VENTAS</td>
                 <td class="text-end fw-bold text-primary"><?= $fmt($totFacturacion) ?></td>
               </tr>
             </tbody>
@@ -208,22 +200,14 @@
           </div>
           <table class="table table-sm mb-0" style="font-size:.78rem;">
             <tbody>
-            <?php
-              $cobrosCantTotal = 0;
-              foreach ($cobrosD as $c) { $cobrosCantTotal += (int)$c['cantidad']; }
-            ?>
             <?php foreach ($cobrosD as $c): ?>
               <tr>
-                <td class="text-muted"><?= htmlspecialchars($c['tipo_pago']) ?>
-                  <small class="text-muted">(<?= (int)$c['cantidad'] ?>)</small>
-                </td>
+                <td class="text-muted"><?= htmlspecialchars($c['tipo_pago']) ?></td>
                 <td class="text-end fw-semibold"><?= $fmt($c['total']) ?></td>
               </tr>
             <?php endforeach; ?>
               <tr class="border-top">
-                <td class="fw-bold text-success">TOTAL COBROS
-                  <small class="text-muted">(<?= $cobrosCantTotal ?>)</small>
-                </td>
+                <td class="fw-bold text-success">TOTAL COBROS</td>
                 <td class="text-end fw-bold text-success"><?= $fmt($totCobros) ?></td>
               </tr>
             </tbody>
@@ -241,29 +225,22 @@
           <small class="text-muted d-block mb-2">Retenciones + notas de crédito</small>
           <table class="table table-sm mb-0" style="font-size:.78rem;">
             <tbody>
-              <?php $retCant = array_sum(array_column($retencionesD, 'cantidad')); ?>
               <tr>
-                <td class="text-muted">Retenciones
-                  <small class="text-muted">(<?= (int)$retCant ?>)</small>
-                </td>
+                <td class="text-muted">Retenciones</td>
                 <td class="text-end fw-semibold"><?= $fmt($totRetenciones) ?></td>
               </tr>
               <?php foreach ($retencionesD as $r): ?>
                 <tr>
-                  <td class="ps-3 text-muted"><small>· <?= htmlspecialchars($r['tipo']) ?> (<?= (int)$r['cantidad'] ?>)</small></td>
+                  <td class="ps-3 text-muted"><small>· <?= htmlspecialchars($r['tipo']) ?></small></td>
                   <td class="text-end"><small><?= $fmt($r['total']) ?></small></td>
                 </tr>
               <?php endforeach; ?>
               <tr>
-                <td class="text-muted">Notas de crédito
-                  <small class="text-muted">(<?= (int)($ncMes['cantidad'] ?? 0) ?>)</small>
-                </td>
+                <td class="text-muted">Notas de crédito</td>
                 <td class="text-end fw-semibold"><?= $fmt($totNC) ?></td>
               </tr>
               <tr class="border-top">
-                <td class="fw-bold text-warning">TOTAL RETENCIONES
-                  <small class="text-muted">(<?= (int)$retCant + (int)($ncMes['cantidad'] ?? 0) ?>)</small>
-                </td>
+                <td class="fw-bold text-warning">TOTAL RETENCIONES</td>
                 <td class="text-end fw-bold text-warning"><?= $fmt($totRetMasNC) ?></td>
               </tr>
             </tbody>
@@ -280,22 +257,14 @@
           </div>
           <table class="table table-sm mb-0" style="font-size:.78rem;">
             <tbody>
-            <?php
-              $egresosCantTotal = 0;
-              foreach ($egresosD as $e) { $egresosCantTotal += (int)$e['cantidad']; }
-            ?>
             <?php foreach ($egresosD as $e): ?>
               <tr>
-                <td class="text-muted"><?= htmlspecialchars($e['concepto']) ?>
-                  <small class="text-muted">(<?= (int)$e['cantidad'] ?>)</small>
-                </td>
+                <td class="text-muted"><?= htmlspecialchars($e['concepto']) ?></td>
                 <td class="text-end fw-semibold"><?= $fmt($e['total']) ?></td>
               </tr>
             <?php endforeach; ?>
               <tr class="border-top">
-                <td class="fw-bold text-danger">TOTAL EGRESOS
-                  <small class="text-muted">(<?= $egresosCantTotal ?>)</small>
-                </td>
+                <td class="fw-bold text-danger">TOTAL EGRESOS</td>
                 <td class="text-end fw-bold text-danger"><?= $fmt($totEgresos) ?></td>
               </tr>
             </tbody>
