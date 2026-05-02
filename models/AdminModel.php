@@ -234,10 +234,13 @@ HAVING COUNT(*) > $estado) AS subconsulta";
      */
     public function getCobradoMes($yyyymm)
     {
+        // Solo cobros reales: excluye RETENCIONES (retencion tributaria, no ingreso)
+        // y ANTICIPOS (saldos a favor ya cobrados antes que ahora se aplican).
         $sql = "SELECT COALESCE(SUM(abono), 0) AS total,
                        COUNT(*) AS cantidad
                 FROM abonos
-                WHERE LEFT(fecha, 7) = ?";
+                WHERE LEFT(fecha, 7) = ?
+                  AND UPPER(TRIM(IFNULL(tipo_pago, ''))) NOT IN ('RETENCIONES','ANTICIPOS')";
         return $this->select($sql, [$yyyymm]);
     }
 
@@ -247,10 +250,12 @@ HAVING COUNT(*) > $estado) AS subconsulta";
      */
     public function getCobradoPorMes($yyyy)
     {
+        // Solo cobros reales (mismo criterio que getCobradoMes).
         $sql = "SELECT LEFT(fecha, 7) AS mes,
                        COALESCE(SUM(abono), 0) AS total
                 FROM abonos
                 WHERE LEFT(fecha, 4) = ?
+                  AND UPPER(TRIM(IFNULL(tipo_pago, ''))) NOT IN ('RETENCIONES','ANTICIPOS')
                 GROUP BY mes
                 ORDER BY mes";
         return $this->selectAll($sql, [$yyyy]);
