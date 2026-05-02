@@ -25,8 +25,8 @@
   foreach ($facturacionD as $f) {
       $orig = $f['origen'] ?? '';
       $tot  = (float)($f['total'] ?? 0);
-      if ($orig === 'Facturacion Electronica')      $ventasFact += $tot;
-      elseif ($orig === 'Orden de Venta')           $ventasOV   += $tot;
+      if ($orig === 'Ventas facturas')              $ventasFact += $tot;
+      elseif ($orig === 'Ventas ordenes de venta')  $ventasOV   += $tot;
       else                                          $ventasFis  += $tot;
   }
   $ventasTotales = $ventasFact + $ventasOV + $ventasFis;
@@ -216,20 +216,18 @@
             <span class="badge bg-primary"><?= $fmt($totFacturacion) ?></span>
           </div>
           <small class="text-muted d-block mb-2">Facturas + notas de venta (con IVA)</small>
-          <?php if (!empty($facturacionD)): ?>
-            <table class="table table-sm mb-0" style="font-size:.78rem;">
-              <tbody>
-              <?php foreach ($facturacionD as $f): ?>
-                <tr>
-                  <td class="text-muted"><?= htmlspecialchars($f['origen'] . ' (' . $f['metodo'] . ')') ?></td>
-                  <td class="text-end fw-semibold"><?= $fmt($f['total']) ?></td>
-                </tr>
-              <?php endforeach; ?>
-              </tbody>
-            </table>
-          <?php else: ?>
-            <small class="text-muted">Sin ventas este mes</small>
-          <?php endif; ?>
+          <table class="table table-sm mb-0" style="font-size:.78rem;">
+            <tbody>
+            <?php foreach ($facturacionD as $f): ?>
+              <tr>
+                <td class="text-muted"><?= htmlspecialchars(strtoupper($f['origen'])) ?>
+                  <small class="text-muted">(<?= (int)$f['cantidad'] ?>)</small>
+                </td>
+                <td class="text-end fw-semibold"><?= $fmt($f['total']) ?></td>
+              </tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -240,22 +238,18 @@
             <strong class="text-success"><i class="bx bx-dollar-circle me-1"></i>Cobros</strong>
             <span class="badge bg-success"><?= $fmt($totCobros) ?></span>
           </div>
-          <?php if (!empty($cobrosD)): ?>
-            <table class="table table-sm mb-0" style="font-size:.78rem;">
-              <tbody>
-              <?php foreach ($cobrosD as $c): ?>
-                <tr>
-                  <td class="text-muted"><?= htmlspecialchars($c['tipo_pago']) ?>
-                    <small class="text-muted">(<?= (int)$c['cantidad'] ?>)</small>
-                  </td>
-                  <td class="text-end fw-semibold"><?= $fmt($c['total']) ?></td>
-                </tr>
-              <?php endforeach; ?>
-              </tbody>
-            </table>
-          <?php else: ?>
-            <small class="text-muted">Sin cobros este mes</small>
-          <?php endif; ?>
+          <table class="table table-sm mb-0" style="font-size:.78rem;">
+            <tbody>
+            <?php foreach ($cobrosD as $c): ?>
+              <tr>
+                <td class="text-muted"><?= htmlspecialchars($c['tipo_pago']) ?>
+                  <small class="text-muted">(<?= (int)$c['cantidad'] ?>)</small>
+                </td>
+                <td class="text-end fw-semibold"><?= $fmt($c['total']) ?></td>
+              </tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table>
         </div>
       </div>
 

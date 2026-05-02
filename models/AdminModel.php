@@ -311,25 +311,32 @@ HAVING COUNT(*) > $estado) AS subconsulta";
      */
     public function getCobrosDesglose($yyyymm)
     {
-        // Excluye solo RETENCIONES (van al cuadro Retenciones). Incluye ANTICIPOS
-        // porque el documento de requerimientos lo lista en el desglose.
-        // Orden FIJO (segun documento): TRANSFERENCIA, DEPOSITOS, ANTICIPOS, EFECTIVO, resto.
+        // Solo cobros reales (mismo criterio que getCobradoMes): excluye
+        // RETENCIONES y ANTICIPOS. Slots FIJOS segun mockup del documento:
+        // TRANSFERENCIA, DEPOSITOS, EFECTIVO siempre se muestran (aunque
+        // valgan 0); cualquier otro tipo no listado se concatena al final.
         $sql = "SELECT
-                    COALESCE(NULLIF(TRIM(tipo_pago), ''), 'SIN ESPECIFICAR') AS tipo_pago,
+                    UPPER(TRIM(IFNULL(tipo_pago, ''))) AS tipo_pago,
                     COUNT(*)            AS cantidad,
                     COALESCE(SUM(abono), 0) AS total
                 FROM abonos
                 WHERE LEFT(fecha, 7) = ?
-                  AND UPPER(TRIM(IFNULL(tipo_pago, ''))) <> 'RETENCIONES'
-                GROUP BY tipo_pago
-                ORDER BY CASE UPPER(TRIM(IFNULL(tipo_pago,'')))
-                            WHEN 'TRANSFERENCIA' THEN 1
-                            WHEN 'DEPOSITOS'     THEN 2
-                            WHEN 'ANTICIPOS'     THEN 3
-                            WHEN 'EFECTIVO'      THEN 4
-                            ELSE 99 END,
-                         total DESC";
-        return $this->selectAll($sql, [$yyyymm]);
+                  AND UPPER(TRIM(IFNULL(tipo_pago, ''))) NOT IN ('RETENCIONES','ANTICIPOS')
+                GROUP BY UPPER(TRIM(IFNULL(tipo_pago, '')))";
+        $rows = $this->selectAll($sql, [$yyyymm]);
+
+        $fijos = ['TRANSFERENCIA', 'DEPOSITOS', 'EFECTIVO'];
+        $byTipo = [];
+        foreach ($rows as $r) {
+            $byTipo[$r['tipo_pago']] = $r;
+        }
+        $out = [];
+        foreach ($fijos as $tipo) {
+            $out[] = $byTipo[$tipo] ?? ['tipo_pago' => $tipo, 'cantidad' => 0, 'total' => 0];
+            unset($byTipo[$tipo]);
+        }
+        foreach ($byTipo as $r) { $out[] = $r; }
+        return $out;
     }
 
     /**
@@ -359,29 +366,27 @@ HAVING COUNT(*) > $estado) AS subconsulta";
      */
     public function getFacturacionDesglose($yyyymm)
     {
-        // Ventas y electronica: SQL agregado simple
-        $sql = "SELECT 'Ventas fisicas' AS origen, metodo,
-                    COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
-                FROM ventas
-                WHERE LEFT(fecha, 7) = ? AND estado = 1
-                GROUP BY metodo
+        // Agrega por ORIGEN sin desglose por metodo (segun mockup del doc).
+        // Slots FIJOS y en este orden: Ventas facturas, Ventas ordenes de venta.
+        // Ventas fisicas se anexa solo si hay registros (es residual).
 
-                UNION ALL
+        // Facturas electronicas
+        $sqlFE = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(totalfactura), 0) AS total
+                  FROM datos_cabecera_electronica
+                  WHERE LEFT(fecha, 7) = ? AND estado = 1";
+        $fe = $this->select($sqlFE, [$yyyymm]);
 
-                SELECT 'Ventas facturas' AS origen, metodo,
-                    COUNT(*) AS cantidad, COALESCE(SUM(totalfactura), 0) AS total
-                FROM datos_cabecera_electronica
-                WHERE LEFT(fecha, 7) = ? AND estado = 1
-                GROUP BY metodo";
-        $rows = $this->selectAll($sql, [$yyyymm, $yyyymm]);
+        // Ventas fisicas (POS)
+        $sqlVF = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
+                  FROM ventas
+                  WHERE LEFT(fecha, 7) = ? AND estado = 1";
+        $vf = $this->select($sqlVF, [$yyyymm]);
 
         // Orden de Venta: recalcular con IVA desde el JSON (orden_venta.total es sin IVA)
-        $sqlOv = "SELECT metodo, productos FROM orden_venta WHERE LEFT(fecha, 7) = ? AND estado = 1";
+        $sqlOv = "SELECT productos FROM orden_venta WHERE LEFT(fecha, 7) = ? AND estado = 1";
         $ovRows = $this->selectAll($sqlOv, [$yyyymm]);
-        $ovAgg = []; // metodo => ['cantidad'=>n, 'total'=>x]
+        $ovCant = 0; $ovTot = 0;
         foreach ($ovRows as $ov) {
-            $met = $ov['metodo'] ?? 'CONTADO';
-            $tot = 0;
             $prods = !empty($ov['productos']) ? json_decode($ov['productos'], true) : [];
             if (is_array($prods)) {
                 foreach ($prods as $p) {
@@ -389,34 +394,19 @@ HAVING COUNT(*) > $estado) AS subconsulta";
                     $prec = (float)($p['precio']   ?? 0);
                     $iva  = (float)($p['iva_producto'] ?? 0);
                     $sub  = $cant * $prec;
-                    $tot += ($iva > 0) ? round($sub * (1 + $iva/100), 2) : $sub;
+                    $ovTot += ($iva > 0) ? round($sub * (1 + $iva/100), 2) : $sub;
                 }
             }
-            if (!isset($ovAgg[$met])) $ovAgg[$met] = ['cantidad' => 0, 'total' => 0];
-            $ovAgg[$met]['cantidad']++;
-            $ovAgg[$met]['total'] += $tot;
-        }
-        foreach ($ovAgg as $met => $agg) {
-            $rows[] = [
-                'origen'   => 'Ventas ordenes de venta',
-                'metodo'   => $met,
-                'cantidad' => $agg['cantidad'],
-                'total'    => round($agg['total'], 2),
-            ];
+            $ovCant++;
         }
 
-        // Orden FIJO segun documento: facturas, ordenes de venta, fisicas
-        $rank = [
-            'Ventas facturas'         => 1,
-            'Ventas ordenes de venta' => 2,
-            'Ventas fisicas'          => 3,
+        $rows = [
+            ['origen' => 'Ventas facturas',         'cantidad' => (int)($fe['cantidad'] ?? 0), 'total' => (float)($fe['total'] ?? 0)],
+            ['origen' => 'Ventas ordenes de venta', 'cantidad' => $ovCant,                    'total' => round($ovTot, 2)],
         ];
-        usort($rows, function($a, $b) use ($rank) {
-            $ra = $rank[$a['origen']] ?? 99;
-            $rb = $rank[$b['origen']] ?? 99;
-            if ($ra !== $rb) return $ra <=> $rb;
-            return ((float)$b['total']) <=> ((float)$a['total']);
-        });
+        if ((int)($vf['cantidad'] ?? 0) > 0) {
+            $rows[] = ['origen' => 'Ventas fisicas', 'cantidad' => (int)$vf['cantidad'], 'total' => (float)$vf['total']];
+        }
         return $rows;
     }
 
