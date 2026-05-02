@@ -14,7 +14,7 @@
   </div>
 </div>
 
-<!-- ============ KPIs Cobranza ============ -->
+<!-- ============ Variables del tablero (compartidas por KPIs Cobranza y Resumen) ============ -->
 <?php
   $cobMes      = (float)($data['cobradoMes']['total'] ?? 0);
   $cobMesQty   = (int)($data['cobradoMes']['cantidad'] ?? 0);
@@ -37,48 +37,6 @@
       return $meses[(int)date('n') - 1] . ' ' . date('Y');
   })();
 ?>
-<div class="row row-cols-1 row-cols-md-3 g-3 mb-3">
-  <div class="col">
-    <div class="kpi-card kpi-cobro">
-      <div class="kpi-body">
-        <div class="kpi-icon"><i class="bx bx-dollar-circle"></i></div>
-        <div class="flex-grow-1">
-          <small class="kpi-label">Cobros mes en curso</small>
-          <h3 class="kpi-value text-success">$<?= number_format($cobMes, 2) ?></h3>
-          <small class="text-muted"><?= $cobMesQty ?> cobro<?= $cobMesQty == 1 ? '' : 's' ?> real<?= $cobMesQty == 1 ? '' : 'es' ?> de <?= $mesActual ?></small>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col">
-    <div class="kpi-card kpi-ventas">
-      <div class="kpi-body">
-        <div class="kpi-icon"><i class="bx bx-receipt"></i></div>
-        <div class="flex-grow-1">
-          <small class="kpi-label">Ventas totales del mes</small>
-          <h3 class="kpi-value text-primary">$<?= number_format($ventasTotales, 2) ?></h3>
-          <small class="text-muted">
-            Facturas $<?= number_format($ventasFact, 2) ?>
-            · Orden venta $<?= number_format($ventasOV, 2) ?>
-            <?php if ($ventasFis > 0): ?>· Ventas fisicas $<?= number_format($ventasFis, 2) ?><?php endif; ?>
-          </small>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col">
-    <div class="kpi-card kpi-diferencia">
-      <div class="kpi-body">
-        <div class="kpi-icon"><i class="bx bx-transfer-alt"></i></div>
-        <div class="flex-grow-1">
-          <small class="kpi-label">Diferencia (ventas − cobros)</small>
-          <h3 class="kpi-value <?= $diferenciaVC > 0 ? 'text-danger' : 'text-success' ?>">$<?= number_format($diferenciaVC, 2) ?></h3>
-          <small class="text-muted">Pendiente del mes por cobrar sobre lo facturado</small>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ============ KPIs ============ -->
 <div class="row row-cols-2 row-cols-md-3 row-cols-xl-6 g-3 mb-3">
@@ -326,6 +284,50 @@
             <div><span class="text-muted">Cobros:</span> <span class="text-success fw-semibold"><?= $fmt($totCobros) ?></span></div>
             <div><span class="text-muted">Egresos:</span> <span class="text-danger fw-semibold"><?= $fmt($totEgresos) ?></span></div>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ KPIs Cobranza (debajo del resumen financiero) ============ -->
+<div class="row row-cols-1 row-cols-md-3 g-3 mb-4">
+  <div class="col">
+    <div class="kpi-card kpi-cobro">
+      <div class="kpi-body">
+        <div class="kpi-icon"><i class="bx bx-dollar-circle"></i></div>
+        <div class="flex-grow-1">
+          <small class="kpi-label">Cobros mes en curso</small>
+          <h3 class="kpi-value text-success">$<?= number_format($cobMes, 2) ?></h3>
+          <small class="text-muted"><?= $cobMesQty ?> cobro<?= $cobMesQty == 1 ? '' : 's' ?> real<?= $cobMesQty == 1 ? '' : 'es' ?> de <?= $mesActual ?></small>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="kpi-card kpi-ventas">
+      <div class="kpi-body">
+        <div class="kpi-icon"><i class="bx bx-receipt"></i></div>
+        <div class="flex-grow-1">
+          <small class="kpi-label">Ventas totales del mes</small>
+          <h3 class="kpi-value text-primary">$<?= number_format($ventasTotales, 2) ?></h3>
+          <small class="text-muted">
+            Facturas $<?= number_format($ventasFact, 2) ?>
+            · Orden venta $<?= number_format($ventasOV, 2) ?>
+            <?php if ($ventasFis > 0): ?>· Ventas fisicas $<?= number_format($ventasFis, 2) ?><?php endif; ?>
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="kpi-card kpi-diferencia">
+      <div class="kpi-body">
+        <div class="kpi-icon"><i class="bx bx-transfer-alt"></i></div>
+        <div class="flex-grow-1">
+          <small class="kpi-label">Diferencia (ventas − cobros)</small>
+          <h3 class="kpi-value <?= $diferenciaVC > 0 ? 'text-danger' : 'text-success' ?>">$<?= number_format($diferenciaVC, 2) ?></h3>
+          <small class="text-muted">Pendiente del mes por cobrar sobre lo facturado</small>
         </div>
       </div>
     </div>
