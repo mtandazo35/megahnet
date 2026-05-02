@@ -51,18 +51,26 @@
         <div class="flex-grow-1">
           <small class="kpi-label">Pendiente por cobrar (mes)</small>
           <h3 class="kpi-value text-danger">$<?= number_format($pendiente, 2) ?></h3>
-          <div class="d-flex justify-content-between align-items-center mt-1 small">
-            <div>
-              <i class="bx bx-receipt text-info"></i>
-              <span class="text-muted">Recibos:</span>
-              <b>$<?= number_format($pendRec, 2) ?></b>
-              <span class="text-muted">(<?= $cantRec ?>)</span>
+          <div class="row g-2 mt-2">
+            <div class="col-6">
+              <div class="pendiente-mini pendiente-recibo">
+                <div class="pendiente-mini-icon"><i class="bx bx-receipt"></i></div>
+                <div class="pendiente-mini-body">
+                  <small class="pendiente-mini-label">Recibos</small>
+                  <div class="pendiente-mini-value">$<?= number_format($pendRec, 2) ?></div>
+                  <small class="pendiente-mini-count"><?= $cantRec ?> credito<?= $cantRec==1?'':'s' ?></small>
+                </div>
+              </div>
             </div>
-            <div>
-              <i class="bx bx-file text-primary"></i>
-              <span class="text-muted">Facturas:</span>
-              <b>$<?= number_format($pendFact, 2) ?></b>
-              <span class="text-muted">(<?= $cantFact ?>)</span>
+            <div class="col-6">
+              <div class="pendiente-mini pendiente-factura">
+                <div class="pendiente-mini-icon"><i class="bx bx-file"></i></div>
+                <div class="pendiente-mini-body">
+                  <small class="pendiente-mini-label">Facturas</small>
+                  <div class="pendiente-mini-value">$<?= number_format($pendFact, 2) ?></div>
+                  <small class="pendiente-mini-count"><?= $cantFact ?> credito<?= $cantFact==1?'':'s' ?></small>
+                </div>
+              </div>
             </div>
           </div>
           <div class="progress mt-2" style="height:6px;">
@@ -446,6 +454,50 @@
 .kpi-pendiente::before { background: #ef4444; }
 .kpi-cobro     .kpi-icon { background: rgba(16,185,129,.12); color: #10b981; }
 .kpi-pendiente .kpi-icon { background: rgba(239,68,68,.12);  color: #ef4444; }
+
+/* Mini cards de desglose dentro del card 'Pendiente por cobrar' */
+.pendiente-mini {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  transition: transform .15s ease, box-shadow .15s ease;
+  height: 100%;
+}
+.pendiente-mini:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,.08); }
+.pendiente-mini-icon {
+  width: 42px; height: 42px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.pendiente-recibo .pendiente-mini-icon { background: rgba(13,202,240,.14); color: #0891b2; }
+.pendiente-factura .pendiente-mini-icon { background: rgba(13,110,253,.14); color: #2563eb; }
+.pendiente-mini-body { flex: 1; min-width: 0; }
+.pendiente-mini-label {
+  display: block;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: .4px;
+  color: #6b7280;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.pendiente-mini-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.1;
+}
+.pendiente-mini-count {
+  display: block;
+  color: #9ca3af;
+  font-size: 11px;
+  margin-top: 2px;
+}
 
 .kpi-body { display: flex; align-items: center; gap: 14px; }
 .kpi-icon {
