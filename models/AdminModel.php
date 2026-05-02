@@ -262,11 +262,17 @@ HAVING COUNT(*) > $estado) AS subconsulta";
      */
     public function getPendienteCobro()
     {
+        // Total + desglose por tipo de origen del credito (factura electronica vs orden venta).
+        // id_electronica != NULL => Factura. id_orden_venta != NULL => Recibo (orden venta).
         $sql = "SELECT
                   COALESCE(SUM(c.monto), 0) AS total_monto,
                   COALESCE(SUM(IFNULL(a.pagado, 0)), 0) AS total_pagado,
                   COALESCE(SUM(c.monto), 0) - COALESCE(SUM(IFNULL(a.pagado, 0)), 0) AS pendiente,
-                  COUNT(c.id) AS cantidad_creditos
+                  COUNT(c.id) AS cantidad_creditos,
+                  COALESCE(SUM(CASE WHEN c.id_electronica  IS NOT NULL THEN c.monto - IFNULL(a.pagado, 0) ELSE 0 END), 0) AS pendiente_facturas,
+                  COALESCE(SUM(CASE WHEN c.id_orden_venta IS NOT NULL THEN c.monto - IFNULL(a.pagado, 0) ELSE 0 END), 0) AS pendiente_recibos,
+                  SUM(CASE WHEN c.id_electronica  IS NOT NULL THEN 1 ELSE 0 END) AS cant_facturas,
+                  SUM(CASE WHEN c.id_orden_venta IS NOT NULL THEN 1 ELSE 0 END) AS cant_recibos
                 FROM creditos c
                 LEFT JOIN (
                     SELECT id_credito, SUM(abono) AS pagado

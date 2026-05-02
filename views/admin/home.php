@@ -21,6 +21,10 @@
   $pendiente   = (float)($data['pendienteCobro']['pendiente'] ?? 0);
   $totalMonto  = (float)($data['pendienteCobro']['total_monto'] ?? 0);
   $cantCred    = (int)($data['pendienteCobro']['cantidad_creditos'] ?? 0);
+  $pendFact    = (float)($data['pendienteCobro']['pendiente_facturas'] ?? 0);
+  $pendRec     = (float)($data['pendienteCobro']['pendiente_recibos']  ?? 0);
+  $cantFact    = (int)($data['pendienteCobro']['cant_facturas'] ?? 0);
+  $cantRec     = (int)($data['pendienteCobro']['cant_recibos']  ?? 0);
   $pctCobrado  = $totalMonto > 0 ? round(($totalMonto - $pendiente) * 100 / $totalMonto, 1) : 0;
   $mesActual   = (function(){
       $meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -47,6 +51,20 @@
         <div class="flex-grow-1">
           <small class="kpi-label">Pendiente por cobrar (mes)</small>
           <h3 class="kpi-value text-danger">$<?= number_format($pendiente, 2) ?></h3>
+          <div class="d-flex justify-content-between align-items-center mt-1 small">
+            <div>
+              <i class="bx bx-receipt text-info"></i>
+              <span class="text-muted">Recibos:</span>
+              <b>$<?= number_format($pendRec, 2) ?></b>
+              <span class="text-muted">(<?= $cantRec ?>)</span>
+            </div>
+            <div>
+              <i class="bx bx-file text-primary"></i>
+              <span class="text-muted">Facturas:</span>
+              <b>$<?= number_format($pendFact, 2) ?></b>
+              <span class="text-muted">(<?= $cantFact ?>)</span>
+            </div>
+          </div>
           <div class="progress mt-2" style="height:6px;">
             <div class="progress-bar bg-success" style="width:<?= max(0, min(100, $pctCobrado)) ?>%"></div>
           </div>
