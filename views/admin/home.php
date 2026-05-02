@@ -332,50 +332,6 @@
   </div>
 </div>
 
-<!-- ============ Graficos + Alertas ============ -->
-<div class="row g-3 mb-4">
-  <div class="col-lg-7">
-    <div class="card radius-10 h-100">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h6 class="mb-0 fw-semibold"><i class="bx bx-line-chart text-primary me-1"></i>Ventas vs Compras</h6>
-          <select id="anio" class="form-select form-select-sm w-auto" onchange="comparacion()">
-            <?php for ($y = 2022; $y <= date('Y'); $y++): ?>
-              <option <?= $y == date('Y') ? 'selected' : '' ?>><?= $y ?></option>
-            <?php endfor; ?>
-          </select>
-        </div>
-        <div style="height:260px;"><canvas id="comparacion"></canvas></div>
-        <div class="row row-cols-2 text-center border-top mt-3 pt-3">
-          <div><small class="text-muted">Total Ventas</small><h5 class="mb-0 text-success" id="totalVentas">$0</h5></div>
-          <div><small class="text-muted">Total Compras</small><h5 class="mb-0 text-warning" id="totalCompras">$0</h5></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-lg-5">
-    <div class="card radius-10 h-100">
-      <div class="card-body">
-        <h6 class="mb-3 fw-semibold"><i class="bx bx-trophy text-warning me-1"></i>Top productos</h6>
-        <?php if (!empty($data['top'])): ?>
-          <?php foreach ($data['top'] as $i => $t): ?>
-          <div class="d-flex align-items-center mb-2 pb-2 <?= $i < count($data['top'])-1 ? 'border-bottom' : '' ?>">
-            <div class="rank-badge rank-<?= $i+1 ?>"><?= $i+1 ?></div>
-            <div class="flex-grow-1 ms-2">
-              <div class="fw-medium"><?= htmlspecialchars($t['descripcion'] ?? '—', ENT_QUOTES) ?></div>
-              <small class="text-muted"><?= $t['ventas'] ?? 0 ?> ventas</small>
-            </div>
-            <span class="badge rounded-pill bg-primary-subtle text-primary fs-6"><?= $t['ventas'] ?? 0 ?></span>
-          </div>
-          <?php endforeach; ?>
-        <?php else: ?>
-          <div class="text-center text-muted py-4">Sin datos de productos</div>
-        <?php endif; ?>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- ============ Casos ============ -->
 <div class="row g-3">
   <div class="col-lg-6">
