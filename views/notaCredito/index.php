@@ -285,3 +285,25 @@ $dias = ($firmaFinalSegundos !== false)
 
 
 <?php include_once 'views/templates/footer.php'; ?>
+
+<script>
+// Pre-cargar nota de credito si llega ?claveAcceso=... en la URL (boton 'Emitir NC' del listado de Facturas)
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  var clave = params.get('claveAcceso');
+  if (!clave) return;
+  function tryFill(){
+    var inp = document.getElementById('buscarFacturaNC');
+    var btn = document.getElementById('btnBuscarFacturaNC');
+    if (!inp || !btn) { setTimeout(tryFill, 200); return; }
+    inp.value = clave;
+    inp.dispatchEvent(new Event('input', {bubbles:true}));
+    setTimeout(function(){ btn.click(); }, 300);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryFill);
+  } else {
+    tryFill();
+  }
+})();
+</script>
