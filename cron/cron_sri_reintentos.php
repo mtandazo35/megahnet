@@ -39,6 +39,8 @@ try {
         WHERE estado_proceso = 2
         AND sri_enviado = 1
         AND intentos_sri < 25
+        AND fecha >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+        AND fecha <  DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')
         LIMIT 25
     ";
     $facturas = $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
