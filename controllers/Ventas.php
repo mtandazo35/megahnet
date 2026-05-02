@@ -735,11 +735,16 @@ class Ventas extends Controller
     public function contarPendientesSri()
     {
         $pdo = new \PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, PASSWORD);
-        $stmt = $pdo->query("SELECT COUNT(*) FROM datos_cabecera_electronica dce
+        $stmt = $pdo->query("SELECT COUNT(DISTINCT dce.id) FROM datos_cabecera_electronica dce
             LEFT JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
+            LEFT JOIN datos_cabecera_electronica dce_auth
+              ON dce_auth.ruc = dce.ruc AND dce_auth.fecha = dce.fecha
+             AND dce_auth.totalfactura = dce.totalfactura AND dce_auth.id != dce.id
+            LEFT JOIN respuesta_sri rs_auth ON rs_auth.claveAcceso = dce_auth.claveacceso AND rs_auth.estado = 'AUTORIZADO'
             WHERE dce.fecha >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
               AND dce.fecha <  DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')
-              AND (rs.estado IS NULL OR rs.estado != 'AUTORIZADO')");
+              AND (rs.estado IS NULL OR rs.estado != 'AUTORIZADO')
+              AND rs_auth.id IS NULL");
         header('Content-Type: application/json');
         echo json_encode(['pendientes' => (int)$stmt->fetchColumn()]);
         die();

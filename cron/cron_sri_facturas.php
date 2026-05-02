@@ -38,12 +38,18 @@ try {
      * - sri_enviado = 0 (no enviada)
      */
     $sql = "
-        SELECT id, orden_no
-        FROM datos_cabecera_electronica
+        SELECT dce.id, dce.orden_no
+        FROM datos_cabecera_electronica dce
         WHERE estado_proceso = 0
         AND sri_enviado = 0
         AND fecha >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
         AND fecha <  DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')
+        AND NOT EXISTS (
+          SELECT 1 FROM datos_cabecera_electronica dce_auth
+          INNER JOIN respuesta_sri rs_auth ON rs_auth.claveAcceso = dce_auth.claveacceso AND rs_auth.estado='AUTORIZADO'
+          WHERE dce_auth.ruc = dce.ruc AND dce_auth.fecha = dce.fecha
+            AND dce_auth.totalfactura = dce.totalfactura AND dce_auth.id != dce.id
+        )
         LIMIT 25
     ";
     $facturas = $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
