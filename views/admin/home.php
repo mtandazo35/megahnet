@@ -176,6 +176,10 @@
           <small class="text-muted d-block mb-2">Facturas + notas de venta (con IVA)</small>
           <table class="table table-sm mb-0" style="font-size:.78rem;">
             <tbody>
+            <?php
+              $ventasCantTotal = 0;
+              foreach ($facturacionD as $f) { $ventasCantTotal += (int)$f['cantidad']; }
+            ?>
             <?php foreach ($facturacionD as $f): ?>
               <tr>
                 <td class="text-muted"><?= htmlspecialchars(strtoupper($f['origen'])) ?>
@@ -185,7 +189,9 @@
               </tr>
             <?php endforeach; ?>
               <tr class="border-top">
-                <td class="fw-bold text-primary">TOTAL VENTAS</td>
+                <td class="fw-bold text-primary">TOTAL VENTAS
+                  <small class="text-muted">(<?= $ventasCantTotal ?>)</small>
+                </td>
                 <td class="text-end fw-bold text-primary"><?= $fmt($totFacturacion) ?></td>
               </tr>
             </tbody>
@@ -202,6 +208,10 @@
           </div>
           <table class="table table-sm mb-0" style="font-size:.78rem;">
             <tbody>
+            <?php
+              $cobrosCantTotal = 0;
+              foreach ($cobrosD as $c) { $cobrosCantTotal += (int)$c['cantidad']; }
+            ?>
             <?php foreach ($cobrosD as $c): ?>
               <tr>
                 <td class="text-muted"><?= htmlspecialchars($c['tipo_pago']) ?>
@@ -210,6 +220,12 @@
                 <td class="text-end fw-semibold"><?= $fmt($c['total']) ?></td>
               </tr>
             <?php endforeach; ?>
+              <tr class="border-top">
+                <td class="fw-bold text-success">TOTAL COBROS
+                  <small class="text-muted">(<?= $cobrosCantTotal ?>)</small>
+                </td>
+                <td class="text-end fw-bold text-success"><?= $fmt($totCobros) ?></td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -244,6 +260,12 @@
                 </td>
                 <td class="text-end fw-semibold"><?= $fmt($totNC) ?></td>
               </tr>
+              <tr class="border-top">
+                <td class="fw-bold text-warning">TOTAL RETENCIONES
+                  <small class="text-muted">(<?= (int)$retCant + (int)($ncMes['cantidad'] ?? 0) ?>)</small>
+                </td>
+                <td class="text-end fw-bold text-warning"><?= $fmt($totRetMasNC) ?></td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -256,22 +278,28 @@
             <strong class="text-danger"><i class="bx bx-trending-down me-1"></i>Egresos</strong>
             <span class="badge bg-danger"><?= $fmt($totEgresos) ?></span>
           </div>
-          <?php if (!empty($egresosD)): ?>
-            <table class="table table-sm mb-0" style="font-size:.78rem;">
-              <tbody>
-              <?php foreach ($egresosD as $e): ?>
-                <tr>
-                  <td class="text-muted"><?= htmlspecialchars($e['concepto']) ?>
-                    <small class="text-muted">(<?= (int)$e['cantidad'] ?>)</small>
-                  </td>
-                  <td class="text-end fw-semibold"><?= $fmt($e['total']) ?></td>
-                </tr>
-              <?php endforeach; ?>
-              </tbody>
-            </table>
-          <?php else: ?>
-            <small class="text-muted">Sin egresos este mes</small>
-          <?php endif; ?>
+          <table class="table table-sm mb-0" style="font-size:.78rem;">
+            <tbody>
+            <?php
+              $egresosCantTotal = 0;
+              foreach ($egresosD as $e) { $egresosCantTotal += (int)$e['cantidad']; }
+            ?>
+            <?php foreach ($egresosD as $e): ?>
+              <tr>
+                <td class="text-muted"><?= htmlspecialchars($e['concepto']) ?>
+                  <small class="text-muted">(<?= (int)$e['cantidad'] ?>)</small>
+                </td>
+                <td class="text-end fw-semibold"><?= $fmt($e['total']) ?></td>
+              </tr>
+            <?php endforeach; ?>
+              <tr class="border-top">
+                <td class="fw-bold text-danger">TOTAL EGRESOS
+                  <small class="text-muted">(<?= $egresosCantTotal ?>)</small>
+                </td>
+                <td class="text-end fw-bold text-danger"><?= $fmt($totEgresos) ?></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
