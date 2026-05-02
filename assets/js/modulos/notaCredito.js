@@ -59,6 +59,12 @@ document.addEventListener("DOMContentLoaded", function () {
             orden_no.value = factura.id;
             serieFactura.value = factura.serieFactura;
             idCliente.value = factura.idCliente;
+            // Limpiar carrito previo antes de cargar los detalles de la factura buscada.
+            // Sin esto, agregarNotaCredito() suma productos a la lista anterior
+            // (incrementa cantidad si el id_producto ya estaba) generando totales inflados.
+            localStorage.removeItem(nombreKey);
+            listaCarrito = [];
+            mostrarProducto();
             // Llenar detalles de la factura en la tabla de Nota de Crédito
             factura.detalle.forEach((item) => {
               agregarNotaCredito(
