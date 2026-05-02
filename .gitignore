@@ -18,6 +18,7 @@ log.txt
 *.zip
 *.tar.gz
 *.bak
+*.bak-*
 backup_*/
 
 # Pero SI versionar el schema base + seed (necesarios para install.sh)
