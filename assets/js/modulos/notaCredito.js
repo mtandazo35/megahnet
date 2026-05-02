@@ -148,7 +148,7 @@ document.addEventListener("DOMContentLoaded", function () {
                       res.idVenta;
                     window.open(ruta, "_blank");
                   }
-                  window.location.reload();
+                  window.location.href = base_url + "notaCredito/index";
                 });
               }, 2000);
             } else {
@@ -179,7 +179,7 @@ document.addEventListener("DOMContentLoaded", function () {
                       "facturaelectronica/public/archivos/notaCreditos/ride/" + res.ClaveAcceso + ".pdf";
                     window.open(ruta, "_blank");
                   }
-                  window.location.reload();
+                  window.location.href = base_url + "notaCredito/index";
                 });
               }, 2000);
             }
