@@ -67,7 +67,7 @@ class VentasModel extends Query
                 FROM datos_cabecera_electronica dce
                 LEFT JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
                 ORDER BY dce.id DESC
-                LIMIT 200";
+                LIMIT 2000";
         return $this->selectAll($sql);
     }
 
