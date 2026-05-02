@@ -66,8 +66,9 @@ class VentasModel extends Query
                        COALESCE(rs.estado, 'PENDIENTE') AS autorizacion
                 FROM datos_cabecera_electronica dce
                 LEFT JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
-                ORDER BY dce.id DESC
-                LIMIT 2000";
+                WHERE dce.fecha >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+                  AND dce.fecha <  DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')
+                ORDER BY dce.id DESC";
         return $this->selectAll($sql);
     }
 
