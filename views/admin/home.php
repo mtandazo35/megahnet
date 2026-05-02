@@ -184,6 +184,10 @@
                 <td class="text-end fw-semibold"><?= $fmt($f['total']) ?></td>
               </tr>
             <?php endforeach; ?>
+              <tr class="border-top">
+                <td class="fw-bold text-primary">TOTAL VENTAS</td>
+                <td class="text-end fw-bold text-primary"><?= $fmt($totFacturacion) ?></td>
+              </tr>
             </tbody>
           </table>
         </div>
