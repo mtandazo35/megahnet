@@ -370,43 +370,36 @@ HAVING COUNT(*) > $estado) AS subconsulta";
      */
     public function getFacturacionDesglose($yyyymm)
     {
-        // Agrega por ORIGEN sin desglose por metodo (segun mockup del doc).
+        // Cifras MENSUALES por tipo de comprobante segun los contratos activos
+        // (que es lo que se factura realmente cada mes). El usuario reconcilia
+        // con un Excel que suma contratos.total agrupado por contratos.factura,
+        // asi que el panel toma esa misma fuente para coincidir.
+        //
+        //   contratos.factura=1 -> Ventas facturas (factura electronica)
+        //   contratos.factura=0 -> Ventas ordenes de venta (recibos)
+        //
+        // contratos.total ya viene con IVA incluido (asi se almacena en el sistema).
+        //
         // Slots FIJOS y en este orden: Ventas facturas, Ventas ordenes de venta.
-        // Ventas fisicas se anexa solo si hay registros (es residual).
+        // Ventas fisicas se mantiene como residual del POS clasico.
 
-        // Facturas electronicas
-        $sqlFE = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(totalfactura), 0) AS total
-                  FROM datos_cabecera_electronica
-                  WHERE LEFT(fecha, 7) = ? AND estado = 1";
-        $fe = $this->select($sqlFE, [$yyyymm]);
+        $sqlFE = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
+                  FROM contratos WHERE estado = 1 AND factura = 1";
+        $fe = $this->select($sqlFE);
 
-        // Ventas fisicas (POS)
+        $sqlOv = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
+                  FROM contratos WHERE estado = 1 AND factura = 0";
+        $ov = $this->select($sqlOv);
+
+        // Ventas fisicas POS del mes (legado, no recurrente)
         $sqlVF = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
                   FROM ventas
                   WHERE LEFT(fecha, 7) = ? AND estado = 1";
         $vf = $this->select($sqlVF, [$yyyymm]);
 
-        // Orden de Venta: recalcular con IVA desde el JSON (orden_venta.total es sin IVA)
-        $sqlOv = "SELECT productos FROM orden_venta WHERE LEFT(fecha, 7) = ? AND estado = 1";
-        $ovRows = $this->selectAll($sqlOv, [$yyyymm]);
-        $ovCant = 0; $ovTot = 0;
-        foreach ($ovRows as $ov) {
-            $prods = !empty($ov['productos']) ? json_decode($ov['productos'], true) : [];
-            if (is_array($prods)) {
-                foreach ($prods as $p) {
-                    $cant = (float)($p['cantidad'] ?? 0);
-                    $prec = (float)($p['precio']   ?? 0);
-                    $iva  = (float)($p['iva_producto'] ?? 0);
-                    $sub  = $cant * $prec;
-                    $ovTot += ($iva > 0) ? round($sub * (1 + $iva/100), 2) : $sub;
-                }
-            }
-            $ovCant++;
-        }
-
         $rows = [
             ['origen' => 'Ventas facturas',         'cantidad' => (int)($fe['cantidad'] ?? 0), 'total' => (float)($fe['total'] ?? 0)],
-            ['origen' => 'Ventas ordenes de venta', 'cantidad' => $ovCant,                    'total' => round($ovTot, 2)],
+            ['origen' => 'Ventas ordenes de venta', 'cantidad' => (int)($ov['cantidad'] ?? 0), 'total' => (float)($ov['total'] ?? 0)],
         ];
         if ((int)($vf['cantidad'] ?? 0) > 0) {
             $rows[] = ['origen' => 'Ventas fisicas', 'cantidad' => (int)$vf['cantidad'], 'total' => (float)$vf['total']];
