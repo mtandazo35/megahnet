@@ -687,18 +687,36 @@ class Ventas extends Controller
         $fallidos = [];
         foreach ($pendientes as $row) {
             $ordenNo = $row['orden_no'];
+            $claveAcceso = '';
             try {
-                ob_start();
-                $this->envioSriElectronica($ordenNo);
-                ob_end_clean();
-                // Re-consultar estado
-                $est = $this->model->getVentasElectronicaUnica($ordenNo);
-                if (!empty($est) && ($est[0]['autorizacion'] ?? '') === 'AUTORIZADO') {
+                $enviarXML = new enviarXML();
+                $claveAcceso = $enviarXML->envioXML($ordenNo, FACTURA);
+                $validacionComprobante = new validacionComprobante();
+                $validacion = $validacionComprobante->validar_comprobante($claveAcceso, FACTURA);
+                $autorizacionComprobante = new autorizacionComprobante();
+                $autorizacion = $autorizacionComprobante->autorizacion_comprobante($claveAcceso, FACTURA);
+                $this->model->actualizarClaveAccesso($claveAcceso, $ordenNo);
+                $estado = $autorizacion['autorizaciones']['autorizacion']['estado'] ?? 'SIN_RESPUESTA';
+                if ($estado === 'AUTORIZADO') {
                     $ok++;
                 } else {
-                    $fallidos[] = ['orden_no' => $ordenNo, 'cliente' => $est[0]['cliente'] ?? '', 'error' => 'SRI no autorizo: ' . ($est[0]['autorizacion'] ?? 'sin respuesta')];
+                    $mens = $autorizacion['autorizaciones']['autorizacion']['mensajes']['mensaje'] ?? null;
+                    $detalle = '';
+                    if ($mens) {
+                        $lista = isset($mens['identificador']) ? [$mens] : (is_array($mens) ? $mens : []);
+                        $tmp = [];
+                        foreach ($lista as $m) if (is_array($m)) $tmp[] = trim(($m['mensaje'] ?? '') . ' ' . ($m['informacionAdicional'] ?? ''));
+                        $detalle = implode(' | ', $tmp);
+                    }
+                    $est = $this->model->getVentasElectronicaUnica($ordenNo);
+                    $fallidos[] = [
+                        'orden_no' => $ordenNo,
+                        'cliente'  => $est[0]['cliente'] ?? '',
+                        'error'    => $estado . ($detalle ? ': ' . $detalle : ''),
+                    ];
                 }
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
+                error_log('reenviarSriMasivo orden=' . $ordenNo . ' fallo: ' . $e->getMessage());
                 $fallidos[] = ['orden_no' => $ordenNo, 'cliente' => '', 'error' => $e->getMessage()];
             }
         }
@@ -711,6 +729,7 @@ class Ventas extends Controller
         ], JSON_UNESCAPED_UNICODE);
         die();
     }
+
 
     /** Cuenta facturas no AUTORIZADAS del mes (badge). */
     public function contarPendientesSri()
