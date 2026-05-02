@@ -170,8 +170,15 @@ WHERE dce.orden_no = $valor AND cr.estado = 1";
 
     public function registrarAbono($monto, $fecha, $idCredito, $id_usuario, $codigoPago, $tipoPago, $idCliente,$anticipo)
     {
+        // Defensa: nunca insertar abono sin tipo_pago. Si llega vacio, se infiere
+        // por codigo_pago (con codigo => TRANSFERENCIA, sin codigo => EFECTIVO).
+        // Asi el cierre de caja siempre cuadra: efectivo + bancarizado = ingresos.
+        $tp = trim((string)$tipoPago);
+        if ($tp === '') {
+            $tp = (trim((string)$codigoPago) !== '') ? 'TRANSFERENCIA' : 'EFECTIVO';
+        }
         $sql = "INSERT INTO abonos (abono,fecha, id_credito,id_usuario,codigo_pago,tipo_pago,id_cliente,anticipo) VALUES (?,?,?,?,?,?,?,?)";
-        $array = array($monto, $fecha, $idCredito, $id_usuario, $codigoPago, $tipoPago, $idCliente,$anticipo);
+        $array = array($monto, $fecha, $idCredito, $id_usuario, $codigoPago, $tp, $idCliente,$anticipo);
         return $this->insertar($sql, $array);
     }
     public function getCredito($idCredito)
