@@ -48,6 +48,10 @@ class Admin extends Controller
 
         $data['contratosPorSuspender'] = $this->model->getContratosPorSuspender(CONTRATOSPORSUSPENDER);
 
+        // Contratos discriminados por tipo de comprobante
+        $data['contratosFacturables'] = $this->model->getContratosPorTipoFactura(1);
+        $data['contratosOrdenVenta']  = $this->model->getContratosPorTipoFactura(0);
+
         // Cobranza: lo cobrado en el mes actual y el saldo pendiente total
         $data['cobradoMes']     = $this->model->getCobradoMes(date('Y-m'));
         $data['cobradoPorMes']  = $this->model->getCobradoPorMes(date('Y'));
@@ -59,6 +63,7 @@ class Admin extends Controller
         $data['retencionesDesglose'] = $this->model->getRetencionesDesglose($yyyymm);
         $data['facturacionDesglose'] = $this->model->getFacturacionDesglose($yyyymm);
         $data['egresosDesglose']     = $this->model->getEgresosDesglose($yyyymm);
+        $data['notasCreditoMes']     = $this->model->getNotasCreditoMes($yyyymm);
 
         $this->views->getView('admin', 'home', $data);
     }

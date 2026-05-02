@@ -18,65 +18,62 @@
 <?php
   $cobMes      = (float)($data['cobradoMes']['total'] ?? 0);
   $cobMesQty   = (int)($data['cobradoMes']['cantidad'] ?? 0);
-  $pendiente   = (float)($data['pendienteCobro']['pendiente'] ?? 0);
-  $totalMonto  = (float)($data['pendienteCobro']['total_monto'] ?? 0);
-  $cantCred    = (int)($data['pendienteCobro']['cantidad_creditos'] ?? 0);
-  $pendFact    = (float)($data['pendienteCobro']['pendiente_facturas'] ?? 0);
-  $pendRec     = (float)($data['pendienteCobro']['pendiente_recibos']  ?? 0);
-  $cantFact    = (int)($data['pendienteCobro']['cant_facturas'] ?? 0);
-  $cantRec     = (int)($data['pendienteCobro']['cant_recibos']  ?? 0);
-  $pctCobrado  = $totalMonto > 0 ? round(($totalMonto - $pendiente) * 100 / $totalMonto, 1) : 0;
+
+  // Ventas totales del mes (suma de facturas electronicas + ordenes de venta + ventas fisicas)
+  $facturacionD = $data['facturacionDesglose'] ?? [];
+  $ventasFact = 0; $ventasOV = 0; $ventasFis = 0;
+  foreach ($facturacionD as $f) {
+      $orig = $f['origen'] ?? '';
+      $tot  = (float)($f['total'] ?? 0);
+      if ($orig === 'Facturacion Electronica')      $ventasFact += $tot;
+      elseif ($orig === 'Orden de Venta')           $ventasOV   += $tot;
+      else                                          $ventasFis  += $tot;
+  }
+  $ventasTotales = $ventasFact + $ventasOV + $ventasFis;
+  $diferenciaVC  = $ventasTotales - $cobMes;
+
   $mesActual   = (function(){
       $meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
       return $meses[(int)date('n') - 1] . ' ' . date('Y');
   })();
 ?>
-<div class="row row-cols-1 row-cols-md-2 g-3 mb-3">
+<div class="row row-cols-1 row-cols-md-3 g-3 mb-3">
   <div class="col">
     <div class="kpi-card kpi-cobro">
       <div class="kpi-body">
         <div class="kpi-icon"><i class="bx bx-dollar-circle"></i></div>
         <div class="flex-grow-1">
-          <small class="kpi-label">Cobrado en <?= $mesActual ?></small>
+          <small class="kpi-label">Cobros mes en curso</small>
           <h3 class="kpi-value text-success">$<?= number_format($cobMes, 2) ?></h3>
-          <small class="text-muted"><?= $cobMesQty ?> abono<?= $cobMesQty == 1 ? '' : 's' ?> registrado<?= $cobMesQty == 1 ? '' : 's' ?> este mes</small>
+          <small class="text-muted"><?= $cobMesQty ?> cobro<?= $cobMesQty == 1 ? '' : 's' ?> real<?= $cobMesQty == 1 ? '' : 'es' ?> de <?= $mesActual ?></small>
         </div>
       </div>
     </div>
   </div>
   <div class="col">
-    <div class="kpi-card kpi-pendiente">
+    <div class="kpi-card kpi-ventas">
       <div class="kpi-body">
-        <div class="kpi-icon"><i class="bx bx-time-five"></i></div>
+        <div class="kpi-icon"><i class="bx bx-receipt"></i></div>
         <div class="flex-grow-1">
-          <small class="kpi-label">Pendiente por cobrar (mes)</small>
-          <h3 class="kpi-value text-danger">$<?= number_format($pendiente, 2) ?></h3>
-          <div class="row g-2 mt-2">
-            <div class="col-6">
-              <div class="pendiente-mini pendiente-recibo">
-                <div class="pendiente-mini-icon"><i class="bx bx-receipt"></i></div>
-                <div class="pendiente-mini-body">
-                  <small class="pendiente-mini-label">Recibos</small>
-                  <div class="pendiente-mini-value">$<?= number_format($pendRec, 2) ?></div>
-                  <small class="pendiente-mini-count"><?= $cantRec ?> credito<?= $cantRec==1?'':'s' ?></small>
-                </div>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="pendiente-mini pendiente-factura">
-                <div class="pendiente-mini-icon"><i class="bx bx-file"></i></div>
-                <div class="pendiente-mini-body">
-                  <small class="pendiente-mini-label">Facturas</small>
-                  <div class="pendiente-mini-value">$<?= number_format($pendFact, 2) ?></div>
-                  <small class="pendiente-mini-count"><?= $cantFact ?> credito<?= $cantFact==1?'':'s' ?></small>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="progress mt-2" style="height:6px;">
-            <div class="progress-bar bg-success" style="width:<?= max(0, min(100, $pctCobrado)) ?>%"></div>
-          </div>
-          <small class="text-muted"><?= $cantCred ?> credito<?= $cantCred == 1 ? '' : 's' ?> activo<?= $cantCred == 1 ? '' : 's' ?> · <?= $pctCobrado ?>% cobrado del total ($<?= number_format($totalMonto, 2) ?>)</small>
+          <small class="kpi-label">Ventas totales del mes</small>
+          <h3 class="kpi-value text-primary">$<?= number_format($ventasTotales, 2) ?></h3>
+          <small class="text-muted">
+            Facturas $<?= number_format($ventasFact, 2) ?>
+            · Orden venta $<?= number_format($ventasOV, 2) ?>
+            <?php if ($ventasFis > 0): ?>· Ventas fisicas $<?= number_format($ventasFis, 2) ?><?php endif; ?>
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="kpi-card kpi-diferencia">
+      <div class="kpi-body">
+        <div class="kpi-icon"><i class="bx bx-transfer-alt"></i></div>
+        <div class="flex-grow-1">
+          <small class="kpi-label">Diferencia (ventas − cobros)</small>
+          <h3 class="kpi-value <?= $diferenciaVC > 0 ? 'text-danger' : 'text-success' ?>">$<?= number_format($diferenciaVC, 2) ?></h3>
+          <small class="text-muted">Pendiente del mes por cobrar sobre lo facturado</small>
         </div>
       </div>
     </div>
@@ -84,7 +81,7 @@
 </div>
 
 <!-- ============ KPIs ============ -->
-<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 mb-3">
+<div class="row row-cols-2 row-cols-md-3 row-cols-xl-6 g-3 mb-3">
   <div class="col">
     <div class="kpi-card kpi-primary">
       <div class="kpi-body">
@@ -105,6 +102,30 @@
           <small class="kpi-label">Contratos activos</small>
           <h3 class="kpi-value"><?= number_format($data['contratosActivos']['total'] ?? 0) ?></h3>
           <a href="<?= BASE_URL.'contratos' ?>" class="kpi-link">Gestionar <i class="bx bx-right-arrow-alt"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="kpi-card kpi-info">
+      <div class="kpi-body">
+        <div class="kpi-icon"><i class="bx bx-receipt"></i></div>
+        <div class="flex-grow-1">
+          <small class="kpi-label">Contratos facturables</small>
+          <h3 class="kpi-value"><?= number_format($data['contratosFacturables']['total'] ?? 0) ?></h3>
+          <a href="<?= BASE_URL.'contratos' ?>" class="kpi-link">Factura electrónica <i class="bx bx-right-arrow-alt"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="kpi-card kpi-purple">
+      <div class="kpi-body">
+        <div class="kpi-icon"><i class="bx bx-file"></i></div>
+        <div class="flex-grow-1">
+          <small class="kpi-label">Contratos orden venta</small>
+          <h3 class="kpi-value"><?= number_format($data['contratosOrdenVenta']['total'] ?? 0) ?></h3>
+          <a href="<?= BASE_URL.'contratos' ?>" class="kpi-link">Recibos <i class="bx bx-right-arrow-alt"></i></a>
         </div>
       </div>
     </div>
@@ -168,12 +189,15 @@
 <?php
   $cobrosD     = $data['cobrosDesglose']      ?? [];
   $retencionesD = $data['retencionesDesglose'] ?? [];
-  $facturacionD = $data['facturacionDesglose'] ?? [];
+  // $facturacionD ya inicializado arriba
   $egresosD    = $data['egresosDesglose']     ?? [];
+  $ncMes       = $data['notasCreditoMes']     ?? ['cantidad' => 0, 'total' => 0];
 
   $totFacturacion = array_sum(array_column($facturacionD, 'total'));
   $totCobros      = array_sum(array_column($cobrosD,      'total'));
   $totRetenciones = array_sum(array_column($retencionesD, 'total'));
+  $totNC          = (float)($ncMes['total'] ?? 0);
+  $totRetMasNC    = $totRetenciones + $totNC;
   $totEgresos     = array_sum(array_column($egresosD,     'total'));
   $saldoNeto      = $totCobros - $totEgresos;
 
@@ -184,14 +208,14 @@
     <h6 class="mb-3 fw-semibold"><i class="bx bx-pie-chart-alt-2 text-primary me-1"></i>Resumen financiero de <?= $mesActual ?></h6>
 
     <div class="row g-3">
-      <!-- Facturacion emitida -->
+      <!-- Ventas emitidas -->
       <div class="col-lg-6 col-xl-3">
         <div class="border rounded p-3 h-100" style="background:#f0f9ff;">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <strong class="text-primary"><i class="bx bx-receipt me-1"></i>Facturación</strong>
+            <strong class="text-primary"><i class="bx bx-receipt me-1"></i>Ventas</strong>
             <span class="badge bg-primary"><?= $fmt($totFacturacion) ?></span>
           </div>
-          <small class="text-muted d-block mb-2">Valores con IVA incluido</small>
+          <small class="text-muted d-block mb-2">Facturas + notas de venta (con IVA)</small>
           <?php if (!empty($facturacionD)): ?>
             <table class="table table-sm mb-0" style="font-size:.78rem;">
               <tbody>
@@ -204,7 +228,7 @@
               </tbody>
             </table>
           <?php else: ?>
-            <small class="text-muted">Sin facturación este mes</small>
+            <small class="text-muted">Sin ventas este mes</small>
           <?php endif; ?>
         </div>
       </div>
@@ -235,33 +259,36 @@
         </div>
       </div>
 
-      <!-- Retenciones -->
+      <!-- Retenciones + Notas de Credito -->
       <div class="col-lg-6 col-xl-3">
         <div class="border rounded p-3 h-100" style="background:#fefce8;">
-          <div class="mb-2">
+          <div class="d-flex justify-content-between align-items-center mb-1">
             <strong class="text-warning"><i class="bx bx-shield-alt-2 me-1"></i>Retenciones</strong>
-            <small class="text-muted d-block">Solo informativo — no afecta el saldo</small>
+            <span class="badge bg-warning text-dark"><?= $fmt($totRetMasNC) ?></span>
           </div>
-          <?php if (!empty($retencionesD)): ?>
-            <table class="table table-sm mb-0" style="font-size:.78rem;">
-              <tbody>
+          <small class="text-muted d-block mb-2">Retenciones + notas de crédito</small>
+          <table class="table table-sm mb-0" style="font-size:.78rem;">
+            <tbody>
+            <?php if (!empty($retencionesD)): ?>
               <?php foreach ($retencionesD as $r): ?>
                 <tr>
-                  <td class="text-muted"><?= htmlspecialchars($r['tipo']) ?>
-                    <small class="text-muted">(<?= (int)$r['cantidad'] ?> ret.)</small>
+                  <td class="text-muted">Retención <?= htmlspecialchars($r['tipo']) ?>
+                    <small class="text-muted">(<?= (int)$r['cantidad'] ?>)</small>
                   </td>
                   <td class="text-end fw-semibold"><?= $fmt($r['total']) ?></td>
                 </tr>
               <?php endforeach; ?>
-              <tr class="border-top">
-                <td class="text-muted"><small>Retenciones recibidas</small></td>
-                <td class="text-end"><small><?= $fmt(array_sum(array_column($retencionesD, 'base'))) ?></small></td>
+            <?php else: ?>
+              <tr><td class="text-muted" colspan="2"><small>Sin retenciones este mes</small></td></tr>
+            <?php endif; ?>
+              <tr>
+                <td class="text-muted">Notas de crédito
+                  <small class="text-muted">(<?= (int)($ncMes['cantidad'] ?? 0) ?>)</small>
+                </td>
+                <td class="text-end fw-semibold"><?= $fmt($totNC) ?></td>
               </tr>
-              </tbody>
-            </table>
-          <?php else: ?>
-            <small class="text-muted">Sin retenciones este mes</small>
-          <?php endif; ?>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -450,10 +477,18 @@
 .kpi-success::before { background: #10b981; }
 .kpi-warning::before { background: #f59e0b; }
 .kpi-danger::before  { background: #ef4444; }
+.kpi-info::before    { background: #0ea5e9; }
+.kpi-purple::before  { background: #8b5cf6; }
 .kpi-cobro::before     { background: #10b981; }
 .kpi-pendiente::before { background: #ef4444; }
+.kpi-ventas::before     { background: #2563eb; }
+.kpi-diferencia::before { background: #f59e0b; }
 .kpi-cobro     .kpi-icon { background: rgba(16,185,129,.12); color: #10b981; }
 .kpi-pendiente .kpi-icon { background: rgba(239,68,68,.12);  color: #ef4444; }
+.kpi-ventas    .kpi-icon { background: rgba(37,99,235,.10);  color: #2563eb; }
+.kpi-diferencia .kpi-icon { background: rgba(245,158,11,.12); color: #f59e0b; }
+.kpi-info      .kpi-icon { background: rgba(14,165,233,.12); color: #0ea5e9; }
+.kpi-purple    .kpi-icon { background: rgba(139,92,246,.12); color: #8b5cf6; }
 
 /* Mini cards de desglose dentro del card 'Pendiente por cobrar' */
 .pendiente-mini {

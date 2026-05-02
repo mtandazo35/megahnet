@@ -60,6 +60,21 @@ class AdminModel extends Query
         $sql = "SELECT COUNT(*) AS total FROM $table WHERE estado = $estado";
         return $this->select($sql);
     }
+    public function getContratosPorTipoFactura($factura)
+    {
+        // factura=1 -> factura electronica (facturable). factura=0 -> orden de venta.
+        $factura = (int)$factura;
+        $sql = "SELECT COUNT(*) AS total FROM contratos WHERE estado = 1 AND factura = $factura";
+        return $this->select($sql);
+    }
+    public function getNotasCreditoMes($yyyymm)
+    {
+        $sql = "SELECT COUNT(*) AS cantidad,
+                       COALESCE(SUM(total_modificar), 0) AS total
+                FROM nota_credito_cabecera
+                WHERE LEFT(fecha, 7) = ? AND estado = 1";
+        return $this->select($sql, [$yyyymm]);
+    }
     public function getRepetidoras($estado)
     {
         $sql = "SELECT COUNT(DISTINCT repetidora) AS total FROM contratos WHERE estado = $estado";
