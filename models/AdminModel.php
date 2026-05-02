@@ -249,13 +249,15 @@ HAVING COUNT(*) > $estado) AS subconsulta";
      */
     public function getCobradoMes($yyyymm)
     {
-        // Solo cobros reales: excluye RETENCIONES (retencion tributaria, no ingreso)
-        // y ANTICIPOS (saldos a favor ya cobrados antes que ahora se aplican).
+        // Solo cobros reales: excluye RETENCIONES (retencion tributaria, no ingreso),
+        // ANTICIPOS (saldos a favor ya cobrados antes), y abonos con tipo_pago vacio
+        // (registros incompletos que no deben aparecer como fila sin etiqueta).
         $sql = "SELECT COALESCE(SUM(abono), 0) AS total,
                        COUNT(*) AS cantidad
                 FROM abonos
                 WHERE LEFT(fecha, 7) = ?
-                  AND UPPER(TRIM(IFNULL(tipo_pago, ''))) NOT IN ('RETENCIONES','ANTICIPOS')";
+                  AND UPPER(TRIM(IFNULL(tipo_pago, ''))) NOT IN ('RETENCIONES','ANTICIPOS')
+                  AND TRIM(IFNULL(tipo_pago, '')) <> ''";
         return $this->select($sql, [$yyyymm]);
     }
 
@@ -271,6 +273,7 @@ HAVING COUNT(*) > $estado) AS subconsulta";
                 FROM abonos
                 WHERE LEFT(fecha, 4) = ?
                   AND UPPER(TRIM(IFNULL(tipo_pago, ''))) NOT IN ('RETENCIONES','ANTICIPOS')
+                  AND TRIM(IFNULL(tipo_pago, '')) <> ''
                 GROUP BY mes
                 ORDER BY mes";
         return $this->selectAll($sql, [$yyyy]);
@@ -322,6 +325,7 @@ HAVING COUNT(*) > $estado) AS subconsulta";
                 FROM abonos
                 WHERE LEFT(fecha, 7) = ?
                   AND UPPER(TRIM(IFNULL(tipo_pago, ''))) NOT IN ('RETENCIONES','ANTICIPOS')
+                  AND TRIM(IFNULL(tipo_pago, '')) <> ''
                 GROUP BY UPPER(TRIM(IFNULL(tipo_pago, '')))";
         $rows = $this->selectAll($sql, [$yyyymm]);
 
