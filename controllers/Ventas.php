@@ -564,7 +564,7 @@ class Ventas extends Controller
 			if (file_exists($ArchivoPDF) === false ||  file_exists($ArchivoXML) === false) {
                 // return array('error' => true, 'mensaje' => 'documento generado no existe');
                 $data[$i]['acciones'] = '<div>
-               <a class="btn btn-warning btn-sm" href="#" title="Reenviar al SRI" onclick="envioSriElectronica(' . $data[$i]['orden_no'] . ')"><i class="fa-solid fa-paper-plane text-white me-1"></i>Reenviar</a>
+               ' . $btnReenviarSri . '
                                    <a class="btn btn-danger" href="#" onclick="anularVentaElectronica(' . $data[$i]['orden_no'] . ')"><i class="fas fa-trash"></i></a>
 
                </div>';
@@ -581,26 +581,26 @@ class Ventas extends Controller
                 </div>';
             } else if ($data[$i]['autorizacion'] == 'NO AUTORIZADO') {
                 $data[$i]['acciones'] = '<div>
-                <a class="btn btn-warning btn-sm" href="#" title="Reenviar al SRI" onclick="envioSriElectronica(' . $data[$i]['orden_no'] . ')"><i class="fa-solid fa-paper-plane text-white me-1"></i>Reenviar</a>
+                ' . $btnReenviarSri . '
                                 <a class="btn btn-danger" href="#" onclick="anularVentaElectronica(' . $data[$i]['orden_no'] . ')"><i class="fas fa-trash"></i></a>
 
                 </div>';
             } else if ($data[$i]['autorizacion'] == 'DEVUELTA') {
                 $data[$i]['acciones'] = '<div>
-                <a class="btn btn-warning btn-sm" href="#" title="Reenviar al SRI" onclick="envioSriElectronica(' . $data[$i]['orden_no'] . ')"><i class="fa-solid fa-paper-plane text-white me-1"></i>Reenviar</a>
+                ' . $btnReenviarSri . '
                 <a class="btn btn-danger" href="#" onclick="anularVentaElectronica(' . $data[$i]['orden_no'] . ')"><i class="fas fa-trash"></i></a>
 
                 </div>';
             } else if ($data[$i]['autorizacion'] == 'EN PROCESO') {
                 $data[$i]['acciones'] = '<div>
-                <a class="btn btn-warning btn-sm" href="#" title="Reenviar al SRI" onclick="envioSriElectronica(' . $data[$i]['orden_no'] . ')"><i class="fa-solid fa-paper-plane text-white me-1"></i>Reenviar</a>
+                ' . $btnReenviarSri . '
                  <a class="btn btn-danger" href="#" onclick="anularVentaElectronica(' . $data[$i]['orden_no'] . ')"><i class="fas fa-trash"></i></a>
 
                 </div>';
             } else {
                 $data[$i]['acciones'] = '<div>
                 <a class="btn btn-info" href="' . BASE_URL . 'ventas/facturaTicked/' . $data[$i]['claveacceso'] . '/' . $data[$i]['orden_no'] . '" target="_blank"><i class="fa-solid fa-file-arrow-down text-white"></i></a>
-                <a class="btn btn-warning btn-sm" href="#" title="Reenviar al SRI" onclick="envioSriElectronica(' . $data[$i]['orden_no'] . ')"><i class="fa-solid fa-paper-plane text-white me-1"></i>Reenviar</a>
+                ' . $btnReenviarSri . '
                 <a class="btn btn-danger" href="#" onclick="anularVentaElectronica(' . $data[$i]['orden_no'] . ')"><i class="fas fa-trash"></i></a>
 
                 </div>';
