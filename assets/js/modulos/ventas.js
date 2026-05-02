@@ -233,6 +233,78 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  // === Reenvio masivo SRI ===
+  function refrescarBadgePendientesSri(){
+    fetch(base_url + 'ventas/contarPendientesSri', { cache: 'no-store' })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        var b = document.getElementById('badgePendientesSri');
+        if (b) b.textContent = (j.pendientes != null) ? j.pendientes : '--';
+      })
+      .catch(function(){});
+  }
+  refrescarBadgePendientesSri();
+  setInterval(refrescarBadgePendientesSri, 30000);
+
+  var btnSri = document.getElementById('btnReenviarSri');
+  if (btnSri) btnSri.addEventListener('click', function(){
+    Swal.fire({
+      title: 'Reenviar al SRI las pendientes',
+      html: '<p class="small text-muted mb-0">Se reintentara firmar y autorizar al SRI las facturas del mes que estan EN PROCESO o NO AUTORIZADO. Procesa en lotes de 5 (cada lote toma ~30s por la conexion al SRI).</p>',
+      icon: 'question', showCancelButton: true,
+      confirmButtonColor: '#f59e0b', confirmButtonText: 'Si, reenviar', cancelButtonText: 'Cancelar'
+    }).then(function(r){ if (r.isConfirmed) ejecutarReenvioSri(); });
+  });
+
+  function ejecutarReenvioSri(){
+    var lote = 5, maxIter = 200;
+    var acum = { ok: 0, fail: 0, fallidos: [] };
+    Swal.fire({
+      title: 'Reenviando al SRI…',
+      html: '<div class="mb-2 text-muted small">No cierres esta pestaña hasta terminar.</div>'
+          + '<div class="d-flex justify-content-between small"><span>Autorizadas: <b id="sriOk" class="text-success">0</b></span>'
+          + '<span>Fallidas: <b id="sriErr" class="text-danger">0</b></span></div>',
+      allowOutsideClick: false, allowEscapeKey: false,
+      showConfirmButton: false, didOpen: function(){ Swal.showLoading(); }
+    });
+    function siguiente(i){
+      if (i >= maxIter) return finalizarSri();
+      fetch(base_url + 'ventas/reenviarSriMasivo?limite=' + lote, { cache: 'no-store' })
+        .then(function(r){ return r.json(); })
+        .then(function(res){
+          acum.ok   += (res.procesadas || 0);
+          acum.fail += (res.fallidas   || 0);
+          if (res.fallidos && res.fallidos.length) acum.fallidos = acum.fallidos.concat(res.fallidos);
+          var elOk = document.getElementById('sriOk');  if (elOk) elOk.textContent = acum.ok;
+          var elEr = document.getElementById('sriErr'); if (elEr) elEr.textContent = acum.fail;
+          if ((res.lote || 0) === 0) return finalizarSri();
+          siguiente(i + 1);
+        })
+        .catch(function(err){ console.error(err); finalizarSri(); });
+    }
+    function finalizarSri(){
+      Swal.close();
+      setTimeout(function(){
+        var icon = acum.fail > 0 ? 'warning' : 'success';
+        var title = (acum.ok === 0 && acum.fail === 0) ? 'No habia facturas pendientes' : 'Reenvio SRI finalizado';
+        var html = '<p>Autorizadas: <b class="text-success">' + acum.ok + '</b><br>Fallidas: <b class="text-danger">' + acum.fail + '</b></p>';
+        if (acum.fail > 0) {
+          html += '<div style="max-height:280px;overflow:auto;"><table class="table table-sm table-striped"><thead><tr><th>Factura</th><th>Cliente</th><th>Error</th></tr></thead><tbody>';
+          acum.fallidos.forEach(function(f){
+            html += '<tr><td>' + (f.orden_no || '?') + '</td><td>' + ((f.cliente || '').replace(/[<>]/g, '')) + '</td><td class="small text-danger">' + ((f.error || '').replace(/[<>]/g, '').substring(0, 200)) + '</td></tr>';
+          });
+          html += '</tbody></table></div>';
+        }
+        Swal.fire({ icon: icon, title: title, html: html, width: 700, confirmButtonText: 'Cerrar' })
+          .then(function(){
+            refrescarBadgePendientesSri();
+            try { tblHistorialFE.ajax.reload(null, false); } catch(e) {}
+          });
+      }, 200);
+    }
+    siguiente(0);
+  }
+
   function ejecutarReenvio(){
     var lote = 5, maxIter = 1000;
     var acum = { ok: 0, fail: 0, fallidos: [] };

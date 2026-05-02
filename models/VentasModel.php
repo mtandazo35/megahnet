@@ -259,7 +259,31 @@ class VentasModel extends Query
         return $this->selectAll($sql);
     }
 
+    /** Facturas que requieren reintento al SRI (sin AUTORIZADO). */
+    public function getSriPendientes($limite = 5)
+    {
+        $limite = max(1, min(50, (int)$limite));
+        $sql = "SELECT dce.orden_no
+                FROM datos_cabecera_electronica dce
+                LEFT JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
+                WHERE dce.fecha >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+                  AND dce.fecha <  DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')
+                  AND (rs.estado IS NULL OR rs.estado IN ('NO AUTORIZADO','EN PROCESO','DEVUELTA','PENDIENTE','RECIBIDA'))
+                ORDER BY dce.id DESC
+                LIMIT $limite";
+        return $this->selectAll($sql);
+    }
+
     /** Facturas autorizadas con email valido y correo_enviado=0, listas para reenviar. */
+    public function getVentasElectronicaUnica($ordenNo)
+    {
+        $sql = "SELECT dce.orden_no, dce.cliente, COALESCE(rs.estado, 'PENDIENTE') AS autorizacion
+                FROM datos_cabecera_electronica dce
+                LEFT JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
+                WHERE dce.orden_no = ?";
+        return $this->selectAllPrepared($sql, [$ordenNo]);
+    }
+
     public function getCorreosPendientes($limite = 20)
     {
         $limite = max(1, min(100, (int)$limite));

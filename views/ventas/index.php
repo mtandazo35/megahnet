@@ -313,9 +313,13 @@ $totalDocumento    = $limiteDocumento - $cantidadDocumento;
                             </select>
                         </div>
                         <div class="ms-auto">
-                            <button id="btnReenviarCorreos" type="button" class="btn btn-success btn-sm">
+                            <button id="btnReenviarCorreos" type="button" class="btn btn-success btn-sm me-2">
                                 <i class="bx bx-mail-send me-1"></i>Reenviar correos pendientes
                                 <span id="badgePendientes" class="badge bg-light text-dark ms-1">--</span>
+                            </button>
+                            <button id="btnReenviarSri" type="button" class="btn btn-warning btn-sm text-white">
+                                <i class="bx bx-send me-1"></i>Reenviar al SRI pendientes
+                                <span id="badgePendientesSri" class="badge bg-light text-dark ms-1">--</span>
                             </button>
                         </div>
                     </div>

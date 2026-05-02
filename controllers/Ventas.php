@@ -671,6 +671,61 @@ class Ventas extends Controller
         die();
     }
 
+    /**
+     * Reenvio masivo al SRI: para cada factura no autorizada del mes, llama a
+     * envioSriElectronica que firma + valida + autoriza. Procesa en lote pequeno
+     * para no chocar con timeout del proxy.
+     */
+    public function reenviarSriMasivo()
+    {
+        $this->cargarSri();
+        @set_time_limit(0);
+        @ini_set('memory_limit', '512M');
+        $limite = isset($_GET['limite']) ? max(1, min(50, (int)$_GET['limite'])) : 5;
+        $pendientes = $this->model->getSriPendientes($limite);
+        $ok = 0;
+        $fallidos = [];
+        foreach ($pendientes as $row) {
+            $ordenNo = $row['orden_no'];
+            try {
+                ob_start();
+                $this->envioSriElectronica($ordenNo);
+                ob_end_clean();
+                // Re-consultar estado
+                $est = $this->model->getVentasElectronicaUnica($ordenNo);
+                if (!empty($est) && ($est[0]['autorizacion'] ?? '') === 'AUTORIZADO') {
+                    $ok++;
+                } else {
+                    $fallidos[] = ['orden_no' => $ordenNo, 'cliente' => $est[0]['cliente'] ?? '', 'error' => 'SRI no autorizo: ' . ($est[0]['autorizacion'] ?? 'sin respuesta')];
+                }
+            } catch (\Throwable $e) {
+                $fallidos[] = ['orden_no' => $ordenNo, 'cliente' => '', 'error' => $e->getMessage()];
+            }
+        }
+        header('Content-Type: application/json');
+        echo json_encode([
+            'procesadas' => $ok,
+            'fallidas'   => count($fallidos),
+            'fallidos'   => $fallidos,
+            'lote'       => count($pendientes),
+        ], JSON_UNESCAPED_UNICODE);
+        die();
+    }
+
+    /** Cuenta facturas no AUTORIZADAS del mes (badge). */
+    public function contarPendientesSri()
+    {
+        $pdo = new \PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, PASSWORD);
+        $stmt = $pdo->query("SELECT COUNT(*) FROM datos_cabecera_electronica dce
+            LEFT JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
+            WHERE dce.fecha >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+              AND dce.fecha <  DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')
+              AND (rs.estado IS NULL OR rs.estado != 'AUTORIZADO')");
+        header('Content-Type: application/json');
+        echo json_encode(['pendientes' => (int)$stmt->fetchColumn()]);
+        die();
+    }
+
     public function anular($idVenta)
     {
         if (isset($_GET) && is_numeric($idVenta)) {
