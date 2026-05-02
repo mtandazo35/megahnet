@@ -170,12 +170,11 @@ WHERE dce.orden_no = $valor AND cr.estado = 1";
 
     public function registrarAbono($monto, $fecha, $idCredito, $id_usuario, $codigoPago, $tipoPago, $idCliente,$anticipo)
     {
-        // Defensa: nunca insertar abono sin tipo_pago. Si llega vacio, se infiere
-        // por codigo_pago (con codigo => TRANSFERENCIA, sin codigo => EFECTIVO).
-        // Asi el cierre de caja siempre cuadra: efectivo + bancarizado = ingresos.
+        // Validacion estricta: tipo_pago es obligatorio. Sin esto el cierre de
+        // caja queda descuadrado (ingresos != efectivo + bancarizado).
         $tp = trim((string)$tipoPago);
         if ($tp === '') {
-            $tp = (trim((string)$codigoPago) !== '') ? 'TRANSFERENCIA' : 'EFECTIVO';
+            throw new InvalidArgumentException('TIPO_PAGO_REQUERIDO');
         }
         $sql = "INSERT INTO abonos (abono,fecha, id_credito,id_usuario,codigo_pago,tipo_pago,id_cliente,anticipo) VALUES (?,?,?,?,?,?,?,?)";
         $array = array($monto, $fecha, $idCredito, $id_usuario, $codigoPago, $tp, $idCliente,$anticipo);
@@ -353,7 +352,11 @@ INNER JOIN datos_cabecera_electronica dce ON dce.id=cr.id_electronica";
         $length = (intval($length) > 0 && intval($length) <= 200) ? intval($length) : 25;
         $params = [];
         $sql = "SELECT * FROM (
-                  SELECT a.id, a.id_credito, a.abono, a.fecha, COALESCE(NULLIF(cl.nombre,''), NULLIF(dce.cliente,''), '') AS cliente, dce.secuencial AS factura
+                  SELECT a.id, a.id_credito, a.abono, a.fecha,
+                         COALESCE(NULLIF(a.tipo_pago,''), 'SIN ESPECIFICAR') AS tipo_pago,
+                         a.codigo_pago,
+                         COALESCE(NULLIF(cl.nombre,''), NULLIF(dce.cliente,''), '') AS cliente,
+                         dce.secuencial AS factura
                   FROM abonos a
                   INNER JOIN creditos cr ON cr.id = a.id_credito
                   LEFT JOIN datos_cabecera_electronica dce ON cr.id_electronica = dce.orden_no

@@ -292,6 +292,13 @@ class Creditos extends Controller
 
                     $codigoPago = (empty($tipoPagos['codigoComprobante'])) ? '' : $tipoPagos['codigoComprobante'];
 
+                    // Validacion: tipo_pago obligatorio en cada abono
+                    if (empty(trim((string)($tipoPagos['nombre'] ?? '')))) {
+                        $res = array('msg' => 'CADA ABONO DEBE TENER UN TIPO DE PAGO SELECCIONADO', 'type' => 'error');
+                        echo json_encode($res);
+                        die();
+                    }
+
                     if (isset($codigoPago)) {
                         if (!empty($codigoPago)) {
                             $getValidar = $this->model->getValidar($codigoPago);
@@ -439,6 +446,13 @@ class Creditos extends Controller
                 foreach ($datos['tipoPagos'] as $tipoPagos) {
                     $codigoPago = (empty($tipoPagos['codigoComprobante'])) ? '' : $tipoPagos['codigoComprobante'];
 
+                    // Validacion: tipo_pago obligatorio en cada abono
+                    if (empty(trim((string)($tipoPagos['nombre'] ?? '')))) {
+                        $res = array('msg' => 'CADA ABONO DEBE TENER UN TIPO DE PAGO SELECCIONADO', 'type' => 'error');
+                        echo json_encode($res);
+                        die();
+                    }
+
                     if (isset($codigoPago)) {
                         if (!empty($codigoPago)) {
                             $getValidar = $this->model->getValidar($codigoPago);
@@ -576,6 +590,13 @@ class Creditos extends Controller
             }
 
             $codigoPago = (empty($codigoPago)) ? '' : $codigoPago;
+
+            // Validacion: tipo_pago obligatorio (varios)
+            if (empty(trim((string)$tipoPago))) {
+                $res = array('msg' => 'EL TIPO DE PAGO ES OBLIGATORIO', 'type' => 'error');
+                echo json_encode($res);
+                die();
+            }
 
             if (isset($codigoPago)) {
 
@@ -984,6 +1005,21 @@ class Creditos extends Controller
 
         foreach ($data as &$d) {
             $d['credito'] = 'N°: ' . $d['id_credito'];
+            // Badge para tipo_pago: color segun el tipo
+            $tp = strtoupper(trim((string)($d['tipo_pago'] ?? '')));
+            $colors = [
+                'EFECTIVO'      => 'success',
+                'TRANSFERENCIA' => 'primary',
+                'DEPOSITOS'     => 'info',
+                'CHEQUE'        => 'warning',
+                'ANTICIPOS'     => 'secondary',
+                'RETENCIONES'   => 'dark',
+            ];
+            $color = $colors[$tp] ?? 'light text-dark';
+            $codigo = trim((string)($d['codigo_pago'] ?? ''));
+            $extra = $codigo !== '' ? '<small class="text-muted d-block" style="font-size:.7rem;">' . htmlspecialchars($codigo) . '</small>' : '';
+            $d['tipo_pago'] = '<span class="badge bg-' . $color . '">' . htmlspecialchars($tp) . '</span>' . $extra;
+
             if ($_SESSION['rol'] == 3) {
                 $d['acciones'] = '';
             } else {

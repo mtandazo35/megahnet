@@ -88,6 +88,7 @@
                             <th>Cliente</th>
                                 <th>Fecha</th>
                                 <th>Monto</th>
+                                <th>Tipo Pago</th>
                                 <th>N° Credito</th>
                                 <th></th>
 

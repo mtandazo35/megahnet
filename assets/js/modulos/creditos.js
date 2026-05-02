@@ -106,6 +106,7 @@ $('#nav-abonos-tab').on('shown.bs.tab', function () {
                 { data: 'cliente' },
                 { data: 'fecha' },
                 { data: 'abono' },
+                { data: 'tipo_pago' },
                 { data: 'credito' },
                 { data: 'acciones' }
             ],
