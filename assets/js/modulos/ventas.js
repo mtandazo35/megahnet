@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // por estado guardado con menos/mas columnas).
   try {
     var __sigKey = 'DataTables_tblHistorialFE_colSig';
-    var __sigActual = 'fe_v5'; // bump cuando cambien columnas
+    var __sigActual = 'fe_v6'; // bump cuando cambien columnas / limpiar filtros guardados
     if (localStorage.getItem(__sigKey) !== __sigActual) {
       Object.keys(localStorage).filter(function(k){ return k.indexOf('tblHistorialFE') !== -1; }).forEach(function(k){ localStorage.removeItem(k); });
       localStorage.setItem(__sigKey, __sigActual);
@@ -202,6 +202,19 @@ document.addEventListener('DOMContentLoaded', function () {
   var fCor = document.getElementById('filtroCorreo');
   if (fCor) fCor.addEventListener('change', function(){
     tblHistorialFE.column(9).search(this.value || '', false, false).draw();
+  });
+
+  // Sincronizar dropdowns con state guardado de DataTables (stateSave=true).
+  // Sin esto, un filtro de columna previo se restauraba sobre la tabla pero el
+  // dropdown mostraba "Todas", haciendo creer al usuario que no habia filtro
+  // cuando si lo habia (caso reportado: 223 de 963 sin filtro visible).
+  tblHistorialFE.on('init.dt', function(){
+    try {
+      var sSri = tblHistorialFE.column(8).search() || '';
+      var sCor = tblHistorialFE.column(9).search() || '';
+      if (fSri) fSri.value = sSri;
+      if (fCor) fCor.value = sCor;
+    } catch(e){}
   });
 
   // === Reenvio masivo de correos pendientes ===
