@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const ruta = base_url + 'ordenventa/reporte/factura/' + res.idVenta;
                     //  window.open(ruta, '_blank');
                     const whatsapp = res.whatsapp;
-                    window.open(whatsapp, '_blank');
+                    previsualizarYAbrirWhatsapp(whatsapp);
                   }
                   window.location.reload()
                 })
@@ -346,12 +346,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     const ruta = base_url + 'ventas/facturaTicked/' + res.ClaveAcceso + '/' + res.idVenta
                     //  window.open(ruta, '_blank')
                     const whatsapp = res.whatsapp;
-                    window.open(whatsapp, '_blank');
+                    previsualizarYAbrirWhatsapp(whatsapp);
                   } else if (result.isDenied) {
                     const ruta = base_url + 'facturaelectronica/public/archivos/ride/' + res.ClaveAcceso + '.pdf'
                     //  window.open(ruta, '_blank')
                     const whatsapp = res.whatsapp;
-                    window.open(whatsapp, '_blank');
+                    previsualizarYAbrirWhatsapp(whatsapp);
                   }
                   window.location.reload()
                 })

@@ -276,3 +276,61 @@ function alertaPersonalizada(type, msg) {
     })
 
 }
+
+// Previsualiza un mensaje WhatsApp (URL tipo wa.me / web.whatsapp.com/send?text=...)
+// antes de abrirlo. El usuario puede editar el mensaje en el modal y los cambios
+// se reflejan en la URL final que se abre.
+function previsualizarYAbrirWhatsapp(url) {
+    var text = '';
+    var phone = '';
+    try {
+        var u = new URL(url);
+        text  = u.searchParams.get('text')  || '';
+        phone = u.searchParams.get('phone') || '';
+    } catch (e) {
+        // Fallback regex si URL no parsea (ej. URLs con espacios sin codificar)
+        var m = url.match(/[?&]text=([^&]*)/);   if (m) { try { text  = decodeURIComponent(m[1].replace(/\+/g,' ')); } catch(_){ text  = m[1]; } }
+        var p = url.match(/[?&]phone=([^&]*)/);  if (p) { try { phone = decodeURIComponent(p[1]); } catch(_){ phone = p[1]; } }
+    }
+
+    Swal.fire({
+        title: '<i class="bx bxl-whatsapp" style="color:#16a34a;font-size:24px;vertical-align:-4px;"></i> Previsualizar WhatsApp',
+        html:
+            '<div class="text-start">' +
+              '<label class="form-label small fw-semibold text-muted mb-1">Destinatario</label>' +
+              '<input id="waPrevPhone" class="form-control form-control-sm mb-2" value="' + (phone || '').replace(/"/g,'&quot;') + '" />' +
+              '<label class="form-label small fw-semibold text-muted mb-1">Mensaje</label>' +
+              '<textarea id="waPrevMsg" class="form-control form-control-sm" rows="6" style="font-size:.9rem;">' + (text || '').replace(/</g,'&lt;') + '</textarea>' +
+              '<small class="text-muted d-block mt-1" style="font-size:.7rem;">Edita libremente antes de enviar. Se abrira WhatsApp con el mensaje.</small>' +
+            '</div>',
+        showCancelButton: true,
+        confirmButtonText: '<i class="bx bxl-whatsapp"></i> Enviar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#16a34a',
+        focusConfirm: false,
+        width: 540,
+        preConfirm: function() {
+            var msg = document.getElementById('waPrevMsg').value || '';
+            var ph  = document.getElementById('waPrevPhone').value || '';
+            return { msg: msg, phone: ph };
+        }
+    }).then(function(result) {
+        if (!result.isConfirmed) return;
+        var msg = result.value.msg;
+        var ph  = (result.value.phone || '').replace(/[^0-9+]/g, '');
+        var finalUrl;
+        try {
+            var u2 = new URL(url);
+            u2.searchParams.set('text', msg);
+            if (ph) {
+                u2.searchParams.set('phone', ph);
+                u2.searchParams.set('abid',  ph);
+            }
+            finalUrl = u2.toString();
+        } catch (e) {
+            finalUrl = 'https://web.whatsapp.com/send?text=' + encodeURIComponent(msg) +
+                       (ph ? '&phone=' + encodeURIComponent(ph) + '&abid=' + encodeURIComponent(ph) : '');
+        }
+        window.open(finalUrl, '_blank');
+    });
+}

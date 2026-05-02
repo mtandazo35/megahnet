@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function () {
                   const rutawhatsapp = res.whatsapp
 
                   window.open(ruta, '_blank')
-                  window.open(rutawhatsapp, '_blank')
+                  previsualizarYAbrirWhatsapp(rutawhatsapp)
                 } 
                 window.location.reload()
               })
