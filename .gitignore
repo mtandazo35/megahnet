@@ -72,3 +72,6 @@ models/notaCreditoModel.php
 assets/images/Logo.jpg
 assets/images/LogoFactura.jpg
 assets/images/Logo2.jpg
+
+# Backups auto-generados al editar la plantilla CONTRATO.docx
+assets/docs/backups/
