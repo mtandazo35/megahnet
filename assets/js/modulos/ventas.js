@@ -508,20 +508,28 @@ function anularVenta(idVenta) {
     confirmButtonText: 'Si, Anular!'
   }).then((result) => {
     if (result.isConfirmed) {
+      Swal.fire({
+        title: 'Anulando venta...',
+        html: 'Por favor espera, esto puede tomar unos segundos.',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => Swal.showLoading()
+      });
       const url = base_url + 'ventas/anular/' + idVenta
-      // hacer una instancia del objeto XMLHttpRequest 
       const http = new XMLHttpRequest()
-      // Abrir una Conexion - POST - GET
       http.open('GET', url, true)
-      // Enviar Datos
       http.send()
-      // verificar estados
       http.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          const res = JSON.parse(this.responseText)
-          alertaPersonalizada(res.type, res.msg)
-          if (res.type == 'success') {
-            tblHistorialfisica.ajax.reload()
+        if (this.readyState == 4) {
+          Swal.close();
+          if (this.status == 200) {
+            const res = JSON.parse(this.responseText)
+            alertaPersonalizada(res.type, res.msg)
+            if (res.type == 'success') {
+              tblHistorialfisica.ajax.reload()
+            }
+          } else {
+            alertaPersonalizada('error', 'Error al anular la venta');
           }
         }
       }
@@ -539,20 +547,28 @@ function anularVentaElectronica(idVenta) {
     confirmButtonText: 'Si, Anular!'
     }).then((result) => {
     if (result.isConfirmed) {
+      Swal.fire({
+        title: 'Anulando factura electronica...',
+        html: 'Por favor espera, esto puede tomar unos segundos.',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => Swal.showLoading()
+      });
       const url = base_url + 'ventas/anularElectronica/' + idVenta
-      // hacer una instancia del objeto XMLHttpRequest 
       const http = new XMLHttpRequest()
-      // Abrir una Conexion - POST - GET
       http.open('GET', url, true)
-      // Enviar Datos
       http.send()
-      // verificar estados
       http.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          const res = JSON.parse(this.responseText)
-          alertaPersonalizada(res.type, res.msg)
-          if (res.type == 'success') {
-            tblHistorialFE.ajax.reload()
+        if (this.readyState == 4) {
+          Swal.close();
+          if (this.status == 200) {
+            const res = JSON.parse(this.responseText)
+            alertaPersonalizada(res.type, res.msg)
+            if (res.type == 'success') {
+              tblHistorialFE.ajax.reload()
+            }
+          } else {
+            alertaPersonalizada('error', 'Error al anular la factura electronica');
           }
         }
       }
