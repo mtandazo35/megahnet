@@ -311,18 +311,24 @@ HAVING COUNT(*) > $estado) AS subconsulta";
      */
     public function getCobrosDesglose($yyyymm)
     {
-        // Mismo criterio que getCobradoMes: excluir RETENCIONES y ANTICIPOS.
-        // - RETENCIONES: retencion tributaria, va al cuadro Retenciones.
-        // - ANTICIPOS: saldos a favor ya cobrados antes; contarlos duplica.
+        // Excluye solo RETENCIONES (van al cuadro Retenciones). Incluye ANTICIPOS
+        // porque el documento de requerimientos lo lista en el desglose.
+        // Orden FIJO (segun documento): TRANSFERENCIA, DEPOSITOS, ANTICIPOS, EFECTIVO, resto.
         $sql = "SELECT
                     COALESCE(NULLIF(TRIM(tipo_pago), ''), 'SIN ESPECIFICAR') AS tipo_pago,
                     COUNT(*)            AS cantidad,
                     COALESCE(SUM(abono), 0) AS total
                 FROM abonos
                 WHERE LEFT(fecha, 7) = ?
-                  AND UPPER(TRIM(IFNULL(tipo_pago, ''))) NOT IN ('RETENCIONES','ANTICIPOS')
+                  AND UPPER(TRIM(IFNULL(tipo_pago, ''))) <> 'RETENCIONES'
                 GROUP BY tipo_pago
-                ORDER BY total DESC";
+                ORDER BY CASE UPPER(TRIM(IFNULL(tipo_pago,'')))
+                            WHEN 'TRANSFERENCIA' THEN 1
+                            WHEN 'DEPOSITOS'     THEN 2
+                            WHEN 'ANTICIPOS'     THEN 3
+                            WHEN 'EFECTIVO'      THEN 4
+                            ELSE 99 END,
+                         total DESC";
         return $this->selectAll($sql, [$yyyymm]);
     }
 
@@ -399,8 +405,18 @@ HAVING COUNT(*) > $estado) AS subconsulta";
             ];
         }
 
-        // Ordenar por total desc
-        usort($rows, function($a, $b){ return ((float)$b['total']) <=> ((float)$a['total']); });
+        // Orden FIJO segun documento: facturas, ordenes de venta, fisicas
+        $rank = [
+            'Ventas facturas'         => 1,
+            'Ventas ordenes de venta' => 2,
+            'Ventas fisicas'          => 3,
+        ];
+        usort($rows, function($a, $b) use ($rank) {
+            $ra = $rank[$a['origen']] ?? 99;
+            $rb = $rank[$b['origen']] ?? 99;
+            if ($ra !== $rb) return $ra <=> $rb;
+            return ((float)$b['total']) <=> ((float)$a['total']);
+        });
         return $rows;
     }
 
