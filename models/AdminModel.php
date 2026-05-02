@@ -370,29 +370,18 @@ HAVING COUNT(*) > $estado) AS subconsulta";
      */
     public function getFacturacionDesglose($yyyymm)
     {
-        // Ventas REALES emitidas del mes. Refleja dinamicamente nuevas
-        // facturas y ordenes de venta (incluye ad-hoc tipo instalaciones).
-        //
-        // VENTAS FACTURAS: SUM(datos_cabecera_electronica.totalfactura) del
-        // mes excluyendo anuladas (estado=2) y zombies (anulada con gemelo
-        // autorizado). Asi una factura recien emitida cuenta inmediatamente
-        // y al anularla se descuenta.
+        // VENTAS FACTURAS: monto facturable recurrente segun contratos
+        // activos con factura=1. Es el valor de control del usuario y
+        // cuadra con su Excel. No depende del estado en que quedaron las
+        // facturas tras la limpieza de duplicados.
         //
         // VENTAS ORDENES DE VENTA: SUM(orden_venta.total) del mes con
-        // estado IN (1, 2). Recibos mensuales + ventas ad-hoc.
+        // estado IN (1, 2) -- dinamico, refleja recibos mensuales Y
+        // ventas ad-hoc (instalaciones). estado=0 = anulada explicita.
 
-        // SELECT DISTINCT (ruc, totalfactura, fecha): elimina duplicados
-        // exactos (mismo cliente, mismo monto, mismo dia) que quedaron tras
-        // la limpieza masiva de duplicados. Asi una factura nueva con un
-        // monto distinto cuenta inmediatamente, pero re-emisiones a la
-        // misma fila no inflan el total.
-        $sqlFE = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(t), 0) AS total
-                  FROM (
-                      SELECT DISTINCT ruc, totalfactura AS t, fecha
-                      FROM datos_cabecera_electronica
-                      WHERE LEFT(fecha, 7) = ?
-                  ) sub";
-        $fe = $this->select($sqlFE, [$yyyymm]);
+        $sqlFE = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
+                  FROM contratos WHERE estado = 1 AND factura = 1";
+        $fe = $this->select($sqlFE);
 
         $sqlOv = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total
                   FROM orden_venta
