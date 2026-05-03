@@ -32,6 +32,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>Cliente</th>
+                        <th>Teléfono</th>
                         <th>Fecha y Hora</th>
                         <th>Dirección</th>
                         <th>Coordenada</th>

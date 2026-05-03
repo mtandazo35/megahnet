@@ -112,9 +112,9 @@
                             <span id="errorRol" class="text-danger small"></span>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small mb-1" for="grupotrabajo">Grupo de Trabajo <span class="text-danger">*</span></label>
+                            <label class="form-label small mb-1" for="grupotrabajo">Grupo de Trabajo <small class="text-muted">(opcional)</small></label>
                             <select class="form-select" id="grupotrabajo" name="grupotrabajo">
-                                <option value="" selected>Seleccionar</option>
+                                <option value="" selected>Sin asignar</option>
                                 <?php foreach ($data['grupotrabajos'] as $g) { ?>
                                     <option value="<?php echo htmlspecialchars($g['id'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($g['descripcion'], ENT_QUOTES, 'UTF-8'); ?></option>
                                 <?php } ?>

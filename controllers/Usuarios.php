@@ -118,6 +118,8 @@ class Usuarios extends Controller
                 $hash = password_hash($clave, PASSWORD_DEFAULT);
                 $rol = strClean($_POST['rol']);
                 $grupotrabajo = strClean($_POST['grupotrabajo']);
+                // Grupo de trabajo es OPCIONAL: si llega vacio, NULL en BD
+                $grupotrabajo = ($grupotrabajo === '' || $grupotrabajo === '0') ? null : (int)$grupotrabajo;
                 $id = strClean($_POST['id']);
 
                 if ($id == '') {

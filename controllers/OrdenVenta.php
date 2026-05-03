@@ -109,23 +109,22 @@ class OrdenVenta extends Controller
                 if ($ordenventa > 0) {
                     foreach ($datos['productos'] as $producto) {
                         $result = $this->model->getProducto($producto['id']);
-                        //actualizar stock
+                        // Solo descontar stock y registrar movimiento si es PRODUCTO FISICO
+                        // (id_categoria != 1). Los SERVICIOS (id_categoria=1) no afectan kardex.
 
                         if ($result['id_categoria'] == 1) {
-                            $nuevaCantidad = $result['cantidad'];
+                            // Servicio: no toca stock ni kardex, solo cuenta venta
                             $totalOdenVentas = $result['ventas'] + $producto['cantidad'];
-                            $this->model->actualizarStock($nuevaCantidad, $totalOdenVentas, $result['id']);
+                            $this->model->actualizarStock($result['cantidad'], $totalOdenVentas, $result['id']);
                         } else {
+                            // Producto fisico: descuenta stock y registra movimiento
                             $nuevaCantidad = $result['cantidad'] - $producto['cantidad'];
                             $totalOdenVentas = $result['ventas'] + $producto['cantidad'];
                             $this->model->actualizarStock($nuevaCantidad, $totalOdenVentas, $result['id']);
+                            $movimiento = 'Orden Venta N°: ' . $ordenventa;
+                            $cantidad = $producto['cantidad'];
+                            $this->model->registrarMovimiento($movimiento, 'salida', $cantidad, $nuevaCantidad, $producto['id'], $this->id_usuario);
                         }
-
-
-
-                        $movimiento = 'Orden Venta N°: ' . $ordenventa;
-                        $cantidad = $producto['cantidad'];
-                        $this->model->registrarMovimiento($movimiento, 'salida', $cantidad, $nuevaCantidad, $producto['id'], $this->id_usuario);
                     }
                     if ($metodo == 'CREDITO') {
                         $monto = $total - $descuento;

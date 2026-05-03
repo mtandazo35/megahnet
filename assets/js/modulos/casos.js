@@ -155,6 +155,7 @@ document.addEventListener('DOMContentLoaded', function () {
     },
     columns: [
       { data: 'nombre' },
+      { data: 'telefonoCliente', defaultContent: '' },
       { data: 'fecha' },
       { data: 'direccion' },
       { data: 'coordenada' },

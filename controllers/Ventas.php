@@ -200,21 +200,19 @@ class Ventas extends Controller
                         if ($venta > 0) {
                             foreach ($datos['productos'] as $producto) {
                                 $result = $this->model->getProducto($producto['id']);
-                                //actualizar stock
+                                // Solo descontar stock y registrar kardex si es PRODUCTO FISICO
+                                // (id_categoria != 1). Los SERVICIOS no afectan inventario.
                                 if ($result['id_categoria'] == 1) {
-                                    $nuevaCantidad = $result['cantidad'];
                                     $totalVentas = $result['ventas'] + $producto['cantidad'];
-                                    $this->model->actualizarStock($nuevaCantidad, $totalVentas, $result['id']);
-
-                                }else{
+                                    $this->model->actualizarStock($result['cantidad'], $totalVentas, $result['id']);
+                                } else {
                                     $nuevaCantidad = $result['cantidad'] - $producto['cantidad'];
                                     $totalVentas = $result['ventas'] + $producto['cantidad'];
                                     $this->model->actualizarStock($nuevaCantidad, $totalVentas, $result['id']);
+                                    $movimiento = 'Venta N°: ' . $venta;
+                                    $cantidad = $producto['cantidad'];
+                                    $this->model->registrarMovimiento($movimiento, 'salida', $cantidad, $nuevaCantidad, $producto['id'], $this->id_usuario);
                                 }
-
-                                $movimiento = 'Venta N°: ' . $venta;
-                                $cantidad = $producto['cantidad'];
-                                $this->model->registrarMovimiento($movimiento, 'salida', $cantidad, $nuevaCantidad, $producto['id'], $this->id_usuario);
                             }
                             if ($metodo == 'CREDITO') {
                                 $monto = $total - $descuento;
@@ -312,22 +310,19 @@ class Ventas extends Controller
                                         $result = $this->model->getProducto($producto['id']);
                                         //actualizar stock
 
+                                        // Solo descontar stock y registrar kardex si es PRODUCTO FISICO
+                                        // (id_categoria != 1). Los SERVICIOS no afectan inventario.
                                         if ($result['id_categoria'] == 1) {
-                                            $nuevaCantidad = $result['cantidad'];
                                             $totalVentas = $result['ventas'] + $producto['cantidad'];
-                                            $this->model->actualizarStock($nuevaCantidad, $totalVentas, $result['id']);
-
-                                        }else{
+                                            $this->model->actualizarStock($result['cantidad'], $totalVentas, $result['id']);
+                                        } else {
                                             $nuevaCantidad = $result['cantidad'] - $producto['cantidad'];
                                             $totalVentas = $result['ventas'] + $producto['cantidad'];
                                             $this->model->actualizarStock($nuevaCantidad, $totalVentas, $result['id']);
+                                            $movimiento = 'Venta Electronica N°: ' . $ventaDetalle;
+                                            $cantidad = $producto['cantidad'];
+                                            $this->model->registrarMovimiento($movimiento, 'salida', $cantidad, $nuevaCantidad, $producto['id'], $this->id_usuario);
                                         }
-
-
-
-                                        $movimiento = 'Venta Electronica N°: ' . $ventaDetalle;
-                                        $cantidad = $producto['cantidad'];
-                                        $this->model->registrarMovimiento($movimiento, 'salida', $cantidad, $nuevaCantidad, $producto['id'], $this->id_usuario);
                                     }
                                     if ($metodo == 'CREDITO') {
                                         $monto = $total - $descuento;
