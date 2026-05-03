@@ -62,7 +62,24 @@ class ClientesModel extends Query{
         return isset($r['total']) ? (int)$r['total'] : 0;
     }
 
-    /** DELETE definitivo (no recuperable). Usar solo si no tiene contratos. */
+    /**
+     * Cuenta TODAS las dependencias historicas del cliente (orden_venta,
+     * facturas electronicas, NCs, apartados, cotizaciones). Tienen FK a
+     * clientes.id y bloquean el DELETE definitivo (preservacion historico).
+     */
+    public function contarDependenciasHistoricas($idCliente)
+    {
+        $sql = "SELECT
+                  (SELECT COUNT(*) FROM orden_venta WHERE id_cliente = ?) AS ordenes,
+                  (SELECT COUNT(*) FROM datos_cabecera_electronica WHERE id_cliente = ?) AS facturas,
+                  (SELECT COUNT(*) FROM nota_credito_cabecera WHERE id_cliente = ?) AS notas_credito,
+                  (SELECT COUNT(*) FROM apartados WHERE id_cliente = ?) AS apartados,
+                  (SELECT COUNT(*) FROM cotizaciones WHERE id_cliente = ?) AS cotizaciones";
+        $r = $this->select($sql, [$idCliente, $idCliente, $idCliente, $idCliente, $idCliente]);
+        return $r ?: [];
+    }
+
+    /** DELETE definitivo (no recuperable). Usar solo si no tiene dependencias historicas. */
     public function eliminarPermanente($id)
     {
         $sql = "DELETE FROM clientes WHERE id = ?";

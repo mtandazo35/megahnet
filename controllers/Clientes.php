@@ -202,7 +202,7 @@ class Clientes extends Controller
         die();
     }
 
-    /** DELETE definitivo del cliente — solo si no tiene contratos. */
+    /** DELETE definitivo del cliente — solo si no tiene dependencias historicas. */
     public function eliminarPermanente($idCliente)
     {
         if (empty($_SESSION['id_usuario'])) {
@@ -215,16 +215,43 @@ class Clientes extends Controller
         }
         $idCliente = (int)$idCliente;
 
+        // 1. Bloquear si tiene contratos vigentes (no anulados)
         $totalContratos = $this->model->contarContratosTotales($idCliente);
         if ($totalContratos > 0) {
-            $res = ['msg' => 'NO SE PUEDE ELIMINAR: el cliente tiene ' . $totalContratos . ' contrato(s) asociado(s).', 'type' => 'warning'];
+            $res = ['msg' => 'NO SE PUEDE ELIMINAR: el cliente tiene ' . $totalContratos . ' contrato(s) vigente(s). Anula los contratos primero.', 'type' => 'warning'];
             echo json_encode($res, JSON_UNESCAPED_UNICODE);
             die();
         }
-        $r = $this->model->eliminarPermanente($idCliente);
-        $res = $r >= 0
-            ? ['msg' => 'CLIENTE ELIMINADO PERMANENTEMENTE', 'type' => 'success']
-            : ['msg' => 'ERROR AL ELIMINAR', 'type' => 'error'];
+
+        // 2. Bloquear por FKs historicas (orden_venta, facturas, NCs, etc.).
+        // Estas tablas tienen FK a clientes.id y un DELETE explota con error 500
+        // si no se chequea antes (caso reportado: FRANCISCO CHEV con 24 OVs).
+        $deps = $this->model->contarDependenciasHistoricas($idCliente);
+        $detallesBloqueo = [];
+        if ((int)($deps['ordenes']        ?? 0) > 0) $detallesBloqueo[] = $deps['ordenes']        . ' orden(es) de venta';
+        if ((int)($deps['facturas']       ?? 0) > 0) $detallesBloqueo[] = $deps['facturas']       . ' factura(s) electronica(s)';
+        if ((int)($deps['notas_credito']  ?? 0) > 0) $detallesBloqueo[] = $deps['notas_credito']  . ' nota(s) de credito';
+        if ((int)($deps['apartados']      ?? 0) > 0) $detallesBloqueo[] = $deps['apartados']      . ' apartado(s)';
+        if ((int)($deps['cotizaciones']   ?? 0) > 0) $detallesBloqueo[] = $deps['cotizaciones']   . ' cotizacion(es)';
+
+        if (!empty($detallesBloqueo)) {
+            $res = [
+                'msg'  => 'NO SE PUEDE ELIMINAR: el cliente tiene historico (' . implode(', ', $detallesBloqueo) . '). Se preserva por integridad SRI.',
+                'type' => 'warning'
+            ];
+            echo json_encode($res, JSON_UNESCAPED_UNICODE);
+            die();
+        }
+
+        // 3. Sin dependencias: DELETE seguro con try/catch para nunca devolver 500
+        try {
+            $r = $this->model->eliminarPermanente($idCliente);
+            $res = $r >= 0
+                ? ['msg' => 'CLIENTE ELIMINADO PERMANENTEMENTE', 'type' => 'success']
+                : ['msg' => 'ERROR AL ELIMINAR', 'type' => 'error'];
+        } catch (\Throwable $e) {
+            $res = ['msg' => 'ERROR AL ELIMINAR: ' . $e->getMessage(), 'type' => 'error'];
+        }
         echo json_encode($res, JSON_UNESCAPED_UNICODE);
         die();
     }
