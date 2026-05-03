@@ -465,26 +465,44 @@ document.addEventListener('DOMContentLoaded', function () {
       http.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
           const res = JSON.parse(this.responseText)
-          alertaPersonalizada(res.type, res.msg)
-          if (res.type == 'success') {
-            localStorage.removeItem(nombreKey)
-            setTimeout(() => {
-              Swal.fire({
-                title: 'IMPRIMIR CONTRATO?',
-                text: 'Generando',
-                confirmButtonText: 'Contrato',
-                icon: 'success',
-                showCancelButton: true,
-              }).then((result) => {
-                /* Read more about isConfirmed, isDenied below */
-                if (result.isConfirmed) {
-                  const ruta = base_url + 'contratos/reporte/facturasincss/' + res.idContrato
-                  window.open(ruta, '_blank')
-                }
-                window.location.reload()
-              })
-            }, 2000)
+          if (res.type !== 'success') {
+            alertaPersonalizada(res.type, res.msg)
+            return;
           }
+          localStorage.removeItem(nombreKey)
+          // Confirmacion de guardado + opcion de descargar PDF
+          Swal.fire({
+            title: res.msg,
+            text: 'Quieres descargar el PDF del contrato?',
+            icon: 'success',
+            showCancelButton: true,
+            confirmButtonColor: '#16a34a',
+            confirmButtonText: '<i class="fa-solid fa-file-pdf me-1"></i> Descargar PDF',
+            cancelButtonText: 'Despues',
+            allowOutsideClick: false
+          }).then((result) => {
+            if (result.isConfirmed) {
+              // Generar PDF (LibreOffice tarda ~2-3s) -> mostrar loader
+              Swal.fire({
+                title: 'Generando PDF...',
+                html: 'Por favor espera, esto puede tomar unos segundos.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                didOpen: () => Swal.showLoading()
+              });
+              const ruta = base_url + 'contratos/reporte/facturasincss/' + res.idContrato;
+              // Abrir en nueva pestana. window.open dispara la descarga; cuando
+              // termine, cerramos el loader y recargamos la lista.
+              const w = window.open(ruta, '_blank');
+              setTimeout(() => {
+                Swal.close();
+                window.location.reload();
+              }, 4000);
+            } else {
+              // Usuario declino PDF: solo refrescar lista de contratos sin recargar pagina
+              window.location.reload();
+            }
+          })
         }
       }
     }
