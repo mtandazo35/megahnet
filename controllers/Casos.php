@@ -88,11 +88,30 @@ class Casos extends Controller
                         $id
                     );
                     if ($contrato > 0) {
+                        // Mensaje WhatsApp por estado:
+                        // - FINALIZADO: agradecimiento + invitacion a contactar nuevamente
+                        // - Otros estados: actualizacion del caso
+                        if (strtoupper(trim((string)$estado)) === 'FINALIZADO') {
+                            $textoWa = "Estimado cliente, su caso se ha resuelto favorablemente. "
+                                     . "Si tiene alguna otra falla no dude en contactarnos. "
+                                     . "Trabajo realizado: " . $trabajoRealizado;
+                        } else {
+                            $textoWa = "Buen dia! Su caso se ha actualizado en estado: (" . $estado . ")"
+                                     . ", problema reportado: (" . $problemaReportado . ")"
+                                     . ", Trabajo Realizado: (" . $trabajoRealizado . ")";
+                        }
+                        $tel = $getClientes['telefono'] ?? '';
+                        $resWathsapp = 'https://web.whatsapp.com/send?phone=593' . $tel
+                                     . '&text=' . rawurlencode($textoWa)
+                                     . '&abid=593' . $tel;
 
-                        $res = array('msg' => 'CASO ACTUALIZADO EXITOSAMENTE', 'type' => 'success', 'idCaso' => $id);
-                        $resWathsapp = 'https://web.whatsapp.com/send?text=Buen Dia! Su caso se ah actualizado en estado:('.$estado.'), problema reportado:('.$problemaReportado.'), Trabajo Realizado:('.$problemaReportado.') &phone=+593'.$getClientes['telefono'].'&abid=+593'.$getClientes['telefono'].'';
-
-                        // print_r($id);exit;
+                        $res = array(
+                            'msg'      => 'CASO ACTUALIZADO EXITOSAMENTE',
+                            'type'     => 'success',
+                            'idCaso'   => $id,
+                            'whatsapp' => $resWathsapp,
+                            'estado'   => $estado,
+                        );
                     } else {
                         $res = array('msg' => 'ERROR AL ACTUALIZAR EL CASO', 'type' => 'error');
                     }

@@ -112,28 +112,40 @@ document.addEventListener('DOMContentLoaded', function () {
       http.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
           const res = JSON.parse(this.responseText)
-         // console.log(this.responseText)
           alertaPersonalizada(res.type, res.msg)
-          if (res.type == 'success') {
-            //localStorage.removeItem(nombreKey)
-            setTimeout(() => {
-              Swal.fire({
-                title: 'Desea Generar Reporte?',
-                showCancelButton: true,
-                confirmButtonText: 'Imprimir'
-              }).then((result) => {
-                /* Read more about isConfirmed, isDenied below */
-                if (result.isConfirmed) {
-                  const ruta = base_url + 'casos/reporte/factura/' + res.idCaso
-                  const rutawhatsapp = res.whatsapp
+          if (res.type !== 'success') return;
 
-                  window.open(ruta, '_blank')
-                  previsualizarYAbrirWhatsapp(rutawhatsapp)
-                } 
-                window.location.reload()
-              })
-            }, 2000)
+          const estadoSel = (estado.value || '').toUpperCase().trim();
+          const rutaReporte = base_url + 'casos/reporte/factura/' + res.idCaso;
+          const rutaWa = res.whatsapp;
+
+          // Caso FINALIZADO: abrir preview WhatsApp directo (sin pasar por Swal de reporte)
+          // El operador revisa el mensaje en el modal flotante y decide enviar.
+          if (estadoSel === 'FINALIZADO' && rutaWa && typeof previsualizarYAbrirWhatsapp === 'function') {
+            previsualizarYAbrirWhatsapp(rutaWa);
+            // Tambien refrescar tabla atras (sin recargar pagina, asi el preview no se cierra)
+            setTimeout(function(){
+              try { tblHistorial.ajax.reload(null, false); } catch(e){}
+            }, 500);
+            return;
           }
+
+          // Otros estados: comportamiento original (preguntar reporte)
+          setTimeout(() => {
+            Swal.fire({
+              title: 'Desea Generar Reporte?',
+              showCancelButton: true,
+              confirmButtonText: 'Imprimir'
+            }).then((result) => {
+              if (result.isConfirmed) {
+                window.open(rutaReporte, '_blank');
+                if (rutaWa && typeof previsualizarYAbrirWhatsapp === 'function') {
+                  previsualizarYAbrirWhatsapp(rutaWa);
+                }
+              }
+              window.location.reload();
+            });
+          }, 1000);
         }
       }
     }
