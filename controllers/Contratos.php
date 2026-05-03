@@ -454,20 +454,43 @@ class Contratos extends Controller
             $template->saveAs($rutaGuardar);
 
             /* ==================================================
-         * 2️⃣ DESCARGA AUTOMÁTICA
+         * 2️⃣ CONVERTIR DOCX -> PDF con LibreOffice headless
          * ================================================== */
             if (! file_exists($rutaGuardar)) {
                 throw new Exception('Error al generar el Word');
             }
 
+            $dirSalida = __DIR__ . '/../assets/storage/contratos/';
+            $nombrePdf = pathinfo($nombre, PATHINFO_FILENAME) . '.pdf';
+            $rutaPdf   = $dirSalida . $nombrePdf;
+
+            // Cada conversion necesita su propio HOME (perfil LibreOffice).
+            // uniqid evita colisiones en conversiones concurrentes.
+            $userDir = '/tmp/lo_' . uniqid('', true);
+            $cmd = 'HOME=' . escapeshellarg($userDir)
+                 . ' /usr/bin/libreoffice --headless --convert-to pdf'
+                 . ' --outdir ' . escapeshellarg($dirSalida)
+                 . ' ' . escapeshellarg($rutaGuardar)
+                 . ' 2>&1';
+            $out = shell_exec($cmd);
+            if (is_dir($userDir)) { @shell_exec('rm -rf ' . escapeshellarg($userDir)); }
+
+            if (! file_exists($rutaPdf)) {
+                throw new Exception('Error al convertir a PDF: ' . $out);
+            }
+
+            // Limpiar el docx intermedio (queda solo el PDF)
+            @unlink($rutaGuardar);
+
             header('Content-Description: File Transfer');
-            header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-            header('Content-Disposition: attachment; filename="' . basename($nombre) . '"');
-            header('Content-Length: ' . filesize($rutaGuardar));
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="contrato_' . $idContrato . '.pdf"');
+            header('Content-Length: ' . filesize($rutaPdf));
             header('Pragma: public');
             header('Cache-Control: must-revalidate');
 
-            readfile($rutaGuardar);
+            readfile($rutaPdf);
+            @unlink($rutaPdf);
             exit;
         } catch (Exception $e) {
             echo 'Error: ' . $e->getMessage();
