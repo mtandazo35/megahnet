@@ -282,6 +282,29 @@ class Productos extends Controller
         die();
     }
 
+    /**
+     * Autocomplete para el modulo Inventario: solo productos fisicos
+     * (id_categoria=2). Servicios (planes recurrentes) no aplican al kardex.
+     */
+    public function buscarPorNombreInventario()
+    {
+        $array = array();
+        $valor = isset($_GET['term']) ? $_GET['term'] : '';
+        $data = $this->model->buscarPorNombreInventario($valor);
+        foreach ($data as $row) {
+            array_push($array, [
+                'id'            => $row['id'],
+                'label'         => $row['descripcion'],
+                'stock'         => $row['cantidad'],
+                'precio_venta'  => $row['precio_venta'],
+                'precio_compra' => $row['precio_compra'],
+                'id_categoria'  => $row['id_categoria'],
+            ]);
+        }
+        echo json_encode($array, JSON_UNESCAPED_UNICODE);
+        die();
+    }
+
 
     public function buscarPorNombreTipoPago()
     {

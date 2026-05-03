@@ -87,6 +87,22 @@ class ProductosModel extends Query
         $sql = "SELECT id, descripcion,cantidad,precio_compra,precio_venta,id_categoria FROM productos WHERE descripcion LIKE '%" . $valor . "%' AND id_categoria = 1 AND estado = 1 LIMIT 10";
         return $this->selectAll($sql);
     }
+    /**
+     * Busca SOLO productos fisicos (id_categoria=2) por nombre.
+     * Para autocomplete del modulo Inventario, donde no aplican los servicios
+     * (planes recurrentes). El nombre buscarPorNombre original esta dedicado
+     * a servicios y no se puede tocar sin romper otros modulos (POS).
+     */
+    public function buscarPorNombreInventario($valor)
+    {
+        $sql = "SELECT id, descripcion, cantidad, precio_compra, precio_venta, id_categoria
+                FROM productos
+                WHERE descripcion LIKE '%" . $valor . "%'
+                  AND id_categoria = 2
+                  AND estado = 1
+                LIMIT 10";
+        return $this->selectAll($sql);
+    }
     public function buscarPorNombreTipoPago($valor)
     {
         $sql = "SELECT * FROM tipo_pago WHERE nombre LIKE '%" . $valor . "%' AND estado = 1 LIMIT 10";

@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $("#buscarNombreAjuste").autocomplete({
         source: function (request, response) {
             $.ajax({
-                url: base_url + 'productos/buscarPorNombre',
+                url: base_url + 'productos/buscarPorNombreInventario',
                 dataType: "json",
                 data: {
                     term: request.term
@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $("#buscarProductoNombre").autocomplete({
         source: function (request, response) {
             $.ajax({
-                url: base_url + 'productos/buscarPorNombre',
+                url: base_url + 'productos/buscarPorNombreInventario',
                 dataType: "json",
                 data: {
                     term: request.term
