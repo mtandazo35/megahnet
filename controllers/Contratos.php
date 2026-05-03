@@ -624,25 +624,56 @@ class Contratos extends Controller
 
     public function eliminar($idContrato)
     {
-        if (isset($_GET) && is_numeric($idContrato)) {
-            $data = $this->model->eliminar(2, $idContrato);
+        if (!is_numeric($idContrato)) {
+            echo json_encode(['msg' => 'ERROR DESCONOCIDO', 'type' => 'error'], JSON_UNESCAPED_UNICODE);
+            die();
+        }
 
-            $editar      = $this->model->editar($idContrato);
-            $productos   = json_decode($editar['productos'], true);
-            $getIp       = $this->model->getContrato($idContrato);
-            $getMikrotik = $this->model->getMikrotik($getIp['id_mikrotik']);
-            eliminarIpFirewall($getIp, $getMikrotik);
-            //  print_r($getIp);exit;
+        // Verificar creditos pendientes asociados al contrato (via id_electronica
+        // u id_orden_venta del cliente). Si hay y el usuario NO confirmo via
+        // ?confirmCreditos=1, devolver advertencia para que el frontend muestre
+        // un modal: "Hay X creditos pendientes ($Y). Anular y eliminar?"
+        $confirmCreditos = !empty($_GET['confirmCreditos']) && $_GET['confirmCreditos'] == '1';
+        $creditos = $this->model->getCreditosPendientesContrato($idContrato);
+        $cantPend = isset($creditos['cantidad']) ? (int)$creditos['cantidad'] : 0;
+        $sumaPend = isset($creditos['restante']) ? (float)$creditos['restante'] : 0;
 
-            $data = $this->model->registrarIpAnuladas('REGISTRAR', $editar['ip_usuario'], $productos[0]['idZona'], $productos[0]['idIp']);
+        if ($cantPend > 0 && !$confirmCreditos) {
+            echo json_encode([
+                'msg'  => 'CREDITOS_PENDIENTES',
+                'type' => 'confirm',
+                'creditos_pendientes' => $cantPend,
+                'monto_pendiente'     => round($sumaPend, 2),
+                'idContrato'          => (int)$idContrato,
+            ], JSON_UNESCAPED_UNICODE);
+            die();
+        }
 
-            if ($data > 0) {
-                $res = ['msg' => 'CONTRATO ELIMINADO EXITOSAMENTE', 'type' => 'success'];
-            } else {
-                $res = ['msg' => 'ERROR AL ELIMINAR', 'type' => 'error'];
+        // Si el usuario confirmo, anular los creditos pendientes (estado=2)
+        if ($cantPend > 0 && $confirmCreditos) {
+            $this->model->anularCreditosContrato($idContrato);
+        }
+
+        $data = $this->model->eliminar(2, $idContrato);
+
+        $editar      = $this->model->editar($idContrato);
+        $productos   = json_decode($editar['productos'] ?? '[]', true);
+        $getIp       = $this->model->getContrato($idContrato);
+        $getMikrotik = $this->model->getMikrotik($getIp['id_mikrotik']);
+        eliminarIpFirewall($getIp, $getMikrotik);
+
+        if (!empty($productos[0])) {
+            $this->model->registrarIpAnuladas('REGISTRAR', $editar['ip_usuario'], $productos[0]['idZona'], $productos[0]['idIp']);
+        }
+
+        if ($data > 0) {
+            $msg = 'CONTRATO ELIMINADO EXITOSAMENTE';
+            if ($cantPend > 0) {
+                $msg .= ' (' . $cantPend . ' credito(s) anulado(s))';
             }
+            $res = ['msg' => $msg, 'type' => 'success'];
         } else {
-            $res = ['msg' => 'ERROR DESCONOCIDO', 'type' => 'error'];
+            $res = ['msg' => 'ERROR AL ELIMINAR', 'type' => 'error'];
         }
         echo json_encode($res, JSON_UNESCAPED_UNICODE);
         die();

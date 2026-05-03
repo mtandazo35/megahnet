@@ -668,8 +668,60 @@ function verReporte(idContrato) {
 }
 
 function eliminarContrato(idContrato) {
+  // Primer intento: el backend chequea si hay creditos pendientes
   const url = base_url + 'contratos/eliminar/' + idContrato;
-  eliminarRegistros(url, tblHistorial);
+
+  Swal.fire({
+    title: 'Eliminar contrato?',
+    text: 'Esta accion deshabilitara el contrato y liberara la IP',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Si, eliminar',
+    cancelButtonText: 'Cancelar'
+  }).then(function(result) {
+    if (!result.isConfirmed) return;
+    fetch(url, { method: 'GET', cache: 'no-store' })
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        if (res && res.type === 'confirm' && res.msg === 'CREDITOS_PENDIENTES') {
+          // Mostrar modal con detalle de creditos pendientes
+          Swal.fire({
+            title: 'Hay creditos pendientes',
+            html: 'El cliente tiene <b>' + res.creditos_pendientes + '</b> credito(s) ' +
+                  'pendiente(s) por un total de <b>$' + (res.monto_pendiente || 0).toFixed(2) + '</b>.<br><br>' +
+                  'Tambien <b>anular esos creditos</b> y eliminar el contrato?',
+            icon: 'warning',
+            showCancelButton: true,
+            showDenyButton: true,
+            confirmButtonText: 'Si, anular y eliminar',
+            denyButtonText: 'No, mantener creditos',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#d33',
+            denyButtonColor: '#6c757d'
+          }).then(function(r2){
+            if (r2.isConfirmed) {
+              // Re-llamar con confirmacion para que anule creditos + elimine
+              fetch(url + '?confirmCreditos=1', { method: 'GET', cache: 'no-store' })
+                .then(function(r){ return r.json(); })
+                .then(function(j){
+                  if (typeof alertaPersonalizada === 'function') alertaPersonalizada(j.type, j.msg);
+                  if (typeof tblHistorial !== 'undefined' && tblHistorial) tblHistorial.ajax.reload(null, false);
+                });
+            } else if (r2.isDenied) {
+              alertaPersonalizada('info', 'Operacion cancelada. Anula los creditos manualmente antes de eliminar el contrato.');
+            }
+          });
+        } else if (res && res.type === 'success') {
+          alertaPersonalizada(res.type, res.msg);
+          if (typeof tblHistorial !== 'undefined' && tblHistorial) tblHistorial.ajax.reload(null, false);
+        } else {
+          alertaPersonalizada(res.type || 'error', res.msg || 'Error al eliminar');
+        }
+      })
+      .catch(function(){ alertaPersonalizada('error', 'Error de red al eliminar'); });
+  });
 }
 function suspenderContrato(idContrato) {
   const url = base_url + 'contratos/suspender/' + idContrato;

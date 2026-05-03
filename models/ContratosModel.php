@@ -225,6 +225,45 @@ HAVING COUNT(*) > $cantidad";
         $sql = "SELECT * FROM mikrotik WHERE id = $id";
         return $this->select($sql);
     }
+
+    /**
+     * Cuenta y suma los creditos pendientes de un contrato.
+     * Un contrato tiene un cliente -> el cliente puede tener facturas
+     * electronicas y ordenes de venta. Los creditos asociados son los
+     * generados por esas ventas que aun estan estado=1 (activos / no pagados).
+     */
+    public function getCreditosPendientesContrato($idContrato)
+    {
+        $sql = "SELECT COUNT(c.id) AS cantidad,
+                       COALESCE(SUM(c.monto - IFNULL(a.pagado, 0)), 0) AS restante
+                FROM creditos c
+                LEFT JOIN (
+                    SELECT id_credito, SUM(abono) AS pagado FROM abonos GROUP BY id_credito
+                ) a ON a.id_credito = c.id
+                INNER JOIN contratos ct ON ct.id = ?
+                LEFT JOIN datos_cabecera_electronica dce ON dce.id = c.id_electronica AND dce.id_cliente = ct.id_cliente
+                LEFT JOIN orden_venta ov ON ov.id = c.id_orden_venta AND ov.id_cliente = ct.id_cliente
+                WHERE c.estado = 1
+                  AND (dce.id IS NOT NULL OR ov.id IS NOT NULL)";
+        return $this->select($sql, [$idContrato]);
+    }
+
+    /**
+     * Marca como anulados (estado=2) los creditos pendientes asociados a un
+     * contrato (via id_cliente del contrato). Se invoca cuando el usuario
+     * confirma eliminar contrato + creditos en cascada.
+     */
+    public function anularCreditosContrato($idContrato)
+    {
+        $sql = "UPDATE creditos c
+                INNER JOIN contratos ct ON ct.id = ?
+                LEFT JOIN datos_cabecera_electronica dce ON dce.id = c.id_electronica AND dce.id_cliente = ct.id_cliente
+                LEFT JOIN orden_venta ov ON ov.id = c.id_orden_venta AND ov.id_cliente = ct.id_cliente
+                SET c.estado = 2
+                WHERE c.estado = 1
+                  AND (dce.id IS NOT NULL OR ov.id IS NOT NULL)";
+        return $this->save($sql, [$idContrato]);
+    }
     public function tipoPago()
     {
         $sql = "SELECT * FROM tipo_pago";
