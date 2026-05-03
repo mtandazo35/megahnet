@@ -6,12 +6,6 @@
     <h4 class="mb-1 fw-semibold">Panel de Control</h4>
     <small class="text-muted"><?= (function(){$dias=['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];$meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];return $dias[(int)date('w')].', '.date('d').' de '.$meses[(int)date('n')-1].' de '.date('Y');})() ?></small>
   </div>
-  <div class="text-end">
-    <div class="badge bg-light text-dark border px-3 py-2">
-      <i class="bx bx-user-circle me-1"></i><?= $_SESSION['nombre_usuario'] ?? 'Usuario' ?>
-      <span class="text-muted ms-2">· <?= date('H:i') ?></span>
-    </div>
-  </div>
 </div>
 
 <!-- ============ Variables del tablero (compartidas por KPIs Cobranza y Resumen) ============ -->
