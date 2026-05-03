@@ -1740,79 +1740,56 @@ function actualizarSimpleQueue($data)
 
 function eliminarIpFirewall($data, $getMikrotik)
 {
-
-    require 'libraries/mikrotik/routeros_api.class.php';
+    // Limpia la IP de address-list NAVEGABLE y de queues simples del Mikrotik
+    // sin abortar el flujo si no esta bloqueada (caso normal cuando el
+    // contrato estaba activo, no suspendido). Nunca hace echo+exit -- los
+    // errores se silencian para que la eliminacion del contrato continue.
+    require_once 'libraries/mikrotik/routeros_api.class.php';
 
     $targetIp = $data['ip_usuario'] ?? null;
-    //$cliente  = $data['nombre'] ?? 'CLIENTE';
-
-    if (! $targetIp) {
-        $res = ['msg' => 'FALTA LA IP DEL OBJETIVO', 'type' => 'error'];
-        echo json_encode($res, JSON_UNESCAPED_UNICODE);
-        exit;
+    if (!$targetIp) {
+        return; // sin IP no hay nada que limpiar
     }
 
-    // Asegurar que el target tenga formato correcto (con /32)
-    if (strpos($targetIp, '/') === false) {
-        $targetIp .= '/32';
+    // Target con /32 para queue simple
+    $targetIpQ = (strpos($targetIp, '/') === false) ? ($targetIp . '/32') : $targetIp;
+
+    if (empty($getMikrotik['ip']) || empty($getMikrotik['usuario'])) {
+        return; // sin credenciales mikrotik tampoco se puede tocar
     }
 
-    $API       = new RouterosAPI();
-    $API->port = $getMikrotik['puerto'] ?? 8728;
+    try {
+        $API       = new RouterosAPI();
+        $API->port = $getMikrotik['puerto'] ?? 8728;
 
-    if ($API->connect($getMikrotik['ip'], $getMikrotik['usuario'], $getMikrotik['clave'])) {
-        // Buscar si la IP está en la address list
+        if (!$API->connect($getMikrotik['ip'], $getMikrotik['usuario'], $getMikrotik['clave'])) {
+            return; // mikrotik inalcanzable: sigue eliminando contrato
+        }
+
+        // address-list NAVEGABLE: si esta, lo quita; sino, ignora
         $list = $API->comm("/ip/firewall/address-list/print", [
-            "?address" => $data['ip_usuario'],
+            "?address" => $targetIp,
             "?list"    => "NAVEGABLE",
         ]);
+        if (!empty($list)) {
+            $API->comm("/ip/firewall/address-list/remove", [
+                ".id" => $list[0][".id"],
+            ]);
+        }
 
-        // Verificamos si ya existe una queue con ese nombre o IP
+        // queue/simple: si existe, lo quita; sino, ignora
         $existingQueue = $API->comm("/queue/simple/print", [
-            "?target" => $targetIp,
+            "?target" => $targetIpQ,
         ]);
-
-        if (! empty($list)) {
-            $idAddress = $list[0][".id"];
-            $API->comm("/ip/firewall/address-list/remove", [
-                ".id" => $idAddress,
-            ]);
-        } else {
-
-            $res = ['msg' => 'NO ESTA BLOQUEADO EN NAVEGABLE', 'type' => 'warning'];
-            echo json_encode($res, JSON_UNESCAPED_UNICODE);
-            exit;
-        }
-
-        if (! empty($existingQueue)) {
-
-            $idAddressQ = $existingQueue[0][".id"];
+        if (!empty($existingQueue)) {
             $API->comm("/queue/simple/remove", [
-                ".id" => $idAddressQ,
+                ".id" => $existingQueue[0][".id"],
             ]);
-        } else {
-
-            $res = ['msg' => 'NO ESTA BLOQUEADO EN QUEUES', 'type' => 'warning'];
-            echo json_encode($res, JSON_UNESCAPED_UNICODE);
-            exit;
-        }
-
-        if (! empty($list)) {
-
-            $idAddress = $list[0][".id"];
-            $API->comm("/ip/firewall/address-list/remove", [
-                ".id" => $idAddress,
-            ]);
-        } else {
-
-            $res = ['msg' => 'NO ESTA BLOQUEADO', 'type' => 'warning'];
-            echo json_encode($res, JSON_UNESCAPED_UNICODE);
-            exit;
         }
 
         $API->disconnect();
-    } else {
-
-        exit;
+    } catch (\Throwable $e) {
+        // Cualquier error con Mikrotik no debe romper la eliminacion del contrato
+        return;
     }
 }
