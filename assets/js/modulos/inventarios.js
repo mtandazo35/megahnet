@@ -277,6 +277,59 @@ function productoPorCodigo(valor) {
     }
 }
 
+// Lista de productos fisicos siempre visible en la pestana Kardex.
+// Click en una fila -> carga su kardex abajo. Paginada DataTable.
+let tblProductosKardex = null;
+function inicializarListaProductosKardex() {
+    if (tblProductosKardex) {
+        try { tblProductosKardex.ajax.reload(null, false); } catch(e){}
+        return;
+    }
+    tblProductosKardex = $('#tblProductosKardex').DataTable({
+        deferRender: true,
+        stateSave: true,
+        stateDuration: -1,
+        pageLength: 10,
+        lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, 'Todos']],
+        order: [[1, 'asc']],
+        ajax: {
+            url: base_url + 'productos/listarFisicos',
+            dataSrc: ''
+        },
+        columns: [
+            { data: 'codigo', defaultContent: '-' },
+            { data: 'descripcion' },
+            { data: 'categoria', defaultContent: '-' },
+            { data: 'cantidad', className: 'text-end',
+              render: function(d){ return '<span class="badge bg-primary">' + (d || 0) + '</span>'; } }
+        ],
+        language: { url: base_url + 'assets/js/espanol.json' }
+    });
+
+    // Click en fila -> cargar kardex del producto
+    $('#tblProductosKardex tbody').on('click', 'tr', function(){
+        var data = tblProductosKardex.row(this).data();
+        if (data && data.id) {
+            cargarKardex(data.id, data.descripcion || '');
+            // Resaltar fila seleccionada
+            $('#tblProductosKardex tbody tr').removeClass('table-active');
+            $(this).addClass('table-active');
+        }
+    });
+}
+
+// Inicializar al hacer click en la pestana Kardex (no al cargar la pagina, evita
+// peticion innecesaria si el usuario nunca abre Kardex)
+$(document).on('shown.bs.tab', '#nav-kardex-tab', function(){
+    inicializarListaProductosKardex();
+});
+// Y si la pestana Kardex ya esta activa al cargar (rehidratacion via #nav-kardex)
+$(function(){
+    if (location.hash === '#nav-kardex' || $('#nav-kardex').hasClass('active')) {
+        inicializarListaProductosKardex();
+    }
+});
+
 // Carga el kardex en la tabla inline (sustituye el flujo viejo de abrir PDF directo).
 // El boton PDF de la cabecera sigue permitiendo descargar el reporte cuando se desea.
 let tblKardex = null;

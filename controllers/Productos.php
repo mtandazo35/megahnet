@@ -305,6 +305,17 @@ class Productos extends Controller
         die();
     }
 
+    /**
+     * Listado completo de productos fisicos para la tabla del Kardex.
+     * Trae descripcion, codigo, stock y categoria. Activos (estado=1).
+     */
+    public function listarFisicos()
+    {
+        $data = $this->model->listarFisicos();
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        die();
+    }
+
 
     public function buscarPorNombreTipoPago()
     {

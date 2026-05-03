@@ -71,6 +71,26 @@
                     <input class="form-control" type="text" id="buscarProductoNombre" placeholder="Buscar Producto" autocomplete="off">
                 </div>
 
+                <!-- Lista de productos (siempre visible + paginacion). Click en fila carga su kardex abajo. -->
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body p-2">
+                        <small class="text-muted d-block mb-2"><i class="fas fa-list me-1"></i>Selecciona un producto para ver su kardex</small>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle nowrap mb-0" id="tblProductosKardex" style="width:100%; cursor:pointer;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Producto</th>
+                                        <th>Categoría</th>
+                                        <th class="text-end">Stock</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Cabecera del producto seleccionado -->
                 <div id="kardexHeader" class="alert alert-light border d-none align-items-center justify-content-between flex-wrap gap-2 py-2 mb-2">
                     <div>

@@ -103,6 +103,21 @@ class ProductosModel extends Query
                 LIMIT 10";
         return $this->selectAll($sql);
     }
+
+    /**
+     * Listado completo de productos fisicos activos para la tabla del Kardex.
+     * Incluye nombre de la categoria via JOIN.
+     */
+    public function listarFisicos()
+    {
+        $sql = "SELECT p.id, p.codigo, p.descripcion, p.cantidad, p.precio_venta,
+                       c.categoria
+                FROM productos p
+                INNER JOIN categorias c ON c.id = p.id_categoria
+                WHERE p.id_categoria = 2 AND p.estado = 1
+                ORDER BY p.descripcion";
+        return $this->selectAll($sql);
+    }
     public function buscarPorNombreTipoPago($valor)
     {
         $sql = "SELECT * FROM tipo_pago WHERE nombre LIKE '%" . $valor . "%' AND estado = 1 LIMIT 10";
