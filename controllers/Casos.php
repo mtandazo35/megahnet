@@ -68,11 +68,26 @@ class Casos extends Controller
                         $estado
                     );
                     if ($caso > 0) {
-
-                        $resWathsapp = 'https://web.whatsapp.com/send?text=Buen Dia! Se ah creado un nuevo caso en estado:(INGRESADO), problema reportado:('.$problemaReportado.'), https://www.google.com.ar/maps/place/  &phone=+593'.$getClientes['telefono'].'&abid=+593'.$getClientes['telefono'].'';
-                        $res = array('msg' => 'CASO GENERADO EXITOSAMENTE', 'type' => 'success', 'idCaso' => $caso, 'whatsapp' => $resWathsapp);
-
-
+                        // Enviar WhatsApp via API (no mas web.whatsapp.com).
+                        // URL solo se devuelve como fallback si la API fallo.
+                        $tel = $getClientes['telefono'] ?? '';
+                        $textoWa = "Buen dia! Se ha creado un nuevo caso en estado: (INGRESADO)"
+                                 . ", problema reportado: (" . $problemaReportado . ")";
+                        $waOk = false;
+                        if (!empty($tel) && function_exists('enviarWhatsappTexto')) {
+                            $apiRes = enviarWhatsappTexto($tel, $textoWa);
+                            $waOk = !empty($apiRes['ok']);
+                        }
+                        $resWathsapp = $waOk ? null
+                                     : ('https://web.whatsapp.com/send?phone=593' . $tel
+                                        . '&text=' . rawurlencode($textoWa));
+                        $res = array(
+                            'msg'      => 'CASO GENERADO EXITOSAMENTE',
+                            'type'     => 'success',
+                            'idCaso'   => $caso,
+                            'whatsapp' => $resWathsapp,
+                            'wa_ok'    => $waOk,
+                        );
                     } else {
                         $res = array('msg' => 'ERROR AL GENERAR EL CASO', 'type' => 'error');
                     }
@@ -101,9 +116,15 @@ class Casos extends Controller
                                      . ", Trabajo Realizado: (" . $trabajoRealizado . ")";
                         }
                         $tel = $getClientes['telefono'] ?? '';
-                        $resWathsapp = 'https://web.whatsapp.com/send?phone=593' . $tel
-                                     . '&text=' . rawurlencode($textoWa)
-                                     . '&abid=593' . $tel;
+                        // Enviar via API (no mas web.whatsapp.com manual)
+                        $waOk = false;
+                        if (!empty($tel) && function_exists('enviarWhatsappTexto')) {
+                            $apiRes = enviarWhatsappTexto($tel, $textoWa);
+                            $waOk = !empty($apiRes['ok']);
+                        }
+                        $resWathsapp = $waOk ? null
+                                     : ('https://web.whatsapp.com/send?phone=593' . $tel
+                                        . '&text=' . rawurlencode($textoWa));
 
                         $res = array(
                             'msg'      => 'CASO ACTUALIZADO EXITOSAMENTE',
@@ -111,6 +132,7 @@ class Casos extends Controller
                             'idCaso'   => $id,
                             'whatsapp' => $resWathsapp,
                             'estado'   => $estado,
+                            'wa_ok'    => $waOk,
                         );
                     } else {
                         $res = array('msg' => 'ERROR AL ACTUALIZAR EL CASO', 'type' => 'error');

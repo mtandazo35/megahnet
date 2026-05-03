@@ -378,13 +378,24 @@ class Creditos extends Controller
                     $data2['restante'] = $restante;
                 }
                 if ($data > 0) {
-                    if ($getInfoClientes['telefono'] == '') {
-
+                    $tel = $getInfoClientes['telefono'] ?? '';
+                    if ($tel === '') {
                         $resWathsapp = null;
                     } else {
-                        // $resWathsapp = "https://wa.me/593{$getInfoClientes['telefono']}?text=Buen Dia estimado cliente *MEGAHNET*! Su abono es de: ' . '$' . $total . ', *Su saldo a favor es de: ' . '$' . $anticipo . '*    Su deuda Total es de:' . '$' . $restante . ', INCLUIDO SERVICIO DE *' . $mesActualLetra . '*";
-                        //$resWathsapp = 'https://web.whatsapp.com/send?text=Buen Dia estimado cliente *MEGAHNET*! Su deuda Total es de:' . '$' . $restante . ', INCLUIDO SERVICIO DE *' . $mesActualLetra . '*    &phone=+593' . $getInfoClientes['telefono'] . '&abid=+593' . $getInfoClientes['telefono'] . '';.$restante.'
-                        $resWathsapp = 'https://web.whatsapp.com/send?phone=593' . $getInfoClientes['telefono'] . '&text=Buen%20d%C3%ADa%20estimado%2Fa%20cliente%0A%20%20%20%20%20%20%20%20%20%20*MEGAHNET*%0A%20%20%20*GRACIAS%20POR%20SU%20PAGO*%0A%0A%20%20su%20saldo%20a%20la%20fecha%20es%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20%24' . $restante . '%0Aincluido%20*SERVICIO%20' . $mesActualLetra . '*%0A*' . $datosCliente['nombre'] . '*';
+                        // Mensaje plano para enviar via API WhatsApp
+                        $textoWa = "Buen dia estimado cliente *MEGAHNET*\n"
+                                 . "*GRACIAS POR SU PAGO*\n\n"
+                                 . "Su saldo a la fecha es: $" . $restante . "\n"
+                                 . "Incluido *SERVICIO " . $mesActualLetra . "*\n"
+                                 . "*" . $datosCliente['nombre'] . "*";
+                        $waOk = false;
+                        if (function_exists('enviarWhatsappTexto')) {
+                            $apiRes = enviarWhatsappTexto($tel, $textoWa);
+                            $waOk = !empty($apiRes['ok']);
+                        }
+                        $resWathsapp = $waOk ? null
+                                     : ('https://web.whatsapp.com/send?phone=593' . $tel
+                                        . '&text=' . rawurlencode($textoWa));
                     }
 
                     $res = array('msg' => 'ABONO REGISTRADO EXITOSAMENTE', 'type' => 'success', 'whatsapp' => $resWathsapp, 'idCredito' => isset($idCredito) ? $idCredito : (isset($idcredito) ? $idcredito : 0), 'telefonoCliente' => $getInfoClientes['telefono'] ?? '');
@@ -518,10 +529,22 @@ class Creditos extends Controller
 
 
                 if ($data > 0) {
-                    if ($getInfoClientes['telefono'] == '') {
+                    $tel = $getInfoClientes['telefono'] ?? '';
+                    if ($tel === '') {
                         $resWathsapp = null;
                     } else {
-                        $resWathsapp = 'https://web.whatsapp.com/send?phone=593' . $getInfoClientes['telefono'] . '&text=Buen%20d%C3%ADa%20estimado%2Fa%20cliente%0A*MEGAHNET*%0A*GRACIAS%20POR%20SU%20PAGO*%0A%0ASu%20saldo%20a%20la%20fecha%20es%3A%20$' . $restante . '%0AIncluido%20servicio%20de%20*' . $mesActualLetra . '*%0A*' . $datosCliente['nombre'] . '*';
+                        $textoWa = "Buen dia estimado/a cliente\n*MEGAHNET*\n*GRACIAS POR SU PAGO*\n\n"
+                                 . "Su saldo a la fecha es: $" . $restante . "\n"
+                                 . "Incluido servicio de *" . $mesActualLetra . "*\n"
+                                 . "*" . $datosCliente['nombre'] . "*";
+                        $waOk = false;
+                        if (function_exists('enviarWhatsappTexto')) {
+                            $apiRes = enviarWhatsappTexto($tel, $textoWa);
+                            $waOk = !empty($apiRes['ok']);
+                        }
+                        $resWathsapp = $waOk ? null
+                                     : ('https://web.whatsapp.com/send?phone=593' . $tel
+                                        . '&text=' . rawurlencode($textoWa));
                     }
 
                     $res = array('msg' => 'ABONO REGISTRADO EXITOSAMENTE', 'type' => 'success', 'whatsapp' => $resWathsapp, 'idCredito' => isset($idCredito) ? $idCredito : (isset($idcredito) ? $idcredito : 0), 'telefonoCliente' => $getInfoClientes['telefono'] ?? '');
@@ -659,12 +682,22 @@ class Creditos extends Controller
                     $data2['restante'] = $restante;
                 }
                 if ($data > 0) {
-                    if ($getInfoClientes['telefono'] == '') {
-
+                    $tel = $getInfoClientes['telefono'] ?? '';
+                    if ($tel === '') {
                         $resWathsapp = null;
                     } else {
-                        //$resWathsapp = 'https://web.whatsapp.com/send?text=Buen Dia estimado cliente *MEGAHNET*! Su deuda Total es de: ' . '$ ' . $restante .', INCLUIDO SERVICIO DE *' . $mesActualLetra . '* &phone=+593' . $getInfoClientes['telefono'] . '&abid=+593' . $getInfoClientes['telefono'] . '';
-                        $resWathsapp = 'https://web.whatsapp.com/send?phone=593' . $getInfoClientes['telefono'] . '&text=Buen%20d%C3%ADa%20estimado%2Fa%20cliente%0A%20%20%20%20%20%20%20%20%20%20*MEGAHNET*%0A%20%20%20*GRACIAS%20POR%20SU%20PAGO*%0A%0A%20%20su%20saldo%20a%20la%20fecha%20es%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20%24' . $restante . '%0Aincluido%20*SERVICIO%20' . $mesActualLetra . '*%0A*' . $nombreCliente . '*';
+                        $textoWa = "Buen dia estimado/a cliente\n*MEGAHNET*\n*GRACIAS POR SU PAGO*\n\n"
+                                 . "Su saldo a la fecha es: $" . $restante . "\n"
+                                 . "Incluido *SERVICIO " . $mesActualLetra . "*\n"
+                                 . "*" . $nombreCliente . "*";
+                        $waOk = false;
+                        if (function_exists('enviarWhatsappTexto')) {
+                            $apiRes = enviarWhatsappTexto($tel, $textoWa);
+                            $waOk = !empty($apiRes['ok']);
+                        }
+                        $resWathsapp = $waOk ? null
+                                     : ('https://web.whatsapp.com/send?phone=593' . $tel
+                                        . '&text=' . rawurlencode($textoWa));
                     }
 
                     $res = array('msg' => 'ABONO REGISTRADO EXITOSAMENTE', 'type' => 'success', 'whatsapp' => $resWathsapp, 'idCredito' => isset($idCredito) ? $idCredito : (isset($idcredito) ? $idcredito : 0), 'telefonoCliente' => $getInfoClientes['telefono'] ?? '');

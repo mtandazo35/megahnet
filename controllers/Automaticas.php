@@ -1315,12 +1315,22 @@ class Automaticas extends Controller
                             'asunto' => 'Adjuntamos Comprobante Electronico'
                         );
 
-                        if ($facturaElectronica['telefono'] == '') {
-
+                        $tel = $facturaElectronica['telefono'] ?? '';
+                        if ($tel === '') {
                             $resWathsapp = null;
                         } else {
-                            //$resWathsapp = 'https://web.whatsapp.com/send?text=Buen Dia estimado cliente *MEGAHNET*! Su deuda Total es de: ' . '$ ' . $restante .', INCLUIDO SERVICIO DE *' . $mesActualLetra . '* &phone=+593' . $getInfoClientes['telefono'] . '&abid=+593' . $getInfoClientes['telefono'] . '';
-                            $resWathsapp = 'https://web.whatsapp.com/send?phone=593' . $facturaElectronica['telefono'] . '&text=Buen%20d%C3%ADa%20estimado%2Fa%20cliente%0A%20%20%20%20%20%20%20%20%20%20*MEGAHNET*%0A%20%20%20*GRACIAS%20POR%20SU%20PAGO*%0A%0A%20%20su%20saldo%20a%20la%20fecha%20es%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20%240.00%0Aincluido%20*SERVICIO%20' . $mesesSeleccionado . '*%0A*' . $facturaElectronica['cliente'] . '*';
+                            $textoWa = "Buen dia estimado/a cliente\n*MEGAHNET*\n*GRACIAS POR SU PAGO*\n\n"
+                                     . "Su saldo a la fecha es: $0.00\n"
+                                     . "Incluido *SERVICIO " . $mesesSeleccionado . "*\n"
+                                     . "*" . $facturaElectronica['cliente'] . "*";
+                            $waOk = false;
+                            if (function_exists('enviarWhatsappTexto')) {
+                                $apiRes = enviarWhatsappTexto($tel, $textoWa);
+                                $waOk = !empty($apiRes['ok']);
+                            }
+                            $resWathsapp = $waOk ? null
+                                         : ('https://web.whatsapp.com/send?phone=593' . $tel
+                                            . '&text=' . rawurlencode($textoWa));
                         }
                         $res = array('msg' => 'FACTURA ELECTRONICA GENERADA EXITOSAMENTE', 'type' => 'success', 'ClaveAcceso' => $claveAcceso, 'factura' => 'electronica', 'idVenta' => $numSerieElectronica, 'whatsapp' => $resWathsapp);
                         // Alerta admin: cliente sin correo registrado
@@ -1440,12 +1450,22 @@ class Automaticas extends Controller
                     'asunto' => 'Adjuntamos Comprobante'
                 );
 
-                if ($getordenVenta['telefono'] == '') {
-
+                $tel = $getordenVenta['telefono'] ?? '';
+                if ($tel === '') {
                     $resWathsapp = null;
                 } else {
-                    //$resWathsapp = 'https://web.whatsapp.com/send?text=Buen Dia estimado cliente *MEGAHNET*! Su deuda Total es de: ' . '$ ' . $restante .', INCLUIDO SERVICIO DE *' . $mesActualLetra . '* &phone=+593' . $getInfoClientes['telefono'] . '&abid=+593' . $getInfoClientes['telefono'] . '';
-                    $resWathsapp = 'https://web.whatsapp.com/send?phone=593' . $getordenVenta['telefono'] . '&text=Buen%20d%C3%ADa%20estimado%2Fa%20cliente%0A%20%20%20%20%20%20%20%20%20%20*MEGAHNET*%0A%20%20%20*GRACIAS%20POR%20SU%20PAGO*%0A%0A%20%20su%20saldo%20a%20la%20fecha%20es%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20%240.00%0Aincluido%20*SERVICIO%20' . $mesesSeleccionado . '*%0A*' . $getordenVenta['nombre'] . '*';
+                    $textoWa = "Buen dia estimado/a cliente\n*MEGAHNET*\n*GRACIAS POR SU PAGO*\n\n"
+                             . "Su saldo a la fecha es: $0.00\n"
+                             . "Incluido *SERVICIO " . $mesesSeleccionado . "*\n"
+                             . "*" . $getordenVenta['nombre'] . "*";
+                    $waOk = false;
+                    if (function_exists('enviarWhatsappTexto')) {
+                        $apiRes = enviarWhatsappTexto($tel, $textoWa);
+                        $waOk = !empty($apiRes['ok']);
+                    }
+                    $resWathsapp = $waOk ? null
+                                 : ('https://web.whatsapp.com/send?phone=593' . $tel
+                                    . '&text=' . rawurlencode($textoWa));
                 }
 
                 $res = array('msg' => 'ORDEN VENTA GENERADA EXITOSAMENTE', 'type' => 'success', 'idVenta' => $ordenVenta, 'factura' => 'ordenVenta', 'whatsapp' => $resWathsapp);
