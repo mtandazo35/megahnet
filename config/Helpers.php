@@ -275,16 +275,19 @@ function respaldoBD_restaurar($nombre) {
 
     $passArg = PASSWORD ? "-p" . escapeshellarg(PASSWORD) : "";
     $esGz = str_ends_with(strtolower($nombre), ".gz");
+    // --force para que MariaDB no aborte en errores no criticos del dump
+    // (ej. dumps generados por MySQL 9 Oracle traen SET character_set_client=NULL
+    // que MariaDB rechaza con ERROR 1231).
     if ($isWindows) {
         if ($esGz) throw new Exception("Restore de .gz no soportado en Windows sin gunzip. Descomprima primero.");
-        $cmd = sprintf("\"%s\" -h %s -u %s %s %s < \"%s\"", $mysql, HOSTT, USER, PASSWORD ? "-p".PASSWORD : "", DBNAME, $archivo);
+        $cmd = sprintf("\"%s\" --force -h %s -u %s %s %s < \"%s\"", $mysql, HOSTT, USER, PASSWORD ? "-p".PASSWORD : "", DBNAME, $archivo);
     } else {
         if ($esGz) {
-            $cmd = sprintf("zcat %s | %s -h %s -u %s %s %s",
+            $cmd = sprintf("zcat %s | %s --force -h %s -u %s %s %s",
                 escapeshellarg($archivo), escapeshellarg($mysql),
                 escapeshellarg(HOSTT), escapeshellarg(USER), $passArg, escapeshellarg(DBNAME));
         } else {
-            $cmd = sprintf("%s -h %s -u %s %s %s < %s",
+            $cmd = sprintf("%s --force -h %s -u %s %s %s < %s",
                 escapeshellarg($mysql), escapeshellarg(HOSTT), escapeshellarg(USER),
                 $passArg, escapeshellarg(DBNAME), escapeshellarg($archivo));
         }
@@ -309,11 +312,12 @@ function respaldoBD_restaurar_sin_predump($nombre) {
     $mysql = "/usr/bin/mysql";
     $passArg = PASSWORD ? "-p" . escapeshellarg(PASSWORD) : "";
     $esGz = str_ends_with(strtolower($nombre), ".gz");
+    // --force igual que en respaldoBD_restaurar (tolerar errores no criticos)
     $cmd = $esGz
-        ? sprintf("zcat %s | %s -h %s -u %s %s %s",
+        ? sprintf("zcat %s | %s --force -h %s -u %s %s %s",
             escapeshellarg($archivo), escapeshellarg($mysql),
             escapeshellarg(HOSTT), escapeshellarg(USER), $passArg, escapeshellarg(DBNAME))
-        : sprintf("%s -h %s -u %s %s %s < %s",
+        : sprintf("%s --force -h %s -u %s %s %s < %s",
             escapeshellarg($mysql), escapeshellarg(HOSTT), escapeshellarg(USER),
             $passArg, escapeshellarg(DBNAME), escapeshellarg($archivo));
     exec($cmd . " 2>&1", $out, $ret);
