@@ -39,7 +39,28 @@ function tokenPayPhone(){
 }
 // Respaldo de BD que corre en Linux + Windows
 // Detecta mysqldump, comprime con gzip, envia al browser para descarga
-// Mantiene copia en /var/backups/<DBNAME> con rotacion
+// Mantiene copia en /var/backups/<systemId> con rotacion.
+// systemId = primera parte del host de BASE_URL (megahnet, rutanet, credito).
+// Asi cada empresa genera respaldos con nombres identificables.
+
+if (!function_exists('respaldoBD_systemId')) {
+function respaldoBD_systemId() {
+    static $cached = null;
+    if ($cached !== null) return $cached;
+    $id = '';
+    if (defined('BASE_URL') && BASE_URL) {
+        $host = parse_url(BASE_URL, PHP_URL_HOST);
+        if ($host) {
+            $parts = explode('.', $host);
+            $first = $parts[0] ?? '';
+            if ($first === 'www') $first = $parts[1] ?? '';
+            $id = preg_replace('/[^a-z0-9_-]/i', '', strtolower($first));
+        }
+    }
+    $cached = !empty($id) ? $id : (defined('DBNAME') ? DBNAME : 'sistema');
+    return $cached;
+}
+}
 
 function respaldoBD_descargar() {
     // Localizar mysqldump
@@ -61,11 +82,12 @@ function respaldoBD_descargar() {
 
     // Directorio de respaldos persistentes
     $isWindows = stripos(PHP_OS, "WIN") === 0;
-    $rutaDestino = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\respaldo") : "/var/backups/" . DBNAME;
+    $sysId = respaldoBD_systemId();
+    $rutaDestino = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\respaldo") : "/var/backups/" . $sysId;
     if (!is_dir($rutaDestino)) @mkdir($rutaDestino, 0755, true);
 
     $fecha = date("Y-m-d_H-i-s");
-    $nombreBase = DBNAME . "_" . $fecha . ".sql.gz";
+    $nombreBase = $sysId . "_" . $fecha . ".sql.gz";
     $rutaArchivo = rtrim($rutaDestino, "/\\") . DIRECTORY_SEPARATOR . $nombreBase;
 
     // Comando: mysqldump ... | gzip > archivo
@@ -94,9 +116,15 @@ function respaldoBD_descargar() {
         die("ERROR en mysqldump (codigo $ret): " . implode("\n", $out));
     }
 
-    // Rotacion: conservar los ultimos 10
+    // Rotacion: conservar los ultimos 10. Glob matchea tanto el prefijo nuevo
+    // (systemId, ej. megahnet_) como el legacy (DBNAME=sistema_) para limpiar
+    // ambos tipos durante la transicion.
     $max = defined("CANTIDADBD") ? CANTIDADBD : 10;
-    $archivos = glob(rtrim($rutaDestino, "/\\") . DIRECTORY_SEPARATOR . DBNAME . "_*");
+    $archivos = array_merge(
+        glob(rtrim($rutaDestino, "/\\") . DIRECTORY_SEPARATOR . $sysId . "_*") ?: [],
+        glob(rtrim($rutaDestino, "/\\") . DIRECTORY_SEPARATOR . DBNAME . "_*") ?: []
+    );
+    $archivos = array_unique($archivos);
     if (count($archivos) > $max) {
         usort($archivos, fn($a,$b) => filemtime($a) - filemtime($b));
         $sobran = count($archivos) - $max;
@@ -117,9 +145,15 @@ function respaldoBD_descargar() {
 // Listado de respaldos existentes (para UI)
 function respaldoBD_listar() {
     $isWindows = stripos(PHP_OS, "WIN") === 0;
-    $rutaDestino = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\respaldo") : "/var/backups/" . DBNAME;
+    $sysId = respaldoBD_systemId();
+    $rutaDestino = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\respaldo") : "/var/backups/" . $sysId;
     if (!is_dir($rutaDestino)) return [];
-    $archivos = glob(rtrim($rutaDestino, "/\\") . DIRECTORY_SEPARATOR . DBNAME . "_*");
+    // Listar tanto archivos nuevos (systemId) como legacy (DBNAME)
+    $archivos = array_merge(
+        glob(rtrim($rutaDestino, "/\\") . DIRECTORY_SEPARATOR . $sysId . "_*") ?: [],
+        glob(rtrim($rutaDestino, "/\\") . DIRECTORY_SEPARATOR . DBNAME . "_*") ?: []
+    );
+    $archivos = array_unique($archivos);
     usort($archivos, fn($a,$b) => filemtime($b) - filemtime($a));
     $out = [];
     foreach ($archivos as $a) {
@@ -140,13 +174,14 @@ function respaldoBD_generar() {
     if (!$mysqldump) throw new Exception("mysqldump no encontrado");
 
     $isWindows = stripos(PHP_OS, "WIN") === 0;
-    $ruta = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\respaldo") : "/var/backups/" . DBNAME;
+    $sysId = respaldoBD_systemId();
+    $ruta = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\respaldo") : "/var/backups/" . $sysId;
     if (!is_dir($ruta)) @mkdir($ruta, 0755, true);
     if (!is_writable($ruta)) throw new Exception("Sin permiso de escritura: $ruta");
 
     $fecha = date("Y-m-d_H-i-s");
     $ext = $isWindows ? ".sql" : ".sql.gz";
-    $nombre = DBNAME . "_" . $fecha . $ext;
+    $nombre = $sysId . "_" . $fecha . $ext;
     $archivo = rtrim($ruta, "/\\") . DIRECTORY_SEPARATOR . $nombre;
 
     $passArg = PASSWORD ? "-p" . escapeshellarg(PASSWORD) : "";
@@ -168,9 +203,12 @@ function respaldoBD_generar() {
         throw new Exception("mysqldump fallo (codigo $ret): " . implode("\n", $out));
     }
 
-    // Rotacion
+    // Rotacion: incluye archivos legacy (DBNAME) y nuevos (sysId)
     $max = defined("CANTIDADBD") ? CANTIDADBD : 10;
-    $arcs = glob(rtrim($ruta, "/\\") . DIRECTORY_SEPARATOR . DBNAME . "_*");
+    $arcs = array_unique(array_merge(
+        glob(rtrim($ruta, "/\\") . DIRECTORY_SEPARATOR . $sysId . "_*") ?: [],
+        glob(rtrim($ruta, "/\\") . DIRECTORY_SEPARATOR . DBNAME . "_*") ?: []
+    ));
     if (count($arcs) > $max) {
         usort($arcs, fn($a,$b) => filemtime($a) - filemtime($b));
         for ($i=0; $i < count($arcs)-$max; $i++) @unlink($arcs[$i]);
@@ -179,12 +217,20 @@ function respaldoBD_generar() {
     return ["nombre"=>$nombre, "tamanio"=>$sz < 1024*1024 ? round($sz/1024,1)." KB" : round($sz/1024/1024,2)." MB"];
 }
 
+// Helper: regex para validar nombre de archivo de respaldo (acepta sysId o DBNAME legacy)
+if (!function_exists('_respaldoBD_validNombre')) {
+function _respaldoBD_validNombre($nombre, $extra = '') {
+    $sysId = respaldoBD_systemId();
+    $allowedChars = $extra ?: '[0-9\-_]+';
+    return preg_match('/^(' . preg_quote($sysId, '/') . '|' . preg_quote(DBNAME, '/') . ')_' . $allowedChars . '\.sql(\.gz)?$/', $nombre);
+}
+}
+
 // Descargar un archivo existente por nombre
 function respaldoBD_descargar_archivo($nombre) {
-    // Validar nombre para evitar path traversal
-    if (!preg_match("/^" . preg_quote(DBNAME,"/") . "_[0-9\-_]+\.sql(\.gz)?$/", $nombre)) { http_response_code(400); die("Nombre invalido"); }
+    if (!_respaldoBD_validNombre($nombre)) { http_response_code(400); die("Nombre invalido"); }
     $isWindows = stripos(PHP_OS, "WIN") === 0;
-    $ruta = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\respaldo") : "/var/backups/" . DBNAME;
+    $ruta = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\respaldo") : "/var/backups/" . respaldoBD_systemId();
     $archivo = rtrim($ruta, "/\\") . DIRECTORY_SEPARATOR . $nombre;
     if (!file_exists($archivo)) { http_response_code(404); die("No existe"); }
     while (ob_get_level() > 0) ob_end_clean();
@@ -198,9 +244,9 @@ function respaldoBD_descargar_archivo($nombre) {
 
 // Eliminar un archivo por nombre
 function respaldoBD_eliminar($nombre) {
-    if (!preg_match("/^" . preg_quote(DBNAME,"/") . "_[0-9\-_]+\.sql(\.gz)?$/", $nombre)) return false;
+    if (!_respaldoBD_validNombre($nombre)) return false;
     $isWindows = stripos(PHP_OS, "WIN") === 0;
-    $ruta = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\respaldo") : "/var/backups/" . DBNAME;
+    $ruta = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\respaldo") : "/var/backups/" . respaldoBD_systemId();
     $archivo = rtrim($ruta, "/\\") . DIRECTORY_SEPARATOR . $nombre;
     return file_exists($archivo) && @unlink($archivo);
 }
@@ -208,10 +254,10 @@ function respaldoBD_eliminar($nombre) {
 
 // Restaurar desde un .sql o .sql.gz existente (con pre-dump de seguridad)
 function respaldoBD_restaurar($nombre) {
-    if (!preg_match("/^" . preg_quote(DBNAME,"/") . "_[A-Za-z0-9_\-\.]+\.sql(\.gz)?$/", $nombre))
+    if (!_respaldoBD_validNombre($nombre, '[A-Za-z0-9_\-\.]+'))
         throw new Exception("Nombre invalido");
     $isWindows = stripos(PHP_OS, "WIN") === 0;
-    $ruta = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\\respaldo") : "/var/backups/" . DBNAME;
+    $ruta = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\\respaldo") : "/var/backups/" . respaldoBD_systemId();
     $archivo = rtrim($ruta, "/\\\\") . DIRECTORY_SEPARATOR . $nombre;
     if (!file_exists($archivo)) throw new Exception("Archivo no existe");
 
@@ -255,7 +301,7 @@ function respaldoBD_restaurar($nombre) {
 // Version interna sin pre-dump (para el rollback)
 function respaldoBD_restaurar_sin_predump($nombre) {
     $isWindows = stripos(PHP_OS, "WIN") === 0;
-    $ruta = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\\respaldo") : "/var/backups/" . DBNAME;
+    $ruta = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\\respaldo") : "/var/backups/" . respaldoBD_systemId();
     $archivo = rtrim($ruta, "/\\\\") . DIRECTORY_SEPARATOR . $nombre;
     if (!file_exists($archivo)) throw new Exception("Archivo no existe");
     $mysql = "/usr/bin/mysql";
