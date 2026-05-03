@@ -217,11 +217,13 @@ function respaldoBD_generar() {
     return ["nombre"=>$nombre, "tamanio"=>$sz < 1024*1024 ? round($sz/1024,1)." KB" : round($sz/1024/1024,2)." MB"];
 }
 
-// Helper: regex para validar nombre de archivo de respaldo (acepta sysId o DBNAME legacy)
+// Helper: regex para validar nombre de archivo de respaldo (acepta sysId o DBNAME legacy).
+// Acepta letras (A-Z) ademas de digitos para soportar respaldos subidos manualmente
+// (sysId_uploaded_YYYY-MM-DD_HH-MM-SS.sql.gz) y otros formatos custom.
 if (!function_exists('_respaldoBD_validNombre')) {
 function _respaldoBD_validNombre($nombre, $extra = '') {
     $sysId = respaldoBD_systemId();
-    $allowedChars = $extra ?: '[0-9\-_]+';
+    $allowedChars = $extra ?: '[A-Za-z0-9\-_]+';
     return preg_match('/^(' . preg_quote($sysId, '/') . '|' . preg_quote(DBNAME, '/') . ')_' . $allowedChars . '\.sql(\.gz)?$/', $nombre);
 }
 }
@@ -446,9 +448,10 @@ function respaldoBD_subir($file) {
     }
 
     $ext = $esGz ? ".sql.gz" : ".sql";
-    $nombre = DBNAME . "_uploaded_" . date("Y-m-d_H-i-s") . $ext;
+    $sysId = respaldoBD_systemId();
+    $nombre = $sysId . "_uploaded_" . date("Y-m-d_H-i-s") . $ext;
     $isWindows = stripos(PHP_OS, "WIN") === 0;
-    $ruta = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\\respaldo") : "/var/backups/" . DBNAME;
+    $ruta = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\\respaldo") : "/var/backups/" . $sysId;
     if (!is_dir($ruta)) @mkdir($ruta, 0755, true);
     $dest = rtrim($ruta, "/\\\\") . DIRECTORY_SEPARATOR . $nombre;
 
