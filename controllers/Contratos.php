@@ -649,18 +649,30 @@ class Contratos extends Controller
             die();
         }
 
-        // Si el usuario confirmo, anular los creditos pendientes (estado=2)
+        // 1. Verificar conexion Mikrotik ANTES de tocar BD. Si falla, abortar
+        // y avisar al usuario. NO se elimina nada hasta confirmar conectividad.
+        $getIp       = $this->model->getContrato($idContrato);
+        $getMikrotik = $this->model->getMikrotik($getIp['id_mikrotik']);
+        $mkResult    = eliminarIpFirewall($getIp, $getMikrotik);
+
+        if (empty($mkResult['ok'])) {
+            // Mikrotik inalcanzable o error: NO eliminar contrato.
+            echo json_encode([
+                'msg'  => $mkResult['msg'] ?? 'NO SE PUEDE ELIMINAR: error al conectar con Mikrotik.',
+                'type' => 'error'
+            ], JSON_UNESCAPED_UNICODE);
+            die();
+        }
+
+        // 2. Mikrotik OK -> ahora si anular creditos (si confirmo) y eliminar
         if ($cantPend > 0 && $confirmCreditos) {
             $this->model->anularCreditosContrato($idContrato);
         }
 
         $data = $this->model->eliminar(2, $idContrato);
 
-        $editar      = $this->model->editar($idContrato);
-        $productos   = json_decode($editar['productos'] ?? '[]', true);
-        $getIp       = $this->model->getContrato($idContrato);
-        $getMikrotik = $this->model->getMikrotik($getIp['id_mikrotik']);
-        eliminarIpFirewall($getIp, $getMikrotik);
+        $editar    = $this->model->editar($idContrato);
+        $productos = json_decode($editar['productos'] ?? '[]', true);
 
         if (!empty($productos[0])) {
             $this->model->registrarIpAnuladas('REGISTRAR', $editar['ip_usuario'], $productos[0]['idZona'], $productos[0]['idIp']);
@@ -673,7 +685,7 @@ class Contratos extends Controller
             }
             $res = ['msg' => $msg, 'type' => 'success'];
         } else {
-            $res = ['msg' => 'ERROR AL ELIMINAR', 'type' => 'error'];
+            $res = ['msg' => 'ERROR AL ELIMINAR EN BD', 'type' => 'error'];
         }
         echo json_encode($res, JSON_UNESCAPED_UNICODE);
         die();
@@ -1738,35 +1750,50 @@ function actualizarSimpleQueue($data)
     // echo json_encode(['msg' => 'RESULTADO DE LA ACTUALIZACIÓN', 'type' => 'success', 'resultados' => $resultados], JSON_UNESCAPED_UNICODE);
 }
 
+/**
+ * Limpia la IP del Mikrotik (address-list NAVEGABLE + queue simple).
+ *
+ * Devuelve un array con ['ok' => bool, 'msg' => string]:
+ *   - ok=true  : se conecto al Mikrotik y limpio (o ignoro porque no estaba)
+ *   - ok=false : NO se pudo conectar / faltan datos -> el caller DEBE abortar
+ *                la eliminacion del contrato.
+ *
+ * Nunca hace echo + exit. El caller decide si seguir o fallar.
+ */
 function eliminarIpFirewall($data, $getMikrotik)
 {
-    // Limpia la IP de address-list NAVEGABLE y de queues simples del Mikrotik
-    // sin abortar el flujo si no esta bloqueada (caso normal cuando el
-    // contrato estaba activo, no suspendido). Nunca hace echo+exit -- los
-    // errores se silencian para que la eliminacion del contrato continue.
     require_once 'libraries/mikrotik/routeros_api.class.php';
 
     $targetIp = $data['ip_usuario'] ?? null;
     if (!$targetIp) {
-        return; // sin IP no hay nada que limpiar
+        return ['ok' => false, 'msg' => 'NO SE PUEDE ELIMINAR: el contrato no tiene IP asignada.'];
+    }
+
+    if (empty($getMikrotik['ip']) || empty($getMikrotik['usuario'])) {
+        return ['ok' => false, 'msg' => 'NO SE PUEDE ELIMINAR: el contrato no tiene Mikrotik configurado.'];
     }
 
     // Target con /32 para queue simple
     $targetIpQ = (strpos($targetIp, '/') === false) ? ($targetIp . '/32') : $targetIp;
 
-    if (empty($getMikrotik['ip']) || empty($getMikrotik['usuario'])) {
-        return; // sin credenciales mikrotik tampoco se puede tocar
-    }
-
     try {
         $API       = new RouterosAPI();
         $API->port = $getMikrotik['puerto'] ?? 8728;
-
-        if (!$API->connect($getMikrotik['ip'], $getMikrotik['usuario'], $getMikrotik['clave'])) {
-            return; // mikrotik inalcanzable: sigue eliminando contrato
+        // Time out razonable: si el Mikrotik esta caido, no esperar 60s
+        if (property_exists($API, 'timeout')) {
+            $API->timeout = 5;
         }
 
-        // address-list NAVEGABLE: si esta, lo quita; sino, ignora
+        if (!@$API->connect($getMikrotik['ip'], $getMikrotik['usuario'], $getMikrotik['clave'])) {
+            return [
+                'ok'  => false,
+                'msg' => 'NO SE PUEDE ELIMINAR PORQUE NO SE TIENE CONEXION AL MIKROTIK ('
+                       . ($getMikrotik['nombre'] ?? $getMikrotik['ip'])
+                       . ') PARA COMPLETAR ESTA ACCION. VERIFICAR QUE EL EQUIPO ESTE EN LINEA.'
+            ];
+        }
+
+        // address-list NAVEGABLE: si esta, lo quita; sino lo ignora
         $list = $API->comm("/ip/firewall/address-list/print", [
             "?address" => $targetIp,
             "?list"    => "NAVEGABLE",
@@ -1777,7 +1804,7 @@ function eliminarIpFirewall($data, $getMikrotik)
             ]);
         }
 
-        // queue/simple: si existe, lo quita; sino, ignora
+        // queue/simple: si existe, lo quita; sino lo ignora
         $existingQueue = $API->comm("/queue/simple/print", [
             "?target" => $targetIpQ,
         ]);
@@ -1788,8 +1815,12 @@ function eliminarIpFirewall($data, $getMikrotik)
         }
 
         $API->disconnect();
+        return ['ok' => true, 'msg' => 'OK'];
     } catch (\Throwable $e) {
-        // Cualquier error con Mikrotik no debe romper la eliminacion del contrato
-        return;
+        return [
+            'ok'  => false,
+            'msg' => 'NO SE PUEDE ELIMINAR: ERROR DE COMUNICACION CON EL MIKROTIK ('
+                   . $e->getMessage() . ').'
+        ];
     }
 }
