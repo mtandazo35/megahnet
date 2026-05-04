@@ -267,6 +267,30 @@
         </div>
         <!--end navigation-->
 
+        <script>
+        // Filtrado del sidebar segun modulos ocultos en /admin/modulos.
+        // Defensa adicional al moduloActivo() server-side: cubre items que
+        // se imprimen sin envolver en condicional PHP, y oculta el parent
+        // si todos sus hijos quedaron ocultos.
+        (function(){
+            var ocultos = <?php echo json_encode(function_exists('modulosOcultos') ? modulosOcultos() : []); ?>;
+            if (!ocultos || !ocultos.length) return;
+            var set = {};
+            for (var i = 0; i < ocultos.length; i++) set[ocultos[i]] = true;
+            document.querySelectorAll('#menu li[data-url]').forEach(function(li){
+                if (set[li.getAttribute('data-url')]) li.style.display = 'none';
+            });
+            document.querySelectorAll('#menu > li').forEach(function(parent){
+                var subUl = parent.querySelector(':scope > ul');
+                if (!subUl) return;
+                var hijos = subUl.querySelectorAll(':scope > li');
+                var visibles = 0;
+                hijos.forEach(function(h){ if (h.style.display !== 'none') visibles++; });
+                if (hijos.length > 0 && visibles === 0) parent.style.display = 'none';
+            });
+        })();
+        </script>
+
 
 
 <style>
