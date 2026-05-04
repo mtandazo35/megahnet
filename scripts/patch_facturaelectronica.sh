@@ -63,7 +63,7 @@ else
 fi
 
 # ----------------------------------------------------------------------
-# Patch 2: envio_xml.php rutas absolutas (notaCredito linea 642, retencion 865)
+# Patch 2a: envio_xml.php rutas absolutas (notaCredito + retencion)
 # ----------------------------------------------------------------------
 F="$LIB/envio_xml.php"
 if [ -f "$F" ] && ! grep -q "_patch_absolute_paths" "$F"; then
@@ -71,22 +71,94 @@ if [ -f "$F" ] && ! grep -q "_patch_absolute_paths" "$F"; then
     php -r '
         $src = file_get_contents($argv[1]);
         $count = 0;
-        // Notas de credito y retenciones usan rutas relativas que fallan si CWD
-        // no es el project root. Convertir a absolutas con ROOT_PATH.
         $src = preg_replace(
             "#fopen\(\"facturaelectronica/public/archivos/(notaCreditos|Retenciones)/generados/#",
             "fopen(ROOT_PATH . \"/facturaelectronica/public/archivos/\$1/generados/",
             $src,
             -1, $count
         );
-        // Marker para idempotencia
         if ($count > 0) $src = "<?php\n// _patch_absolute_paths applied\n?>" . substr($src, strpos($src, "<?php") + 5);
         file_put_contents($argv[1], $src);
-        echo "2. envio_xml.php - $count reemplazos\n";
+        echo "2a. envio_xml.php absolute paths - $count reemplazos\n";
     ' "$F"
     chown www-data:www-data "$F"
 else
-    echo "2. envio_xml.php - ya parcheado o no existe"
+    echo "2a. envio_xml.php absolute paths - ya parcheado o no existe"
+fi
+
+# ----------------------------------------------------------------------
+# Patch 2b: envio_xml.php infoAdicional Pago dinamico (no mas hardcode GOBRAVCORP)
+# Lee titular y cuentas de storage/plantillas.json (config_titular_cuenta y
+# config_cuentas_pago, configurables por empresa desde Notificaciones).
+# Sin este patch, todas las empresas muestran GOBRAVCORP/RUC 1291737931001
+# en los campos PagoNombre/Ruc/Cuenta del XML SRI.
+# ----------------------------------------------------------------------
+F="$LIB/envio_xml.php"
+if [ -f "$F" ] && ! grep -q "_patch_pago_dinamico" "$F"; then
+    cp -p "$F" "${F}.bak.pagodinamico.$(date +%s)"
+    python3 <<EOF
+path = "$F"
+src = open(path).read()
+# Bloque a reemplazar: el infoAdicional con PagoNombre hardcodeado en factura
+# (no toca el de notaCredito/retencion). Se busca por la firma exacta.
+old = """            \$xml .= '</detalles>
+                        <infoAdicional>
+                            <campoAdicional nombre=\"Direccion\">' . \$direccion . '</campoAdicional>
+                            <campoAdicional nombre=\"Telefono\">' . \$telefono . '</campoAdicional>
+                            <campoAdicional nombre=\"Email\">' . \$email . '</campoAdicional>
+\t\t\t\t\t\t\t
+\t\t\t\t\t\t\t  <campoAdicional nombre=\"PagoNombre\">GOBRAVCORP</campoAdicional>
+\t\t\t\t\t\t\t\t<campoAdicional nombre=\"Ruc\">1291737931001</campoAdicional>
+\t\t\t\t\t\t\t\t<campoAdicional nombre=\"Tipo\">CHEQUE O TRANSFERENCIA</campoAdicional>
+\t\t\t\t\t\t\t\t<campoAdicional nombre=\"Cuenta\">CTA CTE PICHINCHA: 2100159721</campoAdicional>
+\t\t\t\t\t\t\t\t<campoAdicional nombre=\"Cuenta2\">CTA CTE GUAYAQUIL: 8737835</campoAdicional>
+                        </infoAdicional>
+                    </factura>';"""
+new = """            // _patch_pago_dinamico: leer titular y cuentas de plantillas.json
+            \$__pagoNombre = htmlspecialchars((string)\$nombre_comercial_empresa, ENT_QUOTES);
+            \$__pagoRuc    = htmlspecialchars((string)\$nro_documento_empresa, ENT_QUOTES);
+            \$__pagoTitular = \$__pagoNombre;
+            \$__pagoCuentas = array();
+            if (defined('ROOT_PATH') && is_file(ROOT_PATH . '/storage/plantillas.json')) {
+                \$__plt = @json_decode(@file_get_contents(ROOT_PATH . '/storage/plantillas.json'), true);
+                if (is_array(\$__plt)) {
+                    if (!empty(\$__plt['config_titular_cuenta']['cuerpo'])) {
+                        \$__pagoTitular = trim(\$__plt['config_titular_cuenta']['cuerpo']);
+                    }
+                    if (!empty(\$__plt['config_cuentas_pago']['cuerpo'])) {
+                        \$__lines = preg_split('/\\\\r?\\\\n/', trim(\$__plt['config_cuentas_pago']['cuerpo']));
+                        foreach (\$__lines as \$__ln) {
+                            \$__ln = trim(\$__ln);
+                            if (\$__ln !== '') \$__pagoCuentas[] = \$__ln;
+                        }
+                    }
+                }
+            }
+            \$__cuentaXml = '';
+            foreach (\$__pagoCuentas as \$__i => \$__cu) {
+                \$__name = (\$__i === 0) ? 'Cuenta' : 'Cuenta' . (\$__i + 1);
+                \$__cuentaXml .= "\\n                                <campoAdicional nombre=\\"" . \$__name . "\\">" . htmlspecialchars(\$__cu, ENT_QUOTES) . "</campoAdicional>";
+            }
+            \$xml .= '</detalles>
+                        <infoAdicional>
+                            <campoAdicional nombre=\"Direccion\">' . \$direccion . '</campoAdicional>
+                            <campoAdicional nombre=\"Telefono\">' . \$telefono . '</campoAdicional>
+                            <campoAdicional nombre=\"Email\">' . \$email . '</campoAdicional>
+                                <campoAdicional nombre=\"PagoNombre\">' . \$__pagoTitular . '</campoAdicional>
+                                <campoAdicional nombre=\"Ruc\">' . \$__pagoRuc . '</campoAdicional>
+                                <campoAdicional nombre=\"Tipo\">CHEQUE O TRANSFERENCIA</campoAdicional>' . \$__cuentaXml . '
+                        </infoAdicional>
+                    </factura>';"""
+out = src.replace(old, new, 1)
+if out == src:
+    print("  WARN: bloque hardcodeado no encontrado (tal vez ya parcheado por humano)")
+else:
+    open(path, 'w').write(out)
+    print("  envio_xml.php pago dinamico - patcheado")
+EOF
+    chown www-data:www-data "$F"
+else
+    echo "2b. envio_xml.php pago dinamico - ya parcheado"
 fi
 
 # ----------------------------------------------------------------------
