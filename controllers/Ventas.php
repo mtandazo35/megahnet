@@ -32,7 +32,31 @@ class Ventas extends Controller
                     $resultado = ['ok' => false, 'tipo' => 'LECTURA_FALLO', 'msg' => 'NO SE PUDO LEER LA FIRMA ELECTRONICA.'];
                 } else {
                     $certs = null;
-                    if (!@openssl_pkcs12_read($bin, $certs, $pass)) {
+                    $opensslOk = @openssl_pkcs12_read($bin, $certs, $pass);
+                    // Fallback CLI -legacy para .p12 SRI con RC2-40/MD5: el openssl de
+                    // PHP-Apache puede no tener cargado el legacy provider y rechazar
+                    // los algoritmos heredados con "digital envelope routines::unsupported".
+                    if (!$opensslOk) {
+                        $tmpPem = tempnam(sys_get_temp_dir(), 'p12_');
+                        $cmd = sprintf('openssl pkcs12 -legacy -in %s -passin env:P12PASS -nokeys -out %s 2>&1',
+                            escapeshellarg($tokenPath), escapeshellarg($tmpPem));
+                        $env = ['P12PASS' => (string)$pass];
+                        $descs = [1=>['pipe','w'], 2=>['pipe','w']];
+                        $proc = @proc_open($cmd, $descs, $pipes, null, $env);
+                        if (is_resource($proc)) {
+                            stream_get_contents($pipes[1]); stream_get_contents($pipes[2]);
+                            fclose($pipes[1]); fclose($pipes[2]);
+                            if (proc_close($proc) === 0 && is_file($tmpPem) && filesize($tmpPem) > 0) {
+                                $pem = file_get_contents($tmpPem);
+                                if (preg_match('/-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----/s', $pem, $m)) {
+                                    $certs = ['cert' => $m[0]];
+                                    $opensslOk = true;
+                                }
+                            }
+                        }
+                        @unlink($tmpPem);
+                    }
+                    if (!$opensslOk) {
                         $resultado = ['ok' => false, 'tipo' => 'CLAVE_INCORRECTA', 'msg' => 'FIRMA ELECTRONICA INVALIDA: contrasena incorrecta o archivo danado.'];
                     } else {
                         $parsed = @openssl_x509_parse($certs['cert']);

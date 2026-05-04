@@ -311,6 +311,43 @@ class Admin extends Controller
                         if ($tienePassNueva) {
                             $this->model->actualizarFirmaPassword(base64_encode($_POST['firma_password']));
                         }
+                        // Re-empacar el .p12 a formato moderno (PBE2+AES+SHA256) para que el
+                        // openssl de PHP-Apache (sin legacy provider) pueda leerlo. Los .p12
+                        // SRI Ecuador suelen usar RC2-40/MD5 que el provider default rechaza.
+                        // Si la conversion falla, no es bloqueante: el .p12 original ya esta
+                        // guardado y el flujo de firma tiene un fallback CLI -legacy.
+                        if (file_exists($tokenPathFinal) && filesize($tokenPathFinal) > 0) {
+                            $tmpPem = tempnam(sys_get_temp_dir(), 'p12pem_');
+                            $tmpModern = tempnam(sys_get_temp_dir(), 'p12mod_');
+                            $env = ['P12PASS' => (string)$passProbe];
+                            $cmdExtract = sprintf('openssl pkcs12 -legacy -in %s -passin env:P12PASS -out %s -nodes 2>&1',
+                                escapeshellarg($tokenPathFinal), escapeshellarg($tmpPem));
+                            $cmdRepack = sprintf('openssl pkcs12 -export -in %s -out %s -passout env:P12PASS -keypbe AES-256-CBC -certpbe AES-256-CBC -macalg sha256 2>&1',
+                                escapeshellarg($tmpPem), escapeshellarg($tmpModern));
+                            $descs = [1=>['pipe','w'],2=>['pipe','w']];
+                            $proc1 = @proc_open($cmdExtract, $descs, $p1, null, $env);
+                            $extractOk = false;
+                            if (is_resource($proc1)) {
+                                stream_get_contents($p1[1]); stream_get_contents($p1[2]);
+                                fclose($p1[1]); fclose($p1[2]);
+                                $extractOk = (proc_close($proc1) === 0) && filesize($tmpPem) > 0;
+                            }
+                            if ($extractOk) {
+                                $proc2 = @proc_open($cmdRepack, $descs, $p2, null, $env);
+                                if (is_resource($proc2)) {
+                                    stream_get_contents($p2[1]); stream_get_contents($p2[2]);
+                                    fclose($p2[1]); fclose($p2[2]);
+                                    if (proc_close($proc2) === 0 && filesize($tmpModern) > 0) {
+                                        // Validar que el moderno ahora SI lo lee el openssl de PHP nativo
+                                        if (@openssl_pkcs12_read(file_get_contents($tmpModern), $_dummy, $passProbe)) {
+                                            @copy($tmpModern, $tokenPathFinal);
+                                            @chmod($tokenPathFinal, 0644);
+                                        }
+                                    }
+                                }
+                            }
+                            @unlink($tmpPem); @unlink($tmpModern);
+                        }
                     }
                 }
 
