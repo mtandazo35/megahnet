@@ -1319,7 +1319,7 @@ class Automaticas extends Controller
                         if ($tel === '') {
                             $resWathsapp = null;
                         } else {
-                            $textoWa = "Buen dia estimado/a cliente\n*MEGAHNET*\n*GRACIAS POR SU PAGO*\n\n"
+                            $textoWa = "Buen dia estimado/a cliente\n*" . ($empresa['nombre'] ?? '') . "*\n*GRACIAS POR SU PAGO*\n\n"
                                      . "Su saldo a la fecha es: $0.00\n"
                                      . "Incluido *SERVICIO " . $mesesSeleccionado . "*\n"
                                      . "*" . $facturaElectronica['cliente'] . "*";
@@ -1454,7 +1454,7 @@ class Automaticas extends Controller
                 if ($tel === '') {
                     $resWathsapp = null;
                 } else {
-                    $textoWa = "Buen dia estimado/a cliente\n*MEGAHNET*\n*GRACIAS POR SU PAGO*\n\n"
+                    $textoWa = "Buen dia estimado/a cliente\n*" . ($empresa['nombre'] ?? '') . "*\n*GRACIAS POR SU PAGO*\n\n"
                              . "Su saldo a la fecha es: $0.00\n"
                              . "Incluido *SERVICIO " . $mesesSeleccionado . "*\n"
                              . "*" . $getordenVenta['nombre'] . "*";

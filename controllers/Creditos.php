@@ -529,25 +529,8 @@ class Creditos extends Controller
 
 
                 if ($data > 0) {
-                    $tel = $getInfoClientes['telefono'] ?? '';
-                    if ($tel === '') {
-                        $resWathsapp = null;
-                    } else {
-                        $textoWa = "Buen dia estimado/a cliente\n*MEGAHNET*\n*GRACIAS POR SU PAGO*\n\n"
-                                 . "Su saldo a la fecha es: $" . $restante . "\n"
-                                 . "Incluido servicio de *" . $mesActualLetra . "*\n"
-                                 . "*" . $datosCliente['nombre'] . "*";
-                        $waOk = false;
-                        if (function_exists('enviarWhatsappTexto')) {
-                            $apiRes = enviarWhatsappTexto($tel, $textoWa);
-                            $waOk = !empty($apiRes['ok']);
-                        }
-                        $resWathsapp = $waOk ? null
-                                     : ('https://web.whatsapp.com/send?phone=593' . $tel
-                                        . '&text=' . rawurlencode($textoWa));
-                    }
-
-                    $res = array('msg' => 'ABONO REGISTRADO EXITOSAMENTE', 'type' => 'success', 'whatsapp' => $resWathsapp, 'idCredito' => isset($idCredito) ? $idCredito : (isset($idcredito) ? $idcredito : 0), 'telefonoCliente' => $getInfoClientes['telefono'] ?? '');
+                    // WA se envia desde notificarCliente (plantilla con empresa de BD).
+                    $res = array('msg' => 'ABONO REGISTRADO EXITOSAMENTE', 'type' => 'success', 'whatsapp' => null, 'idCredito' => isset($idCredito) ? $idCredito : (isset($idcredito) ? $idcredito : 0), 'telefonoCliente' => $getInfoClientes['telefono'] ?? '');
                 } else {
                     $res = array('msg' => 'ERROR AL REGISTRAR', 'type' => 'error');
                 }
@@ -682,25 +665,8 @@ class Creditos extends Controller
                     $data2['restante'] = $restante;
                 }
                 if ($data > 0) {
-                    $tel = $getInfoClientes['telefono'] ?? '';
-                    if ($tel === '') {
-                        $resWathsapp = null;
-                    } else {
-                        $textoWa = "Buen dia estimado/a cliente\n*MEGAHNET*\n*GRACIAS POR SU PAGO*\n\n"
-                                 . "Su saldo a la fecha es: $" . $restante . "\n"
-                                 . "Incluido *SERVICIO " . $mesActualLetra . "*\n"
-                                 . "*" . $nombreCliente . "*";
-                        $waOk = false;
-                        if (function_exists('enviarWhatsappTexto')) {
-                            $apiRes = enviarWhatsappTexto($tel, $textoWa);
-                            $waOk = !empty($apiRes['ok']);
-                        }
-                        $resWathsapp = $waOk ? null
-                                     : ('https://web.whatsapp.com/send?phone=593' . $tel
-                                        . '&text=' . rawurlencode($textoWa));
-                    }
-
-                    $res = array('msg' => 'ABONO REGISTRADO EXITOSAMENTE', 'type' => 'success', 'whatsapp' => $resWathsapp, 'idCredito' => isset($idCredito) ? $idCredito : (isset($idcredito) ? $idcredito : 0), 'telefonoCliente' => $getInfoClientes['telefono'] ?? '');
+                    // WA se envia desde notificarCliente (plantilla con empresa de BD).
+                    $res = array('msg' => 'ABONO REGISTRADO EXITOSAMENTE', 'type' => 'success', 'whatsapp' => null, 'idCredito' => isset($idCredito) ? $idCredito : (isset($idcredito) ? $idcredito : 0), 'telefonoCliente' => $getInfoClientes['telefono'] ?? '');
                 } else {
                     $res = array('msg' => 'ERROR AL REGISTRAR', 'type' => 'error');
                 }
