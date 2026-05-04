@@ -20,10 +20,27 @@ class Ventas extends Controller
         if (!file_exists($tokenPath) || filesize($tokenPath) <= 0) {
             $resultado = ['ok' => false, 'tipo' => 'NO_EXISTE', 'msg' => 'NO HAY FIRMA ELECTRONICA CARGADA. Suba la firma .p12 en Configuracion.'];
         } else {
-            if (!defined('PASS')) {
-                @include_once FCPATH . 'app/configuration.php';
+            // Resolver PASS leyendo directamente de BD (configuracion.firma_password)
+            // antes de delegar a configuration.php. La lib gitignored a veces tiene
+            // configuration.php buscando constants DB_* que no existen y termina con
+            // PASS='' aunque la BD si tenga la clave.
+            $pass = null;
+            try {
+                $pdo = new PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4',
+                    USER, defined('PASSWORD') ? PASSWORD : '',
+                    [PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT, PDO::ATTR_TIMEOUT => 3]);
+                $row = $pdo->query("SELECT firma_password FROM configuracion WHERE id=1 LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+                if (!empty($row['firma_password'])) {
+                    $dec = base64_decode($row['firma_password'], true);
+                    if ($dec !== false && $dec !== '') $pass = $dec;
+                }
+            } catch (\Throwable $e) { /* fallback a configuration.php */ }
+            if ($pass === null) {
+                if (!defined('PASS')) {
+                    @include_once FCPATH . 'app/configuration.php';
+                }
+                $pass = defined('PASS') ? PASS : null;
             }
-            $pass = defined('PASS') ? PASS : null;
             if (empty($pass)) {
                 $resultado = ['ok' => false, 'tipo' => 'SIN_CLAVE', 'msg' => 'CONTRASENA DE LA FIRMA ELECTRONICA NO CONFIGURADA.'];
             } else {
