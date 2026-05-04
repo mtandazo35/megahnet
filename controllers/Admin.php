@@ -263,7 +263,35 @@ class Admin extends Controller
                     if ($firmaWarning === null) {
                         $bin = @file_get_contents($tmpProbe);
                         $certs = null;
-                        if ($bin === false || !@openssl_pkcs12_read($bin, $certs, $passProbe)) {
+                        $opensslOk = ($bin !== false) && @openssl_pkcs12_read($bin, $certs, $passProbe);
+                        // Fallback CLI -legacy para .p12 SRI con algoritmos heredados (RC2-40, MD5)
+                        // que el provider default de OpenSSL 3.x rechaza con
+                        // "digital envelope routines::unsupported".
+                        if (!$opensslOk) {
+                            $tmpPem = tempnam(sys_get_temp_dir(), 'p12_');
+                            $cmd = sprintf(
+                                'openssl pkcs12 -legacy -in %s -passin env:P12PASS -nokeys -out %s 2>&1',
+                                escapeshellarg($tmpProbe),
+                                escapeshellarg($tmpPem)
+                            );
+                            $env = ['P12PASS' => (string)$passProbe];
+                            $descriptors = [1 => ['pipe','w'], 2 => ['pipe','w']];
+                            $proc = @proc_open($cmd, $descriptors, $pipes, null, $env);
+                            if (is_resource($proc)) {
+                                stream_get_contents($pipes[1]); stream_get_contents($pipes[2]);
+                                fclose($pipes[1]); fclose($pipes[2]);
+                                $rc = proc_close($proc);
+                                if ($rc === 0 && is_file($tmpPem) && filesize($tmpPem) > 0) {
+                                    $pem = file_get_contents($tmpPem);
+                                    if (preg_match('/-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----/s', $pem, $m)) {
+                                        $certs = ['cert' => $m[0]];
+                                        $opensslOk = true;
+                                    }
+                                }
+                            }
+                            @unlink($tmpPem);
+                        }
+                        if (!$opensslOk) {
                             $firmaWarning = 'FIRMA INVALIDA: contrasena incorrecta o archivo danado';
                         } else {
                             $parsed = @openssl_x509_parse($certs['cert']);
