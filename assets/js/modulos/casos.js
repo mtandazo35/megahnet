@@ -117,35 +117,34 @@ document.addEventListener('DOMContentLoaded', function () {
 
           const estadoSel = (estado.value || '').toUpperCase().trim();
           const rutaReporte = base_url + 'casos/reporte/factura/' + res.idCaso;
-          const rutaWa = res.whatsapp;
+          const tipoWa = (estadoSel === 'INGRESADO') ? 'creado' : 'actualizado';
 
-          // Caso FINALIZADO: abrir preview WhatsApp directo (sin pasar por Swal de reporte)
-          // El operador revisa el mensaje en el modal flotante y decide enviar.
-          if (estadoSel === 'FINALIZADO' && rutaWa && typeof previsualizarYAbrirWhatsapp === 'function') {
-            previsualizarYAbrirWhatsapp(rutaWa);
-            // Tambien refrescar tabla atras (sin recargar pagina, asi el preview no se cierra)
-            setTimeout(function(){
+          // Preview WA via API (modal con textarea editable). Si no hay sesion WA o
+          // cliente sin telefono, el endpoint devuelve ok:false y simplemente continua.
+          const irAReporte = function () {
+            if (estadoSel === 'FINALIZADO') {
               try { tblHistorial.ajax.reload(null, false); } catch(e){}
-            }, 500);
-            return;
-          }
-
-          // Otros estados: comportamiento original (preguntar reporte)
-          setTimeout(() => {
-            Swal.fire({
-              title: 'Desea Generar Reporte?',
-              showCancelButton: true,
-              confirmButtonText: 'Imprimir'
-            }).then((result) => {
-              if (result.isConfirmed) {
-                window.open(rutaReporte, '_blank');
-                if (rutaWa && typeof previsualizarYAbrirWhatsapp === 'function') {
-                  previsualizarYAbrirWhatsapp(rutaWa);
+              return;
+            }
+            setTimeout(() => {
+              Swal.fire({
+                title: 'Desea Generar Reporte?',
+                showCancelButton: true,
+                confirmButtonText: 'Imprimir'
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  window.open(rutaReporte, '_blank');
                 }
-              }
-              window.location.reload();
-            });
-          }, 1000);
+                window.location.reload();
+              });
+            }, 400);
+          };
+
+          if (res.idCaso && typeof previewYEnviarWaCaso === 'function') {
+            previewYEnviarWaCaso(res.idCaso, res.telefonoCliente, tipoWa, irAReporte);
+          } else {
+            irAReporte();
+          }
         }
       }
     }
@@ -272,5 +271,57 @@ idGrupoTrabajo.textContent='';
 responsableGrupoTrabajo.textContent='';
 buscarGrupoTrabajo.textContent='';
   // listaCarrito.value = res.productos
- 
+
+}
+
+// ============================================================================
+// Preview del mensaje WhatsApp antes de enviar (post-creacion/actualizacion de caso)
+// Reusa el endpoint casos/notificarCaso con preview=1
+// ============================================================================
+function previewYEnviarWaCaso(idCaso, telefonoCliente, tipoForzar, onClose) {
+    if (!idCaso) { if (typeof onClose === 'function') onClose(); return; }
+    var qsTipo = tipoForzar ? '&tipo=' + encodeURIComponent(tipoForzar) : '';
+    fetch(base_url + 'casos/notificarCaso/' + idCaso + '?preview=1' + qsTipo, {
+        method: 'POST', credentials: 'same-origin'
+    }).then(function(r){ return r.json(); }).then(function(d){
+        if (!d.ok) {
+            if (typeof onClose === 'function') onClose();
+            return;
+        }
+        var titulo = (d.tipo === 'creado') ? 'Notificar caso creado' : 'Notificar actualizacion del caso';
+        Swal.fire({
+            title: titulo,
+            html: '<div style="text-align:left;font-size:.85rem;color:#374151;margin-bottom:.5rem;">' +
+                  '<i class="bx bxl-whatsapp" style="color:#16a34a;font-size:18px;vertical-align:-3px;"></i> Se enviara a <b>+' + d.telefono + '</b>' +
+                  ' <small class="text-muted ms-2">(editable)</small>' +
+                  '</div>' +
+                  '<textarea id="swalEdMsgCaso" style="width:100%;background:#dcfce7;color:#0f172a;padding:.75rem .9rem;border-radius:10px;font-family:ui-monospace,Menlo,monospace;font-size:.8rem;line-height:1.45;height:200px;border:1px solid #bbf7d0;resize:vertical;">' +
+                  String(d.mensaje || '').replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }) +
+                  '</textarea>' +
+                  '<small class="text-muted d-block mt-1" style="font-size:.7rem;">Edita el texto si necesitas corregir algo. Asteriscos para *negrita*, guion bajo para _cursiva_.</small>',
+            showCancelButton: true,
+            confirmButtonText: '<i class="bx bx-paper-plane me-1"></i>Enviar',
+            cancelButtonText: 'No enviar',
+            width: 580,
+            didOpen: function(){ var ta = document.getElementById('swalEdMsgCaso'); if (ta) ta.focus(); }
+        }).then(function(r){
+            if (!r.isConfirmed) { if (typeof onClose === 'function') onClose(); return; }
+            var ta = document.getElementById('swalEdMsgCaso');
+            var mensajeEdit = ta ? ta.value : (d.mensaje || '');
+            fetch(base_url + 'casos/notificarCaso/' + idCaso + (tipoForzar ? '?tipo=' + encodeURIComponent(tipoForzar) : ''), {
+                method: 'POST', credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mensaje: mensajeEdit, tipo: tipoForzar || null })
+            }).then(function(r2){ return r2.json(); }).then(function(dd){
+                if (dd.ok) {
+                    Swal.fire({icon:'success', title:'Mensaje enviado', text:'WhatsApp a +' + dd.telefono, timer:1800, showConfirmButton:false});
+                } else {
+                    Swal.fire({icon:'error', title:'No se pudo enviar', text: dd.msg || ('HTTP ' + (dd.http || '?'))});
+                }
+                if (typeof onClose === 'function') setTimeout(onClose, 600);
+            }).catch(function(){ if (typeof onClose === 'function') onClose(); });
+        });
+    }).catch(function(){
+        if (typeof onClose === 'function') onClose();
+    });
 }
