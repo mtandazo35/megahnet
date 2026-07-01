@@ -383,9 +383,12 @@ HAVING COUNT(*) > $estado) AS subconsulta";
         // estado IN (1, 2). Refleja recibos mensuales Y ventas ad-hoc.
         // estado=0 = anulada explicita.
 
+        // Bug 3 fix 2026-07-01: dedup solo pre-guard (< 2026-06-30). Post-guard
+        // el cron no crea duplicados, pero clientes empresariales con multiples
+        // contratos del mismo monto tienen facturas SRI legitimas identicas.
         $sqlFE = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(totalfactura), 0) AS total
                   FROM (
-                      SELECT dce.id, dce.totalfactura,
+                      SELECT dce.id, dce.fecha, dce.totalfactura,
                         ROW_NUMBER() OVER (
                           PARTITION BY dce.ruc, dce.totalfactura, dce.fecha
                           ORDER BY CASE WHEN rs.estado = 'AUTORIZADO' THEN 1 ELSE 2 END,
@@ -396,7 +399,7 @@ HAVING COUNT(*) > $estado) AS subconsulta";
                       WHERE LEFT(dce.fecha, 7) = ?
                         AND dce.estado NOT IN (0, 4)
                   ) sub
-                  WHERE rn = 1";
+                  WHERE rn = 1 OR fecha >= '2026-06-30'";
         $fe = $this->select($sqlFE, [$yyyymm]);
 
         $sqlOv = "SELECT COUNT(*) AS cantidad, COALESCE(SUM(total), 0) AS total

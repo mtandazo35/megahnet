@@ -464,7 +464,7 @@ class Automaticas extends Controller
 
         // print_r($datosnumOrden); 
         //print_r($datosFacturasElectronicas); 
-       // $this->model->actualizarMesContratoF($mesActualLetra, 0, $idContrato, 'TODOS');
+       // $this->model->actualizarMesContratoF($mesActualLetra, 1, $idContrato, 'UNO');
         //$this->model->actualizarEstadoCorte(0);
         // Solo cerrar el corte si efectivamente se proceso al menos un contrato.
         // Si todos fallaron, el operador debe poder reintentar sin reabrir manualmente.
@@ -714,7 +714,7 @@ class Automaticas extends Controller
             
         }
 
-        $this->model->actualizarMesContratoF($mesActualLetra, 0, $idContrato, 'TODOS');
+        $this->model->actualizarMesContratoF($mesActualLetra, 1, $idContrato, 'UNO');
         $this->model->actualizarCorte($fechaCorte, $fechas . ' ' . $horas, 'FACTURA');
 
         $res = array('msg' => 'FACTURADO' ,'type' => 'success');
@@ -1050,7 +1050,7 @@ class Automaticas extends Controller
 
         // print_r($datosnumOrden); 
         //print_r($datosFacturasElectronicas); 
-        $this->model->actualizarMesContratoF($mesActualLetra, 0, $idContrato, 'TODOS');
+        $this->model->actualizarMesContratoF($mesActualLetra, 1, $idContrato, 'UNO');
         //$this->model->actualizarEstadoCorte(0);
         $this->model->actualizarCorte($fechaCorte, $fechas . ' ' . $horas, $campo);
 
