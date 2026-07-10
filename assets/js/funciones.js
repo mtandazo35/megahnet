@@ -334,3 +334,23 @@ function previsualizarYAbrirWhatsapp(url) {
         window.open(finalUrl, '_blank');
     });
 }
+
+// Fix: los dropdowns de acciones dentro de <div class="table-responsive"> se
+// RECORTAN por el overflow del contenedor (overflow-x:auto => overflow-y:auto).
+// Con pocas filas la tabla es baja y el menu que abre hacia abajo pierde sus
+// ultimos items (p.ej. "Eliminar contrato"). Mientras el dropdown esta abierto
+// dejamos el contenedor en overflow:visible y lo restauramos al cerrar.
+document.addEventListener('show.bs.dropdown', function (e) {
+    var cont = e.target && e.target.closest ? e.target.closest('.table-responsive') : null;
+    if (cont) {
+        cont.dataset.prevOverflow = cont.style.overflow || '';
+        cont.style.overflow = 'visible';
+    }
+});
+document.addEventListener('hide.bs.dropdown', function (e) {
+    var cont = e.target && e.target.closest ? e.target.closest('.table-responsive') : null;
+    if (cont) {
+        cont.style.overflow = cont.dataset.prevOverflow || '';
+        delete cont.dataset.prevOverflow;
+    }
+});
