@@ -261,7 +261,7 @@ class Creditos extends Controller
         $anticipo = 0;
         $total = 0;
         $verifcarCaja = $this->model->getCaja($this->id_usuario);
-        if (empty($verifcarCaja['monto_inicial'])) {
+        if (empty($verifcarCaja)) { // caja abierta = existe fila (getCaja ya filtra estado=1); monto_inicial 0.00 es valido y empty(0.00) daba falso "cerrada"
             $res = array('msg' => 'LA CAJA ESTA CERRADA', 'type' => 'warning');
         } else {
             if (!empty($datos)) {
@@ -427,7 +427,7 @@ class Creditos extends Controller
         $deudaP = 0;
 
         $verifcarCaja = $this->model->getCaja($this->id_usuario);
-        if (empty($verifcarCaja['monto_inicial'])) {
+        if (empty($verifcarCaja)) { // caja abierta = existe fila (getCaja ya filtra estado=1); monto_inicial 0.00 es valido y empty(0.00) daba falso "cerrada"
             $res = array('msg' => 'LA CAJA ESTA CERRADA', 'type' => 'warning');
         } else {
             if (!empty($datos)) {
@@ -567,7 +567,7 @@ class Creditos extends Controller
         //  $monto = 0;
 
         $verifcarCaja = $this->model->getCaja($this->id_usuario);
-        if (empty($verifcarCaja['monto_inicial'])) {
+        if (empty($verifcarCaja)) { // caja abierta = existe fila (getCaja ya filtra estado=1); monto_inicial 0.00 es valido y empty(0.00) daba falso "cerrada"
             $res = array('msg' => 'LA CAJA ESTA CERRADA', 'type' => 'warning');
         } else {
             //  print_r($getCreditoInfos); exit;
