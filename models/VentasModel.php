@@ -84,8 +84,7 @@ class VentasModel extends Query
                 LEFT JOIN datos_cabecera_electronica dce_auth
                   ON dce_auth.ruc = dce.ruc AND dce_auth.fecha = dce.fecha AND dce_auth.totalfactura = dce.totalfactura AND dce_auth.id != dce.id
                 LEFT JOIN respuesta_sri rs_auth ON rs_auth.claveAcceso = dce_auth.claveacceso AND rs_auth.estado = 'AUTORIZADO'
-                WHERE dce.fecha >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
-                  AND dce.fecha <  DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')
+                WHERE dce.fecha >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 11 MONTH), '%Y-%m-01')
                   AND (rs.estado = 'AUTORIZADO' OR rs_auth.id IS NULL)
                 GROUP BY dce.id
                 ORDER BY dce.id DESC";
