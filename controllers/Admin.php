@@ -304,6 +304,16 @@ class Admin extends Controller
                     }
                     // Persistir solo si valido
                     if ($firmaWarning === null) {
+                        // Auto-persistir la vigencia leida del certificado (.p12) para que el
+                        // gate de facturacion (configuracion.firmafinal) no dependa del campo
+                        // manual "Vigencia hasta". $parsed viene de openssl_x509_parse ya validado.
+                        if (!empty($parsed) && is_array($parsed)) {
+                            $vfinal  = !empty($parsed['validTo_time_t'])   ? date('Y-m-d', $parsed['validTo_time_t'])   : null;
+                            $vinicio = !empty($parsed['validFrom_time_t']) ? date('Y-m-d', $parsed['validFrom_time_t']) : null;
+                            if ($vfinal !== null) {
+                                $this->model->actualizarFirmaVigencia($vinicio, $vfinal);
+                            }
+                        }
                         if ($tieneArchivoNuevo) {
                             @move_uploaded_file($_FILES['firma_p12']['tmp_name'], $tokenPathFinal);
                             @chmod($tokenPathFinal, 0644);

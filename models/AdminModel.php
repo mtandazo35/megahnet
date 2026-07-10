@@ -242,6 +242,14 @@ HAVING COUNT(*) > $estado) AS subconsulta";
         return $this->save($sql, [$passwordEncoded]);
     }
 
+    // Persiste la vigencia (fechas) leida del certificado .p12. Alimenta el gate de
+    // facturacion (configuracion.firmafinal) sin depender del campo manual del form.
+    public function actualizarFirmaVigencia($firmainicio, $firmafinal)
+    {
+        $sql = "UPDATE configuracion SET firmainicio = ?, firmafinal = ? WHERE id = 1";
+        return $this->save($sql, [$firmainicio, $firmafinal]);
+    }
+
     /**
      * Suma de abonos cobrados en un mes (formato 'YYYY-MM').
      * abonos.fecha es TEXT pero se almacena como 'YYYY-MM-DD ...', asi que
