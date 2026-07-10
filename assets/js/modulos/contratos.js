@@ -515,11 +515,20 @@ document.addEventListener('DOMContentLoaded', function () {
     colReorder: true,
     pageLength: 10,
     lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
-    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
+    stateLoadParams: function(settings, data){
+      // Descartar diseño guardado si cambió el numero de columnas (evita desalineacion
+      // tras agregar/quitar columnas, p.ej. Cedula y Discapacidad).
+      try {
+        var actualCols = settings.aoColumns ? settings.aoColumns.length : 0;
+        var savedCols  = data && data.columns ? data.columns.length : 0;
+        if (actualCols && savedCols && actualCols !== savedCols) { return false; }
+      } catch(e){}
+      var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; }
+    },
     colReorder: true,
     stateSave: true,
     stateDuration: 60 * 60 * 24 * 30,
-    
+
     processing: true,
     serverSide: true,
     ajax: {
@@ -537,7 +546,9 @@ document.addEventListener('DOMContentLoaded', function () {
       { data: 'total' },
       { data: 'telefonoCliente' },
       { data: 'comentario' },
-      { data: 'tributario' }
+      { data: 'tributario' },
+      { data: 'cedula' },
+      { data: 'discapacidad' }
 
     ],
     language: {

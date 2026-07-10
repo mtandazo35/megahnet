@@ -290,7 +290,7 @@ public function contarContratos($estado )
 {
     $params = [];
 
-    $sql = "SELECT c.*, cl.id AS idCliente, cl.nombre, cl.telefono AS telefonoCliente, cl.direccion AS direccionCliente,
+    $sql = "SELECT c.*, cl.id AS idCliente, cl.nombre, cl.num_identidad AS cedula, cl.telefono AS telefonoCliente, cl.direccion AS direccionCliente,
             (
                 SELECT IFNULL(SUM(a.abono), 0)
                 FROM abonos a
@@ -302,7 +302,7 @@ public function contarContratos($estado )
             INNER JOIN clientes cl ON cl.id = c.id_cliente
             WHERE c.estado != 2";
 
-    $sql .= buildSearchClause($search, ['LOWER(cl.nombre)', 'LOWER(c.ip_usuario)'], $params, " AND ");
+    $sql .= buildSearchClause($search, ['LOWER(cl.nombre)', 'LOWER(c.ip_usuario)', 'cl.num_identidad'], $params, " AND ");
 
     // Sanitiza paginación
     $start = max(0, intval($start));
@@ -327,7 +327,7 @@ public function contarContratos($estado )
             INNER JOIN clientes cl ON cl.id = c.id_cliente
             WHERE c.estado != 2";
 
-    $sql .= buildSearchClause($search, ['LOWER(cl.nombre)', 'LOWER(c.ip_usuario)'], $params, " AND ");
+    $sql .= buildSearchClause($search, ['LOWER(cl.nombre)', 'LOWER(c.ip_usuario)', 'cl.num_identidad'], $params, " AND ");
 
     $result = $this->select2($sql, $params);
 

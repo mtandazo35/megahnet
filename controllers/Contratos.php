@@ -574,6 +574,18 @@ class Contratos extends Controller
             } else {
                 $data[$i]['tributario'] = '<span class="badge bg-warning-subtle text-warning fw-semibold">ORDEN VENTA</span>';
             }
+
+            // Cedula del cliente (num_identidad). Vacia -> guion.
+            $ced = isset($data[$i]['cedula']) ? trim($data[$i]['cedula']) : '';
+            $data[$i]['cedula'] = ($ced !== '') ? htmlspecialchars($ced, ENT_QUOTES, 'UTF-8') : '<span class="text-muted">—</span>';
+
+            // Discapacidad (columna contratos, valores SI/NO). Badge.
+            $disc = isset($data[$i]['discapacidad']) ? strtoupper(trim($data[$i]['discapacidad'])) : '';
+            if ($disc === 'SI') {
+                $data[$i]['discapacidad'] = '<span class="badge bg-info-subtle text-info fw-semibold">SI</span>';
+            } else {
+                $data[$i]['discapacidad'] = '<span class="badge bg-secondary-subtle text-secondary fw-semibold">NO</span>';
+            }
         }
 
         // Totales para DataTables

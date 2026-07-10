@@ -62,6 +62,8 @@
                                 <th>Telefono Cliente</th>
                                 <th>Comentario</th>
                                 <th>Tributario</th>
+                                <th>Cédula</th>
+                                <th>Discapacidad</th>
 
                             </tr>
                         </thead>
