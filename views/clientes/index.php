@@ -196,38 +196,60 @@
         if (!dtInactivos) return;
         restaurarRegistros(base_url + 'clientes/restaurar/' + id, dtInactivos);
     };
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, function (m) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+        });
+    }
     window.eliminarClientePermanente = function (id) {
-        Swal.fire({
-            title: '¿Eliminar permanentemente?',
-            html: '<div class="text-muted small">Esta acción <b>NO</b> se puede deshacer. El cliente se borrará de la base de datos.</div>',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#dc2626',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar'
-        }).then(function (r) {
-            if (!r.isConfirmed) return;
-            fetch(base_url + 'clientes/eliminarPermanente/' + id, {
-                method: 'GET', credentials: 'same-origin'
-            })
-            .then(rs => rs.json())
-            .then(function (res) {
-                Swal.fire({
-                    toast: true, position: 'top-right',
-                    icon: res.type, title: res.msg,
-                    showConfirmButton: false, timer: 3000
-                });
-                if (res.type === 'success') {
-                    if (dtInactivos) dtInactivos.ajax.reload(null, false);
-                    if (typeof tblClientes !== 'undefined' && tblClientes) {
-                        tblClientes.ajax.reload(null, false);
+        // Paso 1: pedir inventario de registros del cliente (no borra nada aun).
+        fetch(base_url + 'clientes/eliminarPermanente/' + id, { method: 'GET', credentials: 'same-origin' })
+        .then(rs => rs.json())
+        .then(function (res) {
+            if (res.type !== 'confirm') {
+                Swal.fire({ toast: true, position: 'top-right', icon: res.type, title: res.msg, showConfirmButton: false, timer: 3000 });
+                return;
+            }
+            var detalle = res.detalle || [];
+            var html;
+            if (detalle.length > 0) {
+                var lista = detalle.map(function (d) { return '<li>' + escapeHtml(d.n) + ' ' + escapeHtml(d.label) + '</li>'; }).join('');
+                html = '<div class="text-start"><p class="mb-1">Este cliente tiene registros asociados:</p>'
+                     + '<ul class="mb-2">' + lista + '</ul>'
+                     + '<div class="text-danger fw-semibold">Se borrará TODO permanentemente (incluye facturas SRI). No se puede deshacer.</div></div>';
+            } else {
+                html = '<div class="text-muted small">El cliente no tiene registros asociados. Se eliminará permanentemente.</div>';
+            }
+            Swal.fire({
+                title: '¿Borrar TODO?',
+                html: html,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Sí, borrar todo',
+                cancelButtonText: 'Cancelar'
+            }).then(function (r) {
+                if (!r.isConfirmed) return;
+                // Paso 2: confirmar -> borrar todo.
+                fetch(base_url + 'clientes/eliminarPermanente/' + id + '?confirmTodo=1', { method: 'GET', credentials: 'same-origin' })
+                .then(rs => rs.json())
+                .then(function (res2) {
+                    Swal.fire({ toast: true, position: 'top-right', icon: res2.type, title: res2.msg, showConfirmButton: false, timer: 3500 });
+                    if (res2.type === 'success') {
+                        if (dtInactivos) dtInactivos.ajax.reload(null, false);
+                        if (typeof tblClientes !== 'undefined' && tblClientes) {
+                            tblClientes.ajax.reload(null, false);
+                        }
                     }
-                }
-            })
-            .catch(function () {
-                Swal.fire({ icon: 'error', title: 'Error de red al eliminar' });
+                })
+                .catch(function () {
+                    Swal.fire({ icon: 'error', title: 'Error de red al eliminar' });
+                });
             });
+        })
+        .catch(function () {
+            Swal.fire({ icon: 'error', title: 'Error de red' });
         });
     };
     document.addEventListener('mhn:restauradoOk', function () {

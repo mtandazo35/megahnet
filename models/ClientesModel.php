@@ -85,6 +85,119 @@ class ClientesModel extends Query{
         $sql = "DELETE FROM clientes WHERE id = ?";
         return $this->save($sql, [$id]);
     }
+
+    /**
+     * Inventario de TODOS los registros del cliente (para el prompt de confirmacion
+     * "este cliente tiene X, ¿borrar todo?"). Cuenta contratos (todos los estados),
+     * ordenes de venta, facturas SRI, NCs, apartados, cotizaciones, ventas, creditos, abonos.
+     */
+    public function contarHistoricoTotal($id)
+    {
+        $id = (int)$id;
+        $sql = "SELECT
+            (SELECT COUNT(*) FROM contratos WHERE id_cliente=$id) AS contratos,
+            (SELECT COUNT(*) FROM orden_venta WHERE id_cliente=$id) AS ordenes,
+            (SELECT COUNT(*) FROM datos_cabecera_electronica WHERE id_cliente=$id) AS facturas,
+            (SELECT COUNT(*) FROM nota_credito_cabecera WHERE id_cliente=$id) AS notas_credito,
+            (SELECT COUNT(*) FROM apartados WHERE id_cliente=$id) AS apartados,
+            (SELECT COUNT(*) FROM cotizaciones WHERE id_cliente=$id) AS cotizaciones,
+            (SELECT COUNT(*) FROM ventas WHERE id_cliente=$id) AS ventas,
+            (SELECT COUNT(*) FROM creditos WHERE id_contrato IN (SELECT id FROM contratos WHERE id_cliente=$id)
+                 OR id_orden_venta IN (SELECT id FROM orden_venta WHERE id_cliente=$id)
+                 OR id_electronica IN (SELECT id FROM datos_cabecera_electronica WHERE id_cliente=$id)
+                 OR id_venta IN (SELECT id FROM ventas WHERE id_cliente=$id)) AS creditos,
+            (SELECT COUNT(*) FROM abonos WHERE id_cliente=$id) AS abonos";
+        return $this->select($sql) ?: [];
+    }
+
+    /**
+     * Purga total del cliente y TODOS sus registros asociados (cascada).
+     * 1) Respalda todas las filas afectadas a JSON en RUTARESPALDOBD antes de borrar.
+     * 2) Borra en una transaccion (FOREIGN_KEY_CHECKS=0) en orden hijo->padre.
+     * Devuelve array de conteos borrados por tabla + 'backup' con la ruta del respaldo.
+     * Lanza excepcion (y hace rollback) si algo falla -> el controller lo captura.
+     */
+    public function eliminarClienteCascada($id)
+    {
+        $id  = (int)$id;
+        $con = (new Conexion())->conectar();
+
+        // Subquery-fuente reutilizables (siempre resuelven contra padres aun presentes).
+        $creditosSrc = "id_contrato IN (SELECT id FROM contratos WHERE id_cliente=$id)
+             OR id_orden_venta IN (SELECT id FROM orden_venta WHERE id_cliente=$id)
+             OR id_electronica IN (SELECT id FROM datos_cabecera_electronica WHERE id_cliente=$id)
+             OR id_venta IN (SELECT id FROM ventas WHERE id_cliente=$id)";
+
+        // 1) Respaldo de filas afectadas (por si hay que restaurar).
+        $backupTables = [
+            'clientes'                    => "SELECT * FROM clientes WHERE id=$id",
+            'contratos'                   => "SELECT * FROM contratos WHERE id_cliente=$id",
+            'orden_venta'                 => "SELECT * FROM orden_venta WHERE id_cliente=$id",
+            'datos_cabecera_electronica'  => "SELECT * FROM datos_cabecera_electronica WHERE id_cliente=$id",
+            'nota_credito_cabecera'       => "SELECT * FROM nota_credito_cabecera WHERE id_cliente=$id",
+            'apartados'                   => "SELECT * FROM apartados WHERE id_cliente=$id",
+            'cotizaciones'                => "SELECT * FROM cotizaciones WHERE id_cliente=$id",
+            'ventas'                      => "SELECT * FROM ventas WHERE id_cliente=$id",
+            'creditos'                    => "SELECT * FROM creditos WHERE $creditosSrc",
+            'abonos'                      => "SELECT * FROM abonos WHERE id_cliente=$id OR id_credito IN (SELECT id FROM creditos WHERE $creditosSrc)",
+            'casos'                       => "SELECT * FROM casos WHERE id_contrato IN (SELECT id FROM contratos WHERE id_cliente=$id)",
+            'mes_facturar'                => "SELECT * FROM mes_facturar WHERE id_contrato IN (SELECT id FROM contratos WHERE id_cliente=$id)",
+            'detalle_factura_electronica' => "SELECT * FROM detalle_factura_electronica WHERE orden_no IN (SELECT id FROM datos_cabecera_electronica WHERE id_cliente=$id)",
+            'nota_credito_detalle'        => "SELECT * FROM nota_credito_detalle WHERE orden_no IN (SELECT orden_no FROM nota_credito_cabecera WHERE id_cliente=$id)",
+            'detalle_apartado'            => "SELECT * FROM detalle_apartado WHERE id_apartado IN (SELECT id FROM apartados WHERE id_cliente=$id)",
+            'respuesta_sri'               => "SELECT * FROM respuesta_sri WHERE claveAcceso IN (SELECT claveacceso FROM datos_cabecera_electronica WHERE id_cliente=$id) OR claveAcceso IN (SELECT claveacceso FROM nota_credito_cabecera WHERE id_cliente=$id)",
+        ];
+        $backup = [];
+        foreach ($backupTables as $t => $q) {
+            $st = $con->query($q);
+            $backup[$t] = $st ? $st->fetchAll(PDO::FETCH_ASSOC) : [];
+        }
+        $dir = defined('RUTARESPALDOBD') ? RUTARESPALDOBD : '/var/backups/megahnet';
+        if (!is_dir($dir)) { @mkdir($dir, 0750, true); }
+        $file = rtrim($dir, '/') . '/purga-cliente-' . $id . '-' . date('YmdHis') . '.json';
+        $json = json_encode($backup, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        // Si no se puede respaldar, ABORTAR antes de borrar (el borrado es irreversible).
+        if ($json === false || @file_put_contents($file, $json) === false) {
+            throw new \RuntimeException("No se pudo escribir el respaldo en $file; borrado abortado.");
+        }
+
+        // 2) Borrado transaccional, hijo -> padre (subqueries resuelven contra padres vivos).
+        $deletes = [
+            'abonos'                      => "DELETE FROM abonos WHERE id_cliente=$id OR id_credito IN (SELECT id FROM creditos WHERE $creditosSrc)",
+            'creditos'                    => "DELETE FROM creditos WHERE $creditosSrc",
+            'casos'                       => "DELETE FROM casos WHERE id_contrato IN (SELECT id FROM contratos WHERE id_cliente=$id)",
+            'mes_facturar'                => "DELETE FROM mes_facturar WHERE id_contrato IN (SELECT id FROM contratos WHERE id_cliente=$id)",
+            'detalle_factura_electronica' => "DELETE FROM detalle_factura_electronica WHERE orden_no IN (SELECT id FROM datos_cabecera_electronica WHERE id_cliente=$id)",
+            'respuesta_sri'               => "DELETE FROM respuesta_sri WHERE claveAcceso IN (SELECT claveacceso FROM datos_cabecera_electronica WHERE id_cliente=$id) OR claveAcceso IN (SELECT claveacceso FROM nota_credito_cabecera WHERE id_cliente=$id)",
+            'nota_credito_detalle'        => "DELETE FROM nota_credito_detalle WHERE orden_no IN (SELECT orden_no FROM nota_credito_cabecera WHERE id_cliente=$id)",
+            'detalle_apartado'            => "DELETE FROM detalle_apartado WHERE id_apartado IN (SELECT id FROM apartados WHERE id_cliente=$id)",
+            'nota_credito_cabecera'       => "DELETE FROM nota_credito_cabecera WHERE id_cliente=$id",
+            'datos_cabecera_electronica'  => "DELETE FROM datos_cabecera_electronica WHERE id_cliente=$id",
+            'apartados'                   => "DELETE FROM apartados WHERE id_cliente=$id",
+            'cotizaciones'                => "DELETE FROM cotizaciones WHERE id_cliente=$id",
+            'orden_venta'                 => "DELETE FROM orden_venta WHERE id_cliente=$id",
+            'ventas'                      => "DELETE FROM ventas WHERE id_cliente=$id",
+            'contratos'                   => "DELETE FROM contratos WHERE id_cliente=$id",
+            'clientes'                    => "DELETE FROM clientes WHERE id=$id",
+        ];
+
+        $con->beginTransaction();
+        try {
+            $con->exec("SET FOREIGN_KEY_CHECKS=0");
+            $counts = [];
+            foreach ($deletes as $label => $sql) {
+                $counts[$label] = $con->exec($sql);
+            }
+            $con->exec("SET FOREIGN_KEY_CHECKS=1");
+            $con->commit();
+            $counts['backup'] = $file;
+            return $counts;
+        } catch (\Throwable $e) {
+            $con->rollBack();
+            try { $con->exec("SET FOREIGN_KEY_CHECKS=1"); } catch (\Throwable $e2) {}
+            throw $e;
+        }
+    }
 }
 
 ?>

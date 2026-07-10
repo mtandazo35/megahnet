@@ -214,41 +214,55 @@ class Clientes extends Controller
             die();
         }
         $idCliente = (int)$idCliente;
+        $confirmTodo = !empty($_GET['confirmTodo']) && $_GET['confirmTodo'] == '1';
 
-        // 1. Bloquear si tiene contratos vigentes (no anulados)
-        $totalContratos = $this->model->contarContratosTotales($idCliente);
-        if ($totalContratos > 0) {
-            $res = ['msg' => 'NO SE PUEDE ELIMINAR: el cliente tiene ' . $totalContratos . ' contrato(s) vigente(s). Anula los contratos primero.', 'type' => 'warning'];
-            echo json_encode($res, JSON_UNESCAPED_UNICODE);
+        // Inventario de TODO lo asociado al cliente (para el prompt de confirmacion).
+        $inv = $this->model->contarHistoricoTotal($idCliente);
+        $mapa = [
+            'contratos'     => 'contrato(s)',
+            'ordenes'       => 'orden(es) de venta',
+            'facturas'      => 'factura(s) electronica(s) SRI',
+            'notas_credito' => 'nota(s) de credito',
+            'apartados'     => 'apartado(s)',
+            'cotizaciones'  => 'cotizacion(es)',
+            'ventas'        => 'venta(s)',
+            'creditos'      => 'credito(s)',
+            'abonos'        => 'abono(s)',
+        ];
+        $detalle = [];
+        $total = 0;
+        foreach ($mapa as $k => $lbl) {
+            $n = (int)($inv[$k] ?? 0);
+            if ($n > 0) { $detalle[] = ['n' => $n, 'label' => $lbl]; $total += $n; }
+        }
+
+        // Paso 1: si no viene confirmado, devolver el inventario para que el frontend
+        // muestre "este cliente tiene X registros. ¿Borrar TODO?".
+        if (!$confirmTodo) {
+            echo json_encode([
+                'msg'       => 'CONFIRMAR_BORRADO_TOTAL',
+                'type'      => 'confirm',
+                'detalle'   => $detalle,
+                'total'     => $total,
+                'idCliente' => $idCliente,
+            ], JSON_UNESCAPED_UNICODE);
             die();
         }
 
-        // 2. Bloquear por FKs historicas (orden_venta, facturas, NCs, etc.).
-        // Estas tablas tienen FK a clientes.id y un DELETE explota con error 500
-        // si no se chequea antes (caso reportado: FRANCISCO CHEV con 24 OVs).
-        $deps = $this->model->contarDependenciasHistoricas($idCliente);
-        $detallesBloqueo = [];
-        if ((int)($deps['ordenes']        ?? 0) > 0) $detallesBloqueo[] = $deps['ordenes']        . ' orden(es) de venta';
-        if ((int)($deps['facturas']       ?? 0) > 0) $detallesBloqueo[] = $deps['facturas']       . ' factura(s) electronica(s)';
-        if ((int)($deps['notas_credito']  ?? 0) > 0) $detallesBloqueo[] = $deps['notas_credito']  . ' nota(s) de credito';
-        if ((int)($deps['apartados']      ?? 0) > 0) $detallesBloqueo[] = $deps['apartados']      . ' apartado(s)';
-        if ((int)($deps['cotizaciones']   ?? 0) > 0) $detallesBloqueo[] = $deps['cotizaciones']   . ' cotizacion(es)';
-
-        if (!empty($detallesBloqueo)) {
-            $res = [
-                'msg'  => 'NO SE PUEDE ELIMINAR: el cliente tiene historico (' . implode(', ', $detallesBloqueo) . '). Se preserva por integridad SRI.',
-                'type' => 'warning'
-            ];
-            echo json_encode($res, JSON_UNESCAPED_UNICODE);
-            die();
-        }
-
-        // 3. Sin dependencias: DELETE seguro con try/catch para nunca devolver 500
+        // Paso 2: confirmado -> purga total (cliente + todos sus registros). Respaldo
+        // JSON automatico en el modelo. try/catch para nunca devolver 500.
         try {
-            $r = $this->model->eliminarPermanente($idCliente);
-            $res = $r >= 0
-                ? ['msg' => 'CLIENTE ELIMINADO PERMANENTEMENTE', 'type' => 'success']
-                : ['msg' => 'ERROR AL ELIMINAR', 'type' => 'error'];
+            $counts = $this->model->eliminarClienteCascada($idCliente);
+            if ((int)($counts['clientes'] ?? 0) < 1) {
+                // No se borro ninguna fila de clientes -> no existia (o ya borrado).
+                $res = ['msg' => 'El cliente no existe o ya fue eliminado.', 'type' => 'warning'];
+            } else {
+                $res = [
+                    'msg'      => 'CLIENTE Y TODOS SUS REGISTROS ELIMINADOS',
+                    'type'     => 'success',
+                    'borrados' => $counts,
+                ];
+            }
         } catch (\Throwable $e) {
             $res = ['msg' => 'ERROR AL ELIMINAR: ' . $e->getMessage(), 'type' => 'error'];
         }
