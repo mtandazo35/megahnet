@@ -89,8 +89,14 @@ try {
         /**
          * 2️⃣ AUTORIZACIÓN
          */
-        sleep(2);
-        $autorizacion = $autorizar->autorizacion_comprobante($claveAcceso, FACTURA);
+        $autorizacion = null;
+        foreach ([3, 5, 8, 12] as $wait) {
+            sleep($wait);
+            $autorizacion = $autorizar->autorizacion_comprobante($claveAcceso, FACTURA);
+            $numComp = $autorizacion["numeroComprobantes"] ?? 0;
+            $estAut = $autorizacion["autorizaciones"]["autorizacion"]["estado"] ?? null;
+            if ($numComp > 0 && $estAut === "AUTORIZADO") break;
+        }
 
         if (
             !isset($autorizacion['autorizaciones']['autorizacion']['estado']) ||

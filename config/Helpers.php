@@ -896,6 +896,15 @@ function modulosOcultos()
 }
 }
 
+if (!function_exists('moduloActivo')) {
+function moduloActivo($key)
+{
+    static $ocultos = null;
+    if ($ocultos === null) $ocultos = array_flip(modulosOcultos());
+    return !isset($ocultos[$key]);
+}
+}
+
 if (!function_exists('serviciosCargar')) {
 function serviciosCargar()
 {

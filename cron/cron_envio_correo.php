@@ -1,87 +1,67 @@
 <?php
 /**
  * CRON 3
- * Envío de correo electrónico de facturas AUTORIZADAS
- * PHP 7.4.26
+ * Envio de correo de facturas AUTORIZADAS
  */
 
-// ===============================
-// 1️⃣ CARGA DEL SISTEMA (MVC)
-// ===============================
 require_once dirname(__DIR__) . '/config/Config.php';
 require_once dirname(__DIR__) . '/config/Helpers.php';
 require_once dirname(__DIR__) . '/config/app/Autoload.php';
 include_once dirname(__DIR__) . '/config/ServicesSri.php';
 
-
-// ===============================
-// 2️⃣ INSTANCIAS
-// ===============================
 $conexion = new Conexion();
 $model    = new AutomaticasModel();
+$empresa  = $model->getEmpresa();
 
-// Datos de la empresa (helper existente)
- $empresa= $model->getEmpresa();
-
-// ===============================
-// 3️⃣ FACTURAS LISTAS PARA ENVÍO
-// estado_proceso = 1  → AUTORIZADA
-// sri_enviado = 1     → YA PASÓ CRON 2
-// correo_enviado = 0 → PENDIENTE DE CORREO
-// ===============================
 $facturas = $model->getFacturasParaCorreo();
 
 if (empty($facturas)) {
-    exit("CRON 3: No existen facturas pendientes de envío.\n");
+    exit("CRON 3: No hay facturas pendientes de envio.\n");
 }
 
-// ===============================
-// 4️⃣ PROCESO DE ENVÍO DE CORREO
-// ===============================
+echo 'CRON 3 inicio. Lote: ' . count($facturas) . "\n";
+$ok = 0; $skipNoMail = 0; $skipNoFile = 0; $fail = 0;
+
 foreach ($facturas as $factura) {
 
-    $claveAcceso          = $factura['clave_acceso'];
-    $numSerieElectronica  = $factura['num_serie'];
+    $claveAcceso = $factura['claveacceso'];
+    $ordenNo     = $factura['orden_no'];
 
-    // Obtener información completa de la factura
-    $facturaElectronica = $model->getFacturaElectronica($claveAcceso);
-
-    // Validación básica
-    if (empty($facturaElectronica) || empty($facturaElectronica['correo'])) {
+    $emailDest = trim((string)($factura['correo'] ?: ($factura['correo_cliente'] ?? '')));
+    if (!filter_var($emailDest, FILTER_VALIDATE_EMAIL)) {
+        $skipNoMail++;
         continue;
     }
 
-    // ===============================
-    // 5️⃣ ARMADO DEL EMAIL
-    // ===============================
-    $dataInfo = array(
-        'ruc'              => $facturaElectronica['ruc'],
-        'email'            => $facturaElectronica['correo'],
-        'fecha'            => $facturaElectronica['fecha'],
-        'totalfactura'     => $facturaElectronica['totalfactura'],
-        'cliente'          => $facturaElectronica['cliente'],
-        'claveAcceso'      => $claveAcceso,
-        'empresa'          => $empresa['nombre'],
-        'factura'          => $factura['serie'],
-        'enviroment'       => ENVIROMENT,
-        'emailremitente'   => $empresa['correo'],
-        'establecimiento'  => $empresa['establecimiento'],
-        'puntoemi'         => $empresa['puntoemi'],
-        'tipo'             => 'factura',
-        'asunto'           => 'Adjuntamos su Comprobante Electrónico'
-    );
+    $pdf = ROOT_PATH . '/facturaelectronica/public/archivos/ride/' . $claveAcceso . '.pdf';
+    $xml = ROOT_PATH . '/facturaelectronica/public/archivos/autorizados/' . $claveAcceso . '.xml';
+    if (!file_exists($pdf) || !file_exists($xml)) {
+        $skipNoFile++;
+        continue;
+    }
 
-    // ===============================
-    // 6️⃣ ENVÍO DEL CORREO
-    // ===============================
-    $envio = sendEmailAutomatias($dataInfo);
+    $dataInfo = [
+        'ruc'             => $factura['ruc'],
+        'email'           => $emailDest,
+        'fecha'           => $factura['fecha'],
+        'totalfactura'    => $factura['totalfactura'],
+        'cliente'         => $factura['cliente'],
+        'claveAcceso'     => $claveAcceso,
+        'empresa'         => $empresa['nombre'],
+        'factura'         => $factura['secuencial'],
+        'enviroment'      => defined('ENVIROMENT') ? ENVIROMENT : 2,
+        'emailremitente'  => $empresa['correo'],
+        'establecimiento' => $factura['establecimiento'],
+        'puntoemi'        => $factura['punto_emi'],
+        'tipo'            => 'factura',
+        'asunto'          => 'Adjuntamos su Comprobante Electronico',
+    ];
 
-    // ===============================
-    // 7️⃣ MARCAR COMO ENVIADO
-    // ===============================
-    if ($envio === true) {
-        $model->marcarCorreoEnviado($numSerieElectronica);
+    if (sendEmailAutomatias($dataInfo) === true) {
+        $ok++;
+    } else {
+        $fail++;
     }
 }
 
-echo "CRON 3: Correos procesados correctamente.\n";
+echo "CRON 3 fin. OK=$ok sin-email=$skipNoMail sin-archivo=$skipNoFile fail=$fail\n";

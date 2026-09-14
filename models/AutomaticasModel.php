@@ -61,7 +61,7 @@ class AutomaticasModel extends Query
         $sql = "SELECT c.id,c.productos,c.total,c.direccion,c.comentario,cl.id AS idCliente ,cl.nombre,c.estado,c.factura FROM contratos c 
         INNER JOIN clientes cl ON cl.id=c.id_cliente
         INNER JOIN mes_facturar mf ON mf.id_contrato=c.id
-        WHERE mf.$mesFacturar = 0 AND c.estado = $estado AND c.factura = $valor";
+        WHERE mf.$mesFacturar = 0 AND c.estado = $estado AND c.factura = $valor AND NOT EXISTS (SELECT 1 FROM creditos cr WHERE cr.id_contrato = c.id AND cr.fecha = CURDATE())";
         $limite = (int)$limite;
         if ($limite > 0) { $sql .= " LIMIT " . $limite; }
         return $this->selectAll($sql);
@@ -311,12 +311,16 @@ class AutomaticasModel extends Query
     //consultas cron
 public function getFacturasParaCorreo()
 {
-    $sql = "SELECT *
-            FROM datos_cabecera_electronica
-            WHERE estado_proceso = 1
-            AND sri_enviado = 1
-            AND correo_enviado = 0
-            LIMIT 20";
+    $sql = "SELECT dce.*, cli.correo AS correo_cliente
+            FROM datos_cabecera_electronica dce
+            LEFT JOIN clientes cli ON cli.id = dce.id_cliente
+            WHERE dce.estado_proceso = 1
+              AND dce.sri_enviado = 1
+              AND dce.correo_enviado = 0
+              AND dce.claveacceso IS NOT NULL
+              AND dce.claveacceso <> ''
+            ORDER BY dce.fecha DESC, dce.id DESC
+            LIMIT 50";
     return $this->selectAll($sql);
 }
 
@@ -324,7 +328,7 @@ public function marcarCorreoEnviado($numSerie)
 {
     $sql = "UPDATE datos_cabecera_electronica
             SET correo_enviado = 1
-            WHERE orde_no = ?";
+            WHERE orden_no = ?";
     return $this->save($sql, [$numSerie]);
 }
 
