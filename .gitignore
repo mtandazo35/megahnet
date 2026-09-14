@@ -75,3 +75,7 @@ assets/images/Logo2.jpg
 
 # Backups auto-generados al editar la plantilla CONTRATO.docx
 assets/docs/backups/
+
+# Datos de clientes generados via UI (contratos .docx) y backups ad-hoc
+assets/storage/
+*-bak-*
