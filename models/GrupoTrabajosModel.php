@@ -44,9 +44,12 @@ class GrupoTrabajosModel extends Query{
     }
     public function buscarPorNombre($valor)
     {
+        // Autocompletar de responsables: parametros ligados (anti SQL injection),
+        // parentesis en el OR (antes el AND solo aplicaba al apellido) y LIMIT.
+        $like = '%' . $valor . '%';
         $sql = "SELECT u.id,CONCAT(u.nombre,' ',u.apellido) AS responsable FROM usuarios u
-        WHERE u.nombre LIKE '%".$valor."%' OR u.apellido LIKE '%".$valor."%' AND u.estado = 1";
-        return $this->selectAll($sql);
+        WHERE (u.nombre LIKE ? OR u.apellido LIKE ?) AND u.estado = 1 LIMIT 10";
+        return $this->selectAll($sql, [$like, $like]);
     }
 }
 

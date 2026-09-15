@@ -177,20 +177,34 @@ document.addEventListener('DOMContentLoaded', function () {
   // por estado guardado con menos/mas columnas).
   try {
     var __sigKey = 'DataTables_tblHistorialFE_colSig';
-    var __sigActual = 'fe_v6'; // bump cuando cambien columnas / limpiar filtros guardados
+    var __sigActual = 'fe_v7'; // bump cuando cambien columnas / limpiar filtros guardados (v7: serverSide)
     if (localStorage.getItem(__sigKey) !== __sigActual) {
       Object.keys(localStorage).filter(function(k){ return k.indexOf('tblHistorialFE') !== -1; }).forEach(function(k){ localStorage.removeItem(k); });
       localStorage.setItem(__sigKey, __sigActual);
     }
   } catch(e){}
 
+  // Filtros por SRI y Correo: ahora se resuelven en el servidor (viajan en cada peticion
+  // como filtroSri/filtroCorreo). Se recuerdan en localStorage para que el dropdown
+  // muestre siempre el filtro realmente aplicado.
+  var fSri = document.getElementById('filtroSri');
+  var fCor = document.getElementById('filtroCorreo');
+  try {
+    if (fSri) fSri.value = localStorage.getItem('tblHistorialFE_filtroSri') || '';
+    if (fCor) fCor.value = localStorage.getItem('tblHistorialFE_filtroCorreo') || '';
+  } catch(e){}
+
   tblHistorialFE = $('#tblHistorialFE').DataTable({
+    processing: true,
+    serverSide: true,
     deferRender: true,
     stateSave: true,
     stateDuration: -1,
     colReorder: true,
     pageLength: 10,
-    lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
+    // Sin "Todos": el servidor limita cada pagina a 200 filas.
+    lengthMenu: [[5, 10, 20, 50, 100, 200], [5, 10, 20, 50, 100, 200]],
+    searchDelay: 400,
     stateLoadParams: function(settings, data){
       // Si el estado guardado tiene distinto numero de columnas que el actual, descartarlo.
       try {
@@ -198,12 +212,16 @@ document.addEventListener('DOMContentLoaded', function () {
         var savedCols  = data && data.columns ? data.columns.length : 0;
         if (actualCols && savedCols && actualCols !== savedCols) { return false; }
       } catch(e){}
-      var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; }
+      var v=[5,10,20,50,100,200]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; }
     },
-    
+
     ajax: {
       url: base_url + 'ventas/listarElectronica',
-      dataSrc: ''
+      type: 'POST',
+      data: function(d){
+        d.filtroSri    = fSri ? (fSri.value || '') : '';
+        d.filtroCorreo = fCor ? (fCor.value || '') : '';
+      }
     },
     columns: [
 	{ data: 'acciones' },
@@ -225,30 +243,18 @@ document.addEventListener('DOMContentLoaded', function () {
     dom,
     buttons,
     responsive: true,
-    order: [[4, 'desc']]
+    // El orden lo fija el servidor (factura mas reciente primero); sin ordenar por columna.
+    ordering: false
   })
 
-  // Filtros por SRI (col 8) y Correo (col 9)
-  var fSri = document.getElementById('filtroSri');
+  // Cambio de filtro: guardar y volver a la pagina 1 (draw() envia los filtros via ajax.data).
   if (fSri) fSri.addEventListener('change', function(){
-    tblHistorialFE.column(8).search(this.value || '', false, false).draw();
+    try { localStorage.setItem('tblHistorialFE_filtroSri', this.value || ''); } catch(e){}
+    tblHistorialFE.draw();
   });
-  var fCor = document.getElementById('filtroCorreo');
   if (fCor) fCor.addEventListener('change', function(){
-    tblHistorialFE.column(9).search(this.value || '', false, false).draw();
-  });
-
-  // Sincronizar dropdowns con state guardado de DataTables (stateSave=true).
-  // Sin esto, un filtro de columna previo se restauraba sobre la tabla pero el
-  // dropdown mostraba "Todas", haciendo creer al usuario que no habia filtro
-  // cuando si lo habia (caso reportado: 223 de 963 sin filtro visible).
-  tblHistorialFE.on('init.dt', function(){
-    try {
-      var sSri = tblHistorialFE.column(8).search() || '';
-      var sCor = tblHistorialFE.column(9).search() || '';
-      if (fSri) fSri.value = sSri;
-      if (fCor) fCor.value = sCor;
-    } catch(e){}
+    try { localStorage.setItem('tblHistorialFE_filtroCorreo', this.value || ''); } catch(e){}
+    tblHistorialFE.draw();
   });
 
   // === Reenvio masivo de correos pendientes ===

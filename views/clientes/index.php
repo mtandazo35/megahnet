@@ -181,12 +181,14 @@
     modalEl.addEventListener('show.bs.modal', function () {
         if (initialized) { if (dtInactivos) dtInactivos.ajax.reload(null, false); return; }
         initialized = true;
+        // serverSide: clientes/listarInactivos pagina, busca y ordena en el servidor.
         dtInactivos = $('#tblClientesInactivos').DataTable({
-            deferRender: true, pageLength: 10,
-            ajax: { url: base_url + 'clientes/listarInactivos', dataSrc: '' },
+            processing: true, serverSide: true, deferRender: true, pageLength: 10,
+            ajax: { url: base_url + 'clientes/listarInactivos', type: 'POST' },
             columns: [
                 { data: 'nombre' }, { data: 'num_identidad' }, { data: 'identidad' },
-                { data: 'telefono' }, { data: 'correo' }, { data: 'direccion' }, { data: 'acciones' }
+                { data: 'telefono' }, { data: 'correo' }, { data: 'direccion' },
+                { data: 'acciones', orderable: false, searchable: false }
             ],
             language: { url: base_url + 'assets/js/espanol.json' },
             responsive: true, order: [[0, 'asc']]

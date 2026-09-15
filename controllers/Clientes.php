@@ -26,9 +26,42 @@ class Clientes extends Controller
         $data['cliente'] = $this->model->getClientes(1);
         $this->views->getView('clientes', 'index', $data);
     }
+    /** Parametros de paginacion/busqueda que manda DataTables (serverSide) por POST. */
+    private function paramsDataTable()
+    {
+        $search = '';
+        if (isset($_POST['search']['value']) && is_string($_POST['search']['value'])) {
+            $search = trim($_POST['search']['value']);
+        }
+        // Columna de orden: DataTables manda el indice y en columns[i][data] el nombre del campo.
+        // El modelo la valida contra su lista blanca antes de usarla en el ORDER BY.
+        $ordenCol = 'nombre';
+        $ordenDir = 'asc';
+        if (isset($_POST['order'][0]['column'])) {
+            $i = intval($_POST['order'][0]['column']);
+            if (isset($_POST['columns'][$i]['data']) && is_string($_POST['columns'][$i]['data']) && $_POST['columns'][$i]['data'] !== '') {
+                $ordenCol = $_POST['columns'][$i]['data'];
+            }
+            $ordenDir = (isset($_POST['order'][0]['dir']) && $_POST['order'][0]['dir'] === 'desc') ? 'desc' : 'asc';
+        }
+        return [
+            'start'    => isset($_POST['start']) ? intval($_POST['start']) : 0,
+            'length'   => isset($_POST['length']) ? intval($_POST['length']) : 10,
+            'search'   => $search,
+            'draw'     => isset($_POST['draw']) ? intval($_POST['draw']) : 1,
+            'ordenCol' => $ordenCol,
+            'ordenDir' => $ordenDir,
+        ];
+    }
+
     public function listar()
     {
-        $data = $this->model->getClientes(1);
+        $p = $this->paramsDataTable();
+
+        $total    = $this->model->contarClientes('', 1);
+        $filtered = $p['search'] !== '' ? $this->model->contarClientes($p['search'], 1) : $total;
+        $data     = $this->model->getClientesPaginado($p['start'], $p['length'], $p['search'], 1, $p['ordenCol'], $p['ordenDir']);
+
         for ($i = 0; $i < count($data); $i++) {
             $data[$i]['acciones'] = '<div>
             <button class="btn btn-info" type="button" onclick="editarCliente(' . $data[$i]['id'] . ')"><i class="fas fa-edit text-white"></i></button>
@@ -36,7 +69,12 @@ class Clientes extends Controller
             </div>';
         }
 
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        echo json_encode([
+            'draw'            => $p['draw'],
+            'recordsTotal'    => $total,
+            'recordsFiltered' => $filtered,
+            'data'            => $data,
+        ], JSON_UNESCAPED_UNICODE);
         die();
     }
     public function registrarExcel()
@@ -190,7 +228,12 @@ class Clientes extends Controller
     }
     public function listarInactivos()
     {
-        $data = $this->model->getClientes(0);
+        $p = $this->paramsDataTable();
+
+        $total    = $this->model->contarClientes('', 0);
+        $filtered = $p['search'] !== '' ? $this->model->contarClientes($p['search'], 0) : $total;
+        $data     = $this->model->getClientesPaginado($p['start'], $p['length'], $p['search'], 0, $p['ordenCol'], $p['ordenDir']);
+
         for ($i = 0; $i < count($data); $i++) {
             $id = (int)$data[$i]['id'];
             $data[$i]['acciones'] = '<div class="d-flex gap-1">'
@@ -198,7 +241,13 @@ class Clientes extends Controller
                 . '<button class="btn btn-danger btn-sm" type="button" title="Eliminar permanentemente" onclick="eliminarClientePermanente(' . $id . ')"><i class="fas fa-trash"></i></button>'
                 . '</div>';
         }
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+
+        echo json_encode([
+            'draw'            => $p['draw'],
+            'recordsTotal'    => $total,
+            'recordsFiltered' => $filtered,
+            'data'            => $data,
+        ], JSON_UNESCAPED_UNICODE);
         die();
     }
 

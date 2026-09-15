@@ -586,7 +586,20 @@ class Ventas extends Controller
     }
     public function listarElectronica()
     {
-        $data = $this->model->getVentasElectronica();
+        // DataTables serverSide: paginacion, busqueda y filtros SRI/correo en el servidor.
+        // Antes se enviaban ~8.800 filas (1.4 MB) en cada carga y se filtraba en el navegador.
+        $start  = isset($_POST['start']) ? intval($_POST['start']) : 0;
+        $length = isset($_POST['length']) ? intval($_POST['length']) : 25;
+        $search = isset($_POST['search']['value']) ? trim($_POST['search']['value']) : '';
+        $draw   = isset($_POST['draw']) ? intval($_POST['draw']) : 1;
+        $filtroSri    = isset($_POST['filtroSri']) ? trim((string)$_POST['filtroSri']) : '';
+        $filtroCorreo = isset($_POST['filtroCorreo']) ? trim((string)$_POST['filtroCorreo']) : '';
+        $hayFiltro = ($search !== '' || $filtroSri !== '' || $filtroCorreo !== '');
+
+        $total    = $this->model->contarVentasElectronica('');
+        $filtered = $hayFiltro ? $this->model->contarVentasElectronica($search, $filtroSri, $filtroCorreo) : $total;
+        $data     = $this->model->getVentasElectronicaPaginado($start, $length, $search, $filtroSri, $filtroCorreo);
+
         for ($i = 0; $i < count($data); $i++) {
 			
 			
@@ -710,7 +723,12 @@ class Ventas extends Controller
                 $data[$i]['duplicadaBadge'] = '<span class="badge bg-light text-muted">—</span>';
             }
         }
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        echo json_encode([
+            'draw'            => $draw,
+            'recordsTotal'    => $total,
+            'recordsFiltered' => $filtered,
+            'data'            => $data,
+        ], JSON_UNESCAPED_UNICODE);
         die();
     }
 

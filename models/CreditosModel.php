@@ -52,11 +52,13 @@ class CreditosModel extends Query
 
     public function buscarPorNombre($valor)
     {
-        $sql = "SELECT cr.*, cl.nombre, cl.telefono, cl.direccion,v.id AS factura, cl.anticipos FROM creditos cr 
-        INNER JOIN ventas v ON cr.id_venta = v.id 
+        // Parametros ligados (anti SQL injection); conserva LIMIT 10.
+        $like = '%' . $valor . '%';
+        $sql = "SELECT cr.*, cl.nombre, cl.telefono, cl.direccion,v.id AS factura, cl.anticipos FROM creditos cr
+        INNER JOIN ventas v ON cr.id_venta = v.id
         INNER JOIN clientes cl ON v.id_cliente = cl.id
-         WHERE (cl.nombre LIKE '%" . $valor . "%' OR v.id LIKE '%" . $valor . "%' ) AND cr.estado = 1 LIMIT 10 ";
-        return $this->selectAll($sql);
+         WHERE (cl.nombre LIKE ? OR v.id LIKE ? ) AND cr.estado = 1 LIMIT 10 ";
+        return $this->selectAll($sql, [$like, $like]);
     }
     /* public function buscarPorNombreElectronico($valor)
     {
@@ -150,20 +152,23 @@ WHERE dce.orden_no = $valor AND cr.estado = 1";
 
 
 
+    // Creditos pendientes de UN cliente concreto (registrarAbono / abonos varios).
+    // Sin LIMIT a proposito: sirven para sumar la deuda total del cliente.
     public function buscarPorNombreMonto($idCliente)
     {
-        $sql = "SELECT cr.id, cr.monto FROM creditos cr INNER JOIN ventas v ON cr.id_venta = v.id INNER JOIN clientes cl ON v.id_cliente = cl.id WHERE cl.id = $idCliente AND cr.estado = 1";
-        return $this->selectAll($sql);
+        $sql = "SELECT cr.id, cr.monto FROM creditos cr INNER JOIN ventas v ON cr.id_venta = v.id INNER JOIN clientes cl ON v.id_cliente = cl.id WHERE cl.id = ? AND cr.estado = 1";
+        return $this->selectAll($sql, [(int)$idCliente]);
     }
     public function buscarPorNombreElectronicoMonto($idCliente)
     {
-        $sql = "SELECT cr.id, cr.monto FROM creditos cr INNER JOIN datos_cabecera_electronica dce ON dce.orden_no=cr.id_electronica WHERE dce.cliente LIKE '%" . $idCliente . "%' AND cr.estado = 1 ";
-        return $this->selectAll($sql);
+        $like = '%' . $idCliente . '%';
+        $sql = "SELECT cr.id, cr.monto FROM creditos cr INNER JOIN datos_cabecera_electronica dce ON dce.orden_no=cr.id_electronica WHERE dce.cliente LIKE ? AND cr.estado = 1 ";
+        return $this->selectAll($sql, [$like]);
     }
     public function buscarPorNombreOrdenVentaMonto($idCliente)
     {
-        $sql = "SELECT cr.id, cr.monto FROM creditos cr INNER JOIN orden_venta ov ON cr.id_orden_venta = ov.id INNER JOIN clientes cl ON ov.id_cliente = cl.id WHERE cl.id = $idCliente AND cr.estado = 1";
-        return $this->selectAll($sql);
+        $sql = "SELECT cr.id, cr.monto FROM creditos cr INNER JOIN orden_venta ov ON cr.id_orden_venta = ov.id INNER JOIN clientes cl ON ov.id_cliente = cl.id WHERE cl.id = ? AND cr.estado = 1";
+        return $this->selectAll($sql, [(int)$idCliente]);
     }
 
 

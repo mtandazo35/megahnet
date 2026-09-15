@@ -57,11 +57,82 @@ class VentasModel extends Query
         return $this->selectAll($sql);
     }
 
-    public function getVentasElectronica()
+    /**
+     * FROM + JOIN + WHERE compartidos por el listado paginado y el conteo de
+     * facturas electronicas (DataTables serverSide). Toda entrada del usuario
+     * va por $params; aqui no se concatena nada.
+     *
+     * - LEFT JOIN respuesta_sri: mostrar ventas aunque aun no tengan respuesta del SRI.
+     * - dce_auth/rs_auth: ocultar la copia no autorizada cuando existe otra factura
+     *   identica (mismo ruc, fecha y total) que si fue autorizada.
+     * - Ventana: desde el dia 1 de hace 11 meses.
+     *
+     * @param string $search       texto del buscador de DataTables
+     * @param string $filtroSri    '' | AUTORIZADO | NO AUTORIZADO | DEVUELTA | EN PROCESO
+     * @param string $filtroCorreo '' | ENVIADO | NO ENVIADO | EMAIL INVÁLIDO | ARCHIVOS PERDIDOS | SIN CORREO
+     */
+    private function ventasElectronicaFromWhere($search, $filtroSri, $filtroCorreo, array &$params)
     {
-        // LEFT JOIN: mostrar ventas aunque aun no tengan respuesta del SRI
-        // Listado del mes con marcador de DUPLICADA (cliente con mas facturas autorizadas
-        // del mes que contratos activos -- las posteriores a la primera son duplicadas).
+        $sql = " FROM datos_cabecera_electronica dce
+                LEFT JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
+                LEFT JOIN clientes cl ON cl.num_identidad = dce.ruc
+                LEFT JOIN datos_cabecera_electronica dce_auth
+                  ON dce_auth.ruc = dce.ruc AND dce_auth.fecha = dce.fecha AND dce_auth.totalfactura = dce.totalfactura AND dce_auth.id != dce.id
+                LEFT JOIN respuesta_sri rs_auth ON rs_auth.claveAcceso = dce_auth.claveacceso AND rs_auth.estado = 'AUTORIZADO'
+                WHERE dce.fecha >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 11 MONTH), '%Y-%m-01')
+                  AND (rs.estado = 'AUTORIZADO' OR rs_auth.id IS NULL)";
+
+        // Buscador global: cliente, numero de factura, ruc, clave de acceso y el
+        // estado SRI tal como se muestra en el badge (EN PROCESO agrupa el resto).
+        $sql .= buildSearchClause($search, [
+            'LOWER(dce.cliente)',
+            'CAST(dce.orden_no AS CHAR)',
+            'dce.ruc',
+            'dce.claveacceso',
+            "LOWER(CASE WHEN rs.estado IN ('AUTORIZADO','NO AUTORIZADO','DEVUELTA') THEN rs.estado ELSE 'EN PROCESO' END)",
+        ], $params, ' AND ');
+
+        // Filtro por estado SRI (dropdown). Whitelist: cualquier otro valor se ignora.
+        $filtroSri = strtoupper(trim((string)$filtroSri));
+        if (in_array($filtroSri, ['AUTORIZADO', 'NO AUTORIZADO', 'DEVUELTA'], true)) {
+            $sql .= ' AND rs.estado = ?';
+            $params[] = $filtroSri;
+        } else if ($filtroSri === 'EN PROCESO') {
+            $sql .= " AND (rs.estado IS NULL OR rs.estado NOT IN ('AUTORIZADO','NO AUTORIZADO','DEVUELTA'))";
+        }
+
+        // Filtro por estado de correo (dropdown). Replica la logica del badge del
+        // controlador; la validez del email se aproxima con REGEXP (filter_var no existe en SQL).
+        $filtroCorreo = strtoupper(trim((string)$filtroCorreo));
+        $correoTxt   = "TRIM(COALESCE(dce.correo, ''))";
+        $emailRegexp = '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$';
+        if ($filtroCorreo === 'SIN CORREO') {
+            $sql .= " AND $correoTxt = ''";
+        } else if ($filtroCorreo === 'EMAIL INVÁLIDO' || $filtroCorreo === 'EMAIL INVALIDO') {
+            $sql .= " AND $correoTxt <> '' AND NOT ($correoTxt REGEXP ?)";
+            $params[] = $emailRegexp;
+        } else if ($filtroCorreo === 'ENVIADO') {
+            $sql .= " AND $correoTxt REGEXP ? AND dce.correo_enviado = 1";
+            $params[] = $emailRegexp;
+        } else if ($filtroCorreo === 'ARCHIVOS PERDIDOS') {
+            $sql .= " AND $correoTxt REGEXP ? AND dce.correo_enviado = 2";
+            $params[] = $emailRegexp;
+        } else if ($filtroCorreo === 'NO ENVIADO') {
+            $sql .= " AND $correoTxt REGEXP ? AND COALESCE(dce.correo_enviado, 0) NOT IN (1, 2)";
+            $params[] = $emailRegexp;
+        }
+
+        return $sql;
+    }
+
+    /**
+     * Pagina del listado de facturas electronicas (DataTables serverSide).
+     * Las subconsultas correlacionadas (facturas_previas_mes, contratos_activos)
+     * solo se evaluan para las filas de la pagina.
+     */
+    public function getVentasElectronicaPaginado($start, $length, $search, $filtroSri = '', $filtroCorreo = '')
+    {
+        $params = [];
         $sql = "SELECT dce.fecha, TIME_FORMAT(rs.createdAt, '%H:%i:%s') AS hora,
                        dce.orden_no, dce.cliente, dce.estado, dce.totalfactura, dce.claveacceso,
                        dce.correo, dce.correo_enviado,
@@ -77,18 +148,26 @@ class VentasModel extends Query
                        ) AS facturas_previas_mes,
                        (
                          SELECT COUNT(*) FROM contratos c WHERE c.id_cliente=cl.id AND c.estado=1 AND c.factura=1
-                       ) AS contratos_activos
-                FROM datos_cabecera_electronica dce
-                LEFT JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
-                LEFT JOIN clientes cl ON cl.num_identidad = dce.ruc
-                LEFT JOIN datos_cabecera_electronica dce_auth
-                  ON dce_auth.ruc = dce.ruc AND dce_auth.fecha = dce.fecha AND dce_auth.totalfactura = dce.totalfactura AND dce_auth.id != dce.id
-                LEFT JOIN respuesta_sri rs_auth ON rs_auth.claveAcceso = dce_auth.claveacceso AND rs_auth.estado = 'AUTORIZADO'
-                WHERE dce.fecha >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 11 MONTH), '%Y-%m-01')
-                  AND (rs.estado = 'AUTORIZADO' OR rs_auth.id IS NULL)
-                GROUP BY dce.id
-                ORDER BY dce.id DESC";
-        return $this->selectAll($sql);
+                       ) AS contratos_activos";
+        $sql .= $this->ventasElectronicaFromWhere($search, $filtroSri, $filtroCorreo, $params);
+        $start  = max(0, intval($start));
+        $length = (intval($length) > 0 && intval($length) <= 200) ? intval($length) : 25;
+        $sql .= " GROUP BY dce.id
+                ORDER BY dce.id DESC LIMIT $start, $length";
+        return $this->select2($sql, $params);
+    }
+
+    /**
+     * Conteo con los mismos JOIN/WHERE del listado. Con $search vacio devuelve
+     * recordsTotal; con busqueda/filtros devuelve recordsFiltered.
+     */
+    public function contarVentasElectronica($search, $filtroSri = '', $filtroCorreo = '')
+    {
+        $params = [];
+        $sql = 'SELECT COUNT(DISTINCT dce.id) AS c';
+        $sql .= $this->ventasElectronicaFromWhere($search, $filtroSri, $filtroCorreo, $params);
+        $r = $this->select2($sql, $params);
+        return $r ? intval($r[0]['c']) : 0;
     }
 
     public function anular($idVenta)

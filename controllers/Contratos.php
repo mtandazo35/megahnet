@@ -1203,7 +1203,12 @@ class Contratos extends Controller
     public function buscarContrato()
     {
         $array = [];
-        $valor = strClean($_GET['term']);
+        $valor = trim(strClean($_GET['term'] ?? ''));
+        // Termino muy corto: no consultar (evita devolver toda la tabla)
+        if (mb_strlen($valor) < 2) {
+            echo json_encode($array);
+            die();
+        }
         $data  = $this->model->buscarPorNombreContrato($valor);
 
         // $data = array_merge($datafisico, $dataElectronico,$dataOrdenVenta);

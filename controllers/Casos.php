@@ -309,7 +309,12 @@ class Casos extends Controller
     public function buscar()
     {
         $array = array();
-        $valor = strClean($_GET['term']);
+        $valor = trim(strClean($_GET['term'] ?? ''));
+        // Termino muy corto: no consultar (evita devolver toda la tabla)
+        if (mb_strlen($valor) < 2) {
+            echo json_encode($array);
+            die();
+        }
         $data = $this->model->buscarPorNombre($valor);
         foreach ($data as $row) {
             $result['id'] = $row['idContrato'];
@@ -327,7 +332,12 @@ class Casos extends Controller
     public function buscarGrupoTrabajo()
     {
         $array = array();
-        $valor = strClean($_GET['term']);
+        $valor = trim(strClean($_GET['term'] ?? ''));
+        // Termino muy corto: no consultar (evita devolver toda la tabla)
+        if (mb_strlen($valor) < 2) {
+            echo json_encode($array);
+            die();
+        }
         $data = $this->model->buscarPorNombreGrupoTrabajo($valor);
         foreach ($data as $row) {
             $result['id'] = $row['id'];

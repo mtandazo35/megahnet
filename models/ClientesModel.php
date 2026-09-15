@@ -8,6 +8,41 @@ class ClientesModel extends Query{
         $sql = "SELECT * FROM clientes WHERE estado = $estado";
         return $this->selectAll($sql);
     }
+
+    // Columnas sobre las que busca el listado de clientes (DataTables serverSide).
+    // buildSearchClause pasa el termino a minusculas, por eso LOWER() en las de texto.
+    private static $busquedaClientes = ['LOWER(nombre)', 'num_identidad', 'telefono', 'LOWER(correo)', 'LOWER(direccion)'];
+
+    // Lista blanca de columnas por las que se permite ordenar desde DataTables.
+    private static $ordenClientes = ['id', 'nombre', 'num_identidad', 'identidad', 'telefono', 'correo', 'direccion'];
+
+    /** Cuenta clientes por estado; con $search aplica el mismo filtro que getClientesPaginado. */
+    public function contarClientes($search, $estado)
+    {
+        $params = [(int)$estado];
+        $sql = "SELECT COUNT(*) AS c FROM clientes WHERE estado = ?";
+        $sql .= buildSearchClause($search, self::$busquedaClientes, $params, ' AND ');
+        $r = $this->select2($sql, $params);
+        return $r ? intval($r[0]['c']) : 0;
+    }
+
+    /**
+     * Listado paginado para DataTables serverSide (activos e inactivos).
+     * $ordenCol y $ordenDir vienen de DataTables y se validan contra la lista blanca;
+     * el resto va con parametros ligados. LIMIT saneado: start >= 0, length 1..200 (default 10).
+     */
+    public function getClientesPaginado($start, $length, $search, $estado, $ordenCol = 'nombre', $ordenDir = 'asc')
+    {
+        $params = [(int)$estado];
+        $sql = "SELECT * FROM clientes WHERE estado = ?";
+        $sql .= buildSearchClause($search, self::$busquedaClientes, $params, ' AND ');
+        $start  = max(0, intval($start));
+        $length = (intval($length) > 0 && intval($length) <= 200) ? intval($length) : 10;
+        $ordenCol = in_array($ordenCol, self::$ordenClientes, true) ? $ordenCol : 'nombre';
+        $ordenDir = (strtolower((string)$ordenDir) === 'desc') ? 'DESC' : 'ASC';
+        $sql .= " ORDER BY $ordenCol $ordenDir, id ASC LIMIT $start, $length";
+        return $this->select2($sql, $params);
+    }
     public function registrar($identidad, $num_identidad, $nombre,
     $telefono, $correo, $direccion, $generarContrato)
     {

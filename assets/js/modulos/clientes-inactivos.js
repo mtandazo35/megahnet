@@ -3,21 +3,25 @@ let divLoading = document.querySelector("#divLoading");
 let tblClientes;
 document.addEventListener('DOMContentLoaded', function(){
     //cargar datos con el plugin datatables
+    // Paginacion, busqueda y orden en servidor (clientes/listarInactivos responde {draw, recordsTotal, recordsFiltered, data}).
+    // Sin opcion "Todos": con serverSide el servidor limita a 200 filas por pagina.
     tblClientes = $('#tblClientes').DataTable({
+    processing: true,
+    serverSide: true,
     deferRender: true,
     stateSave: true,
     stateDuration: -1,
     colReorder: true,
     pageLength: 10,
-    lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
-    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
-    
+    lengthMenu: [[5, 10, 20, 50, 100, 200], [5, 10, 20, 50, 100, 200]],
+    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100,200]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
+
         ajax: {
             url: base_url + 'clientes/listarInactivos',
-            dataSrc: ''
+            type: 'POST'
         },
         columns: [
-		{ data: 'acciones' },
+		{ data: 'acciones', orderable: false, searchable: false },
             { data: 'identidad' },
             { data: 'num_identidad' },
             { data: 'nombre' },
