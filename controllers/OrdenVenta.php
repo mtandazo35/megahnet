@@ -259,7 +259,74 @@ class OrdenVenta extends Controller
 
     public function listar()
     {
-        $data = $this->model->getOrdenVentas();
+        // ============================================================
+        // Endpoint server-side de DataTables (Historial Orden Venta).
+        // Acepta los parametros estandar de DataTables (draw, start, length,
+        // search[value], order[0][column], order[0][dir]) ademas de los
+        // filtros propios de la vista (desde, hasta).
+        // Responde con el formato estandar:
+        //   { draw, recordsTotal, recordsFiltered, data: [...] }
+        // ============================================================
+        $src = !empty($_POST) ? $_POST : $_GET;
+
+        // draw: DataTables exige eco numerico para anti-CSRF
+        $draw = isset($src['draw']) ? (int)$src['draw'] : 0;
+
+        // start / length con clamp
+        $start  = isset($src['start'])  ? (int)$src['start']  : 0;
+        $length = isset($src['length']) ? (int)$src['length'] : 10;
+        if ($start  < 0)   $start  = 0;
+        if ($length < 1)   $length = 10;
+        if ($length > 500) $length = 500;
+
+        // search[value]
+        $search = '';
+        if (isset($src['search']) && is_array($src['search']) && isset($src['search']['value'])) {
+            $search = trim((string)$src['search']['value']);
+        }
+
+        // order[0][column] + order[0][dir]
+        $orderColIdx = 0;
+        $orderDir    = 'DESC';
+        if (isset($src['order']) && is_array($src['order']) && isset($src['order'][0])) {
+            if (isset($src['order'][0]['column'])) {
+                $orderColIdx = (int)$src['order'][0]['column'];
+            }
+            if (isset($src['order'][0]['dir'])) {
+                $dirRaw = strtoupper((string)$src['order'][0]['dir']);
+                if ($dirRaw === 'ASC' || $dirRaw === 'DESC') $orderDir = $dirRaw;
+            }
+        }
+        // Mapeo indice DataTables -> columna SQL (lista blanca)
+        $columnasValidas = [
+            0 => null,        // acciones (no ordenable)
+            1 => 'cl.nombre', // nombre
+            2 => 'ov.fecha',  // fecha (campo real, no el CONCAT)
+            3 => 'ov.id',     // serie (es el id numerico)
+            4 => 'ov.total',
+            5 => 'ov.metodo',
+            6 => 'ov.estado',
+        ];
+        $orderCol = isset($columnasValidas[$orderColIdx]) && $columnasValidas[$orderColIdx] !== null
+            ? $columnasValidas[$orderColIdx]
+            : 'ov.id';
+
+        // Filtros de fecha de la vista
+        $desde = isset($src['desde']) ? trim((string)$src['desde']) : null;
+        $hasta = isset($src['hasta']) ? trim((string)$src['hasta']) : null;
+
+        $result = $this->model->getOrdenVentasServerSide([
+            'desde'     => $desde,
+            'hasta'     => $hasta,
+            'search'    => $search,
+            'order_col' => $orderCol,
+            'order_dir' => $orderDir,
+            'start'     => $start,
+            'length'    => $length,
+        ]);
+
+        $data = isset($result['rows']) && is_array($result['rows']) ? $result['rows'] : [];
+        // Mantener la transformacion HTML existente (acciones, badges, fallback corrupto)
         for ($i = 0; $i < count($data); $i++) {
             // Fallback: si el nombre del cliente esta corrupto (empieza con [ o {),
             // mostrar un placeholder identificable con el id_cliente.
@@ -276,7 +343,7 @@ class OrdenVenta extends Controller
                 </div>';
             } else {
                 $data[$i]['acciones'] = '<div>
-                
+
                 <a class="btn btn-danger" href="#" onclick="verReporte(' . $data[$i]['id'] . ')"><i class="fas fa-file-pdf"></i></a>
                 </div>';
             }
@@ -289,7 +356,15 @@ class OrdenVenta extends Controller
                 $data[$i]['estado'] = '<div style="text-align: center;"><span class="badge bg-danger">ANULADA</span></div>';
             }
         }
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+
+        $response = [
+            'draw'            => $draw,
+            'recordsTotal'    => isset($result['total'])    ? (int)$result['total']    : 0,
+            'recordsFiltered' => isset($result['filtered']) ? (int)$result['filtered'] : 0,
+            'data'            => $data,
+        ];
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($response, JSON_UNESCAPED_UNICODE);
         die();
     }
       //REENVIO DE FACTURA ELECTRONICA

@@ -345,7 +345,7 @@ class notaCredito extends Controller
             } else {
                 if ($data[$i]['autorizacion'] == 'AUTORIZADO' && $data[$i]['estado'] == 1) {
                     //<a class="btn btn-info" href="' . BASE_URL . 'notaCreditos/notaCreditosTicked/' . $data[$i]['claveacceso'] . '/' . $data[$i]['orden_no'] . '" target="_blank"><i class="fa-solid fa-file-arrow-down text-white"></i></a>
-                    $btnView = '<a class="btn btn-danger" href="' . BASE_URL . 'facturaelectronica/public/archivos/notaCreditos/ride/' . $data[$i]['claveacceso'] . '.pdf' . '.pdf" target="_blank" title="FACTURA"><i class="fas fa-file-pdf"></i></a>
+                    $btnView = '<a class="btn btn-danger" href="' . BASE_URL . 'facturaelectronica/public/archivos/notaCreditos/ride/' . $data[$i]['claveacceso'] . '.pdf" target="_blank" title="FACTURA"><i class="fas fa-file-pdf"></i></a>
                         ';
 
                     $btnEdit = '<a class="btn btn-success" href="#" onclick="envioCorreoElectronica(' . $data[$i]['orden_no'] . ')"><i class="fa-solid fa-envelope"></i></a>';

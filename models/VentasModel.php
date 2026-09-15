@@ -262,19 +262,34 @@ class VentasModel extends Query
     public function getSriPendientes($limite = 5)
     {
         $limite = max(1, min(50, (int)$limite));
-        // Excluir zombies: facturas no autorizadas que tienen una gemela autorizada
-        // del mismo cliente+fecha+total (resto = duplicados muertos del bug viejo).
+        // Filtro anti-zombies v2 (2026-06-05):
+        //  - Si NO hay gemela autorizada por ruc+fecha+total -> reintentar.
+        //  - Si SI hay gemela -> reintentar solo si el cliente aun tiene cupo
+        //    (autorizadas_del_cliente_esa_fecha < contratos_facturables_del_cliente).
+        //    Asi distingue duplicado real (cupo lleno) de contrato distinto.
         $sql = "SELECT dce.orden_no
                 FROM datos_cabecera_electronica dce
                 LEFT JOIN respuesta_sri rs ON rs.claveAcceso = dce.claveacceso
-                LEFT JOIN datos_cabecera_electronica dce_auth
-                  ON dce_auth.ruc = dce.ruc AND dce_auth.fecha = dce.fecha
-                 AND dce_auth.totalfactura = dce.totalfactura AND dce_auth.id != dce.id
-                LEFT JOIN respuesta_sri rs_auth ON rs_auth.claveAcceso = dce_auth.claveacceso AND rs_auth.estado = 'AUTORIZADO'
                 WHERE dce.fecha >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
                   AND dce.fecha <  DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01')
                   AND (rs.estado IS NULL OR rs.estado IN ('NO AUTORIZADO','EN PROCESO','DEVUELTA','PENDIENTE','RECIBIDA'))
-                  AND rs_auth.id IS NULL
+                  AND EXISTS (SELECT 1 FROM detalle_factura_electronica dfe WHERE dfe.orden_no = dce.orden_no)
+                  AND (
+                    NOT EXISTS (
+                      SELECT 1 FROM datos_cabecera_electronica dce_auth
+                      INNER JOIN respuesta_sri rs_auth ON rs_auth.claveAcceso = dce_auth.claveacceso AND rs_auth.estado='AUTORIZADO'
+                      WHERE dce_auth.ruc = dce.ruc AND dce_auth.fecha = dce.fecha
+                        AND dce_auth.totalfactura = dce.totalfactura AND dce_auth.id != dce.id
+                    )
+                    OR (
+                      (SELECT COUNT(*) FROM datos_cabecera_electronica d2
+                       INNER JOIN respuesta_sri r2 ON r2.claveAcceso = d2.claveacceso AND r2.estado='AUTORIZADO'
+                       WHERE d2.id_cliente = dce.id_cliente AND d2.fecha = dce.fecha)
+                      <
+                      (SELECT COUNT(*) FROM contratos c
+                       WHERE c.id_cliente = dce.id_cliente AND c.estado=1 AND c.factura=1)
+                    )
+                  )
                 GROUP BY dce.id
                 ORDER BY dce.id DESC
                 LIMIT $limite";

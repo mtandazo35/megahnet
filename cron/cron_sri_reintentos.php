@@ -87,15 +87,15 @@ try {
         }
 
         /**
-         * 2️⃣ AUTORIZACIÓN
+         * 2️⃣ AUTORIZACION (reintento contra race condition SRI)
          */
         $autorizacion = null;
         foreach ([3, 5, 8, 12] as $wait) {
             sleep($wait);
             $autorizacion = $autorizar->autorizacion_comprobante($claveAcceso, FACTURA);
-            $numComp = $autorizacion["numeroComprobantes"] ?? 0;
-            $estAut = $autorizacion["autorizaciones"]["autorizacion"]["estado"] ?? null;
-            if ($numComp > 0 && $estAut === "AUTORIZADO") break;
+            $numComp = $autorizacion['numeroComprobantes'] ?? 0;
+            $estAut = $autorizacion['autorizaciones']['autorizacion']['estado'] ?? null;
+            if ($numComp > 0 && $estAut === 'AUTORIZADO') break;
         }
 
         if (

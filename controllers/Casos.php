@@ -291,9 +291,13 @@ class Casos extends Controller
         $resp = curl_exec($ch);
         $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+        // El WA API responde HTTP 201 con {"status":"ok","message":"Mensaje enviado a ..."}
+        // El check antiguo (code===200 && success) siempre fallaba aunque el mensaje SI llegaba.
+        // Aceptamos cualquier 2xx, igual que Creditos.php / Helpers / Notificaciones.
         $j = @json_decode($resp, true);
-        if ($code === 200 && !empty($j['success'])) {
-            echo json_encode(['ok'=>true,'telefono'=>$tel], JSON_UNESCAPED_UNICODE);
+        $ok = ($code >= 200 && $code < 300);
+        if ($ok) {
+            echo json_encode(['ok'=>true,'telefono'=>$tel,'http'=>$code], JSON_UNESCAPED_UNICODE);
         } else {
             echo json_encode(['ok'=>false,'msg'=>'No se pudo enviar','http'=>$code,'resp'=>$resp], JSON_UNESCAPED_UNICODE);
         }

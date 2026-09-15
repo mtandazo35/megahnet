@@ -467,10 +467,10 @@ function respaldoBD_subir($file) {
 
 // Enviar un respaldo por correo usando PHPMailer (ya presente en /libraries)
 function respaldoBD_enviar_email($nombre, $destinatarios, $asunto = null, $mensaje = null) {
-    if (!preg_match("/^" . preg_quote(DBNAME,"/") . "_[A-Za-z0-9_\-\.]+\.sql(\.gz)?$/", $nombre))
+    if (!_respaldoBD_validNombre($nombre, '[A-Za-z0-9_\-\.]+'))
         throw new Exception("Nombre invalido");
     $isWindows = stripos(PHP_OS, "WIN") === 0;
-    $ruta = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\\respaldo") : "/var/backups/" . DBNAME;
+    $ruta = $isWindows ? (defined("RUTARESPALDOBD") ? RUTARESPALDOBD : "C:\\respaldo") : "/var/backups/" . respaldoBD_systemId();
     $archivo = rtrim($ruta, "/\\\\") . DIRECTORY_SEPARATOR . $nombre;
     if (!file_exists($archivo)) throw new Exception("Archivo no existe");
 
@@ -1055,4 +1055,14 @@ function enviarCorreoSMTP($to, $asunto, $cuerpoHtml, $opts = [])
 }
 }
 
+if (!function_exists("asset_v")) {
+function asset_v($relPath) {
+    static $cache = [];
+    if (isset($cache[$relPath])) return $cache[$relPath];
+    $base = defined("BASE_PATH") ? BASE_PATH : (__DIR__ . "/..");
+    $full = rtrim($base, "/\\") . DIRECTORY_SEPARATOR . ltrim($relPath, "/\\");
+    $v = is_file($full) ? (string)filemtime($full) : (string)time();
+    return $cache[$relPath] = $v;
+}
+}
 ?>

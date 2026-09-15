@@ -15,6 +15,24 @@ require_once BASE_PATH . '/config/Config.php';
 require_once BASE_PATH . '/config/Helpers.php';
 require_once BASE_PATH . '/config/app/Autoload.php';
 
+// === LOCK GLOBAL ===
+// Prevenir doble disparo del cron mensual (race condition: dos invocaciones leen
+// mes_facturar.<mes>=0 antes de que el primero marque =1).
+// Lock distinto al del controller HTTP (registrarVentaAutomatico.lock) para
+// permitir que la UI siga funcionando cuando el cron NO esta corriendo.
+$lockDir = BASE_PATH . '/storage';
+if (!is_dir($lockDir)) @mkdir($lockDir, 0755, true);
+$lockFile = $lockDir . '/cron_facturacion_mensual.lock';
+$lockHandle = @fopen($lockFile, 'c');
+if (!$lockHandle || !@flock($lockHandle, LOCK_EX | LOCK_NB)) {
+    echo "[" . date('Y-m-d H:i:s') . "] Otro proceso de cron_facturacion_automaticas ya esta en curso. Saliendo.\n";
+    exit(0);
+}
+register_shutdown_function(function() use ($lockHandle, $lockFile) {
+    if ($lockHandle) { @flock($lockHandle, LOCK_UN); @fclose($lockHandle); }
+    @unlink($lockFile);
+});
+
 $model = new AutomaticasModel();
 
 $fecha = date('Y-m-d');

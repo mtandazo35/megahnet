@@ -694,16 +694,31 @@ class Creditos extends Controller
         try {
             $pdo = new PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, PASSWORD,
                 [PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT]);
-            // Buscar clientes con creditos pendientes (orden_venta o electronica)
+            // Buscar clientes con creditos pendientes (orden_venta o electronica).
+            // Para electronica, dce.id_cliente solo existe desde 2026-01; en
+            // facturas anteriores cae a un match por nombre (LIKE).
             $sql = "SELECT DISTINCT cl.id, cl.nombre, cl.num_identidad, cl.telefono,
-                    (SELECT COUNT(*) FROM creditos cr2 INNER JOIN orden_venta ov2 ON ov2.id = cr2.id_orden_venta
-                       WHERE ov2.id_cliente = cl.id AND cr2.estado = 1) AS pendientes
+                    (
+                      (SELECT COUNT(*) FROM creditos cr2 INNER JOIN orden_venta ov2 ON ov2.id = cr2.id_orden_venta
+                         WHERE ov2.id_cliente = cl.id AND cr2.estado = 1)
+                      +
+                      (SELECT COUNT(*) FROM creditos cr3 INNER JOIN datos_cabecera_electronica dce3 ON dce3.orden_no = cr3.id_electronica
+                         WHERE cr3.estado = 1
+                           AND (dce3.id_cliente = cl.id OR (dce3.id_cliente IS NULL AND dce3.cliente = cl.nombre)))
+                    ) AS pendientes
                 FROM clientes cl
                 WHERE (cl.nombre LIKE ? OR cl.num_identidad LIKE ?)
                   AND cl.estado = 1
-                  AND EXISTS (
-                      SELECT 1 FROM creditos cr INNER JOIN orden_venta ov ON ov.id = cr.id_orden_venta
-                      WHERE ov.id_cliente = cl.id AND cr.estado = 1
+                  AND (
+                      EXISTS (
+                          SELECT 1 FROM creditos cr INNER JOIN orden_venta ov ON ov.id = cr.id_orden_venta
+                          WHERE ov.id_cliente = cl.id AND cr.estado = 1
+                      )
+                      OR EXISTS (
+                          SELECT 1 FROM creditos cre INNER JOIN datos_cabecera_electronica dce ON dce.orden_no = cre.id_electronica
+                          WHERE cre.estado = 1
+                            AND (dce.id_cliente = cl.id OR (dce.id_cliente IS NULL AND dce.cliente = cl.nombre))
+                      )
                   )
                 LIMIT 12";
             $st = $pdo->prepare($sql);
@@ -735,14 +750,28 @@ class Creditos extends Controller
         try {
             $pdo = new PDO('mysql:host=' . HOSTT . ';dbname=' . DBNAME . ';charset=utf8mb4', USER, PASSWORD,
                 [PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT]);
+            // Cargar creditos pendientes del cliente desde orden_venta Y facturacion electronica.
+            // Para electronicas, dce.id_cliente solo existe desde 2026-01; antes era NULL y
+            // se ata por nombre. Se necesita el nombre real del cliente para el LIKE/equal.
+            $stN = $pdo->prepare("SELECT nombre FROM clientes WHERE id = ?");
+            $stN->execute([$idCliente]);
+            $nombreCli = (string)($stN->fetchColumn() ?: '');
+
             $sql = "SELECT cr.id, cr.monto, cr.id_orden_venta, cr.id_electronica, cr.fecha,
                        IFNULL((SELECT SUM(a.abono) FROM abonos a WHERE a.id_credito = cr.id), 0) AS abonado
                 FROM creditos cr
                 INNER JOIN orden_venta ov ON ov.id = cr.id_orden_venta
                 WHERE ov.id_cliente = ? AND cr.estado = 1
-                ORDER BY cr.fecha ASC";
+                UNION
+                SELECT cr.id, cr.monto, cr.id_orden_venta, cr.id_electronica, cr.fecha,
+                       IFNULL((SELECT SUM(a.abono) FROM abonos a WHERE a.id_credito = cr.id), 0) AS abonado
+                FROM creditos cr
+                INNER JOIN datos_cabecera_electronica dce ON dce.orden_no = cr.id_electronica
+                WHERE cr.estado = 1
+                  AND (dce.id_cliente = ? OR (dce.id_cliente IS NULL AND dce.cliente = ?))
+                ORDER BY fecha ASC";
             $st = $pdo->prepare($sql);
-            $st->execute([$idCliente]);
+            $st->execute([$idCliente, $idCliente, $nombreCli]);
             echo json_encode($st->fetchAll(PDO::FETCH_ASSOC), JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
             echo json_encode([]);
@@ -830,6 +859,21 @@ class Creditos extends Controller
                 if ($rt && $rt['saldo_total'] !== null) {
                     $saldoTotalCliente = (float)$rt['saldo_total'];
                 }
+
+                // Restar anticipos historicos: clientes.anticipos guarda el saldo a favor
+                // acumulado cuando el cliente paga de mas. Sin esto, el mensaje pierde
+                // ese anticipo y muestra 0 en lugar de "a favor".
+                if ($clienteIdentidad['tipo'] === 'idCliente') {
+                    $stA = $pdo->prepare("SELECT IFNULL(anticipos,0) AS anticipos FROM clientes WHERE id = ? LIMIT 1");
+                    $stA->execute([$clienteIdentidad['val']]);
+                } else {
+                    $stA = $pdo->prepare("SELECT IFNULL(anticipos,0) AS anticipos FROM clientes WHERE num_identidad = ? LIMIT 1");
+                    $stA->execute([$clienteIdentidad['val']]);
+                }
+                $rtA = $stA->fetch(PDO::FETCH_ASSOC);
+                if ($rtA) {
+                    $saldoTotalCliente -= (float)$rtA['anticipos'];
+                }
             }
         } catch (\Throwable $e) { /* fallback al restante de este credito */ }
 
@@ -854,10 +898,18 @@ class Creditos extends Controller
         $tsServ = time();
         $servicioMesesTxt = $mesesEs[(int)date('n', $tsServ) - 1] . ' ' . date('Y', $tsServ);
 
-        // Renderizar plantilla con SALDO TOTAL REAL del cliente
+        // Renderizar plantilla con SALDO TOTAL REAL del cliente.
+        // Saldo > 0  : el cliente debe (pendiente)
+        // Saldo == 0 : esta en cero
+        // Saldo < 0  : pago de mas -> saldo a favor (anticipo)
+        if ($saldoTotalCliente < -0.001) {
+            $clienteSaldoStr = number_format(abs($saldoTotalCliente), 2) . ' a favor';
+        } else {
+            $clienteSaldoStr = number_format(max(0, $saldoTotalCliente), 2);
+        }
         $vars = [
             'cliente_nombre'   => trim($r['nombre'] ?? ''),
-            'cliente_saldo'    => number_format(max(0, $saldoTotalCliente), 2),
+            'cliente_saldo'    => $clienteSaldoStr,
             'cliente_telefono' => $tel,
             'servicio_meses'   => $servicioMesesTxt,
         ];

@@ -58,10 +58,14 @@ class AutomaticasModel extends Query
 
     public function getContratosFacturar($mesFacturar, $estado, $valor, $limite = 0)
     {
-        $sql = "SELECT c.id,c.productos,c.total,c.direccion,c.comentario,cl.id AS idCliente ,cl.nombre,c.estado,c.factura FROM contratos c 
+        // Idempotencia v2 (2026-06-05): aunque mes_facturar.<mes>=0, excluir
+        // contratos que ya tienen un credito creado HOY. Esto bloquea la doble
+        // facturacion del bug del 2026-06-01 (cron disparado dos veces el mismo dia).
+        $sql = "SELECT c.id,c.productos,c.total,c.direccion,c.comentario,cl.id AS idCliente ,cl.nombre,c.estado,c.factura FROM contratos c
         INNER JOIN clientes cl ON cl.id=c.id_cliente
         INNER JOIN mes_facturar mf ON mf.id_contrato=c.id
-        WHERE mf.$mesFacturar = 0 AND c.estado = $estado AND c.factura = $valor AND NOT EXISTS (SELECT 1 FROM creditos cr WHERE cr.id_contrato = c.id AND cr.fecha = CURDATE())";
+        WHERE mf.$mesFacturar = 0 AND c.estado = $estado AND c.factura = $valor
+          AND NOT EXISTS (SELECT 1 FROM creditos cr WHERE cr.id_contrato = c.id AND cr.fecha = CURDATE())";
         $limite = (int)$limite;
         if ($limite > 0) { $sql .= " LIMIT " . $limite; }
         return $this->selectAll($sql);

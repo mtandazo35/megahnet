@@ -29,10 +29,101 @@ class OrdenVentaModel extends Query
         return $this->select($sql);
     }
 
-    public function getOrdenVentas()
+    public function getOrdenVentas($desde = null, $hasta = null)
     {
-        $sql = "SELECT ov.id,ov.id_cliente,ov.productos,ov.total,CONCAT(ov.fecha,' ',ov.hora) AS fecha,ov.metodo,ov.serie,cl.nombre,ov.estado FROM orden_venta ov INNER JOIN clientes cl ON ov.id_cliente = cl.id";
-        return $this->selectAll($sql);
+        $sql = "SELECT ov.id,ov.id_cliente,ov.productos,ov.total,CONCAT(ov.fecha,' ',ov.hora) AS fecha,ov.metodo,ov.serie,cl.nombre,ov.estado FROM orden_venta ov INNER JOIN clientes cl ON ov.id_cliente = cl.id WHERE 1=1";
+        $params = [];
+        if (!empty($desde) && DateTime::createFromFormat('Y-m-d', $desde) !== false) {
+            $sql .= " AND ov.fecha >= ?";
+            $params[] = $desde;
+        }
+        if (!empty($hasta) && DateTime::createFromFormat('Y-m-d', $hasta) !== false) {
+            $sql .= " AND ov.fecha <= ?";
+            $params[] = $hasta;
+        }
+        $sql .= " ORDER BY ov.id DESC";
+        return $this->selectAll($sql, $params);
+    }
+
+    /**
+     * Paginacion server-side para DataTables.
+     * Recibe array con: desde, hasta, search, order_col, order_dir, start, length.
+     * Retorna: ['rows' => [...], 'total' => N, 'filtered' => N].
+     *  - total: COUNT(*) de orden_venta sin ningun filtro (recordsTotal)
+     *  - filtered: COUNT(*) con los mismos WHERE pero sin LIMIT (recordsFiltered)
+     *  - rows: SELECT con JOIN + WHERE + ORDER BY + LIMIT/OFFSET
+     * Usa bindings (?) para todos los valores. La columna de ORDER BY y la
+     * direccion se validan contra una lista blanca: NUNCA se interpola lo que
+     * viene del cliente directo en el SQL.
+     */
+    public function getOrdenVentasServerSide($params)
+    {
+        $desde     = isset($params['desde'])     ? $params['desde']     : null;
+        $hasta     = isset($params['hasta'])     ? $params['hasta']     : null;
+        $search    = isset($params['search'])    ? trim((string)$params['search']) : '';
+        $orderCol  = isset($params['order_col']) ? $params['order_col'] : 'ov.id';
+        $orderDir  = isset($params['order_dir']) ? strtoupper($params['order_dir']) : 'DESC';
+        $start     = isset($params['start'])     ? (int)$params['start']  : 0;
+        $length    = isset($params['length'])    ? (int)$params['length'] : 10;
+
+        // Lista blanca de columnas validas para ORDER BY
+        $columnasValidas = [
+            'cl.nombre', 'ov.fecha', 'ov.id', 'ov.total', 'ov.metodo', 'ov.estado',
+        ];
+        if (!in_array($orderCol, $columnasValidas, true)) {
+            $orderCol = 'ov.id';
+        }
+        if ($orderDir !== 'ASC' && $orderDir !== 'DESC') {
+            $orderDir = 'DESC';
+        }
+        if ($start  < 0)   $start  = 0;
+        if ($length < 1)   $length = 10;
+        if ($length > 500) $length = 500;
+
+        // WHERE compartido entre el COUNT(filtered) y la query de rows
+        $where  = " WHERE 1=1";
+        $bind   = [];
+        if (!empty($desde) && DateTime::createFromFormat('Y-m-d', $desde) !== false) {
+            $where .= " AND ov.fecha >= ?";
+            $bind[] = $desde;
+        }
+        if (!empty($hasta) && DateTime::createFromFormat('Y-m-d', $hasta) !== false) {
+            $where .= " AND ov.fecha <= ?";
+            $bind[] = $hasta;
+        }
+        if ($search !== '') {
+            $where .= " AND (cl.nombre LIKE ? OR ov.serie LIKE ? OR ov.metodo LIKE ?)";
+            $like   = '%' . $search . '%';
+            $bind[] = $like;
+            $bind[] = $like;
+            $bind[] = $like;
+        }
+
+        // recordsTotal: COUNT(*) global (sin filtros)
+        $sqlTotal = "SELECT COUNT(*) AS c FROM orden_venta";
+        $rowTotal = $this->select($sqlTotal, []);
+        $total    = is_array($rowTotal) && isset($rowTotal['c']) ? (int)$rowTotal['c'] : 0;
+
+        // recordsFiltered: COUNT(*) con los mismos WHERE
+        $sqlFiltered = "SELECT COUNT(*) AS c FROM orden_venta ov INNER JOIN clientes cl ON ov.id_cliente = cl.id" . $where;
+        $rowFiltered = $this->select($sqlFiltered, $bind);
+        $filtered    = is_array($rowFiltered) && isset($rowFiltered['c']) ? (int)$rowFiltered['c'] : 0;
+
+        // Rows: SELECT principal con ORDER BY y LIMIT/OFFSET.
+        // $orderCol y $orderDir ya fueron validados arriba contra lista blanca,
+        // por eso se pueden interpolar de forma segura. $start/$length son INT.
+        $sqlRows = "SELECT ov.id,ov.id_cliente,ov.productos,ov.total,CONCAT(ov.fecha,' ',ov.hora) AS fecha,ov.metodo,ov.serie,cl.nombre,ov.estado FROM orden_venta ov INNER JOIN clientes cl ON ov.id_cliente = cl.id"
+                . $where
+                . " ORDER BY " . $orderCol . " " . $orderDir
+                . " LIMIT " . $length . " OFFSET " . $start;
+        $rows = $this->selectAll($sqlRows, $bind);
+        if (!is_array($rows)) $rows = [];
+
+        return [
+            'rows'     => $rows,
+            'total'    => $total,
+            'filtered' => $filtered,
+        ];
     }
 
 

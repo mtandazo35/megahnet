@@ -129,16 +129,36 @@ document.addEventListener('DOMContentLoaded', function () {
     //cargar datos con el plugin datatables
     tblHistorial = $('#tblHistorial').DataTable({
     deferRender: true,
+    serverSide: true,
     stateSave: true,
     stateDuration: -1,
     colReorder: true,
     pageLength: 10,
+    searchDelay: 400,
     lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
-    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
-    
+    stateLoadParams: function(settings, data){
+        var v=[5,10,20,50,100,-1];
+        if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; }
+        // Limpiar search residual guardado en localStorage que puede dejar la tabla en 0 resultados
+        if(data && data.search) data.search.search = '';
+        if(data && data.columns) data.columns.forEach(function(c){ if(c.search) c.search.search = ''; });
+    },
+    stateSaveParams: function(settings, data){
+        // Nunca persistir el search del usuario: evita que un termino viejo
+        // quede guardado y deje la tabla en 0 resultados despues de cerrar sesion.
+        if(data && data.search) data.search.search = '';
+        if(data && data.columns) data.columns.forEach(function(c){ if(c.search) c.search.search = ''; });
+    },
+
         ajax: {
             url: base_url + 'ordenventa/listar',
-            dataSrc: ''
+            type: 'GET',
+            data: function(d) {
+                // Filtros propios de la vista. NO usar dataSrc:'' con serverSide.
+                d.desde = $('#desde').val() || '';
+                d.hasta = $('#hasta').val() || '';
+                return d;
+            }
         },
         columns: [
 		  { data: 'acciones' },
@@ -150,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function () {
             { data: 'metodo' },
             { data: 'estado' }
 
-          
+
         ],
         language: {
             url: base_url + 'assets/js/espanol.json'
@@ -159,6 +179,12 @@ document.addEventListener('DOMContentLoaded', function () {
         buttons,
         responsive: true,
         order: [[3, 'desc']],
+    });
+
+    // Recarga la tabla via AJAX al cambiar los filtros de fecha.
+    // Con serverSide, DataTables ya envia search/order/start/length en el ajax.
+    $('#desde, #hasta').on('change', function() {
+        tblHistorial.ajax.reload();
     });
 
 })

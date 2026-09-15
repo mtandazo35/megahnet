@@ -711,50 +711,77 @@ function eliminarContrato(idContrato) {
     cancelButtonText: 'Cancelar'
   }).then(function(result) {
     if (!result.isConfirmed) return;
-    fetch(url, { method: 'GET', cache: 'no-store' })
-      .then(function(r){ return r.json(); })
-      .then(function(res){
-        if (res && res.type === 'confirm' && res.msg === 'CREDITOS_PENDIENTES') {
-          // Mostrar modal con detalle de creditos pendientes
-          Swal.fire({
-            title: 'Hay creditos pendientes',
-            html: 'El cliente tiene <b>' + res.creditos_pendientes + '</b> credito(s) ' +
-                  'pendiente(s) por un total de <b>$' + (res.monto_pendiente || 0).toFixed(2) + '</b>.<br><br>' +
-                  'Tambien <b>anular esos creditos</b> y eliminar el contrato?',
-            icon: 'warning',
-            showCancelButton: true,
-            showDenyButton: true,
-            confirmButtonText: 'Si, anular y eliminar',
-            denyButtonText: 'No, mantener creditos',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#d33',
-            denyButtonColor: '#6c757d'
-          }).then(function(r2){
-            if (r2.isConfirmed) {
-              // Re-llamar con confirmacion para que anule creditos + elimine
-              fetch(url + '?confirmCreditos=1', { method: 'GET', cache: 'no-store' })
-                .then(function(r){ return r.json(); })
-                .then(function(j){
-                  if (typeof alertaPersonalizada === 'function') alertaPersonalizada(j.type, j.msg);
-                  if (typeof tblHistorial !== 'undefined' && tblHistorial) tblHistorial.ajax.reload(null, false);
-                });
-            } else if (r2.isDenied) {
-              alertaPersonalizada('info', 'Operacion cancelada. Anula los creditos manualmente antes de eliminar el contrato.');
-            }
-          });
-        } else if (res && res.type === 'success') {
-          alertaPersonalizada(res.type, res.msg);
-          if (typeof tblHistorial !== 'undefined' && tblHistorial) tblHistorial.ajax.reload(null, false);
-        } else {
-          alertaPersonalizada(res.type || 'error', res.msg || 'Error al eliminar');
-        }
-      })
-      .catch(function(){ alertaPersonalizada('error', 'Error de red al eliminar'); });
+    procesarEliminacionContrato(url, '');
   });
+}
+
+// Procesa la respuesta de contratos/eliminar y maneja recursivamente los
+// dos casos de confirmacion: creditos pendientes y mikrotik inalcanzable.
+function procesarEliminacionContrato(url, qs) {
+  fetch(url + qs, { method: 'GET', cache: 'no-store' })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if (res && res.type === 'confirm' && res.msg === 'CREDITOS_PENDIENTES') {
+        Swal.fire({
+          title: 'Hay creditos pendientes',
+          html: 'El cliente tiene <b>' + res.creditos_pendientes + '</b> credito(s) ' +
+                'pendiente(s) por un total de <b>$' + (res.monto_pendiente || 0).toFixed(2) + '</b>.<br><br>' +
+                'Tambien <b>anular esos creditos</b> y eliminar el contrato?',
+          icon: 'warning',
+          showCancelButton: true,
+          showDenyButton: true,
+          confirmButtonText: 'Si, anular y eliminar',
+          denyButtonText: 'No, mantener creditos',
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#d33',
+          denyButtonColor: '#6c757d'
+        }).then(function(r2){
+          if (r2.isConfirmed) {
+            procesarEliminacionContrato(url, '?confirmCreditos=1');
+          } else if (r2.isDenied) {
+            alertaPersonalizada('info', 'Operacion cancelada. Anula los creditos manualmente antes de eliminar el contrato.');
+          }
+        });
+      } else if (res && res.type === 'confirm' && res.msg === 'MIKROTIK_INALCANZABLE') {
+        Swal.fire({
+          title: 'Mikrotik no responde',
+          html: 'El Mikrotik <b>' + (res.mikrotik_nombre || '?') + '</b> (' + (res.mikrotik_ip || '?') + ') no responde.<br><br>' +
+                '<small style="color:#6c757d;">' + (res.mikrotik_msg || '') + '</small><br><br>' +
+                '<b>Eliminar el contrato igual?</b><br><small>El equipo no sera tocado.</small>',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Si, eliminar igual',
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#d33'
+        }).then(function(r3){
+          if (!r3.isConfirmed) return;
+          var newQs = '?forceMikrotik=1' + (res.confirmCreditos == 1 ? '&confirmCreditos=1' : '');
+          procesarEliminacionContrato(url, newQs);
+        });
+      } else if (res && res.type === 'success') {
+        alertaPersonalizada(res.type, res.msg);
+        if (typeof tblHistorial !== 'undefined' && tblHistorial) tblHistorial.ajax.reload(null, false);
+      } else {
+        alertaPersonalizada(res.type || 'error', res.msg || 'Error al eliminar');
+      }
+    })
+    .catch(function(){ alertaPersonalizada('error', 'Error de red al eliminar'); });
 }
 function suspenderContrato(idContrato) {
   const url = base_url + 'contratos/suspender/' + idContrato;
-  suspenderContratos(url, tblcontratosSuspender);
+  Swal.fire({
+    title: 'Suspender contrato?',
+    text: 'Se bloqueara la IP del cliente en el Mikrotik y se le avisara por WhatsApp.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Si, suspender',
+    cancelButtonText: 'Cancelar'
+  }).then(function(result){
+    if (!result.isConfirmed) return;
+    procesarMkAccion(url, '', 'suspender', tblHistorial);
+  });
 }
 function Editar(idContrato) {
   //limpiarCampos();
@@ -1268,7 +1295,50 @@ function seleccionaripRepetidora() {
 
 function restaurarContrato(idContrato) {
   const url = base_url + 'contratos/restaurar/' + idContrato;
-  restaurarRegistros(url, tblHistorial);
+  Swal.fire({
+    title: 'Restaurar contrato?',
+    text: 'Se reactivara la IP del cliente en el Mikrotik.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#28a745',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Si, restaurar',
+    cancelButtonText: 'Cancelar'
+  }).then(function(result){
+    if (!result.isConfirmed) return;
+    procesarMkAccion(url, '', 'restaurar', tblHistorial);
+  });
+}
+
+// Helper recursivo para suspender/restaurar — maneja MIKROTIK_INALCANZABLE
+// igual que procesarEliminacionContrato (eliminar).
+function procesarMkAccion(url, qs, accion, tbl) {
+  fetch(url + qs, { method: 'GET', cache: 'no-store' })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if (res && res.type === 'confirm' && res.msg === 'MIKROTIK_INALCANZABLE') {
+        Swal.fire({
+          title: 'Mikrotik no responde',
+          html: 'El Mikrotik <b>' + (res.mikrotik_nombre || '?') + '</b> (' + (res.mikrotik_ip || '?') + ') no responde.<br><br>' +
+                '<small style="color:#6c757d;">' + (res.mikrotik_msg || '') + '</small><br><br>' +
+                '<b>' + (accion === 'suspender' ? 'Suspender' : 'Restaurar') + ' el contrato igual?</b><br><small>El equipo no sera tocado.</small>',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Si, ' + accion + ' igual',
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#d33'
+        }).then(function(r2){
+          if (!r2.isConfirmed) return;
+          procesarMkAccion(url, '?forceMikrotik=1', accion, tbl);
+        });
+      } else if (res && res.type === 'success') {
+        if (typeof alertaPersonalizada === 'function') alertaPersonalizada(res.type, res.msg);
+        if (tbl && tbl.ajax) tbl.ajax.reload(null, false);
+      } else {
+        if (typeof alertaPersonalizada === 'function') alertaPersonalizada(res.type || 'error', res.msg || 'Error en la operacion');
+      }
+    })
+    .catch(function(){ if (typeof alertaPersonalizada === 'function') alertaPersonalizada('error', 'Error de red'); });
 }
 
 // Cascading: al cambiar Mikrotik repoblar Zona y Repetidoras

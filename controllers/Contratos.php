@@ -663,20 +663,29 @@ class Contratos extends Controller
 
         // 1. Verificar conexion Mikrotik ANTES de tocar BD. Si falla, abortar
         // y avisar al usuario. NO se elimina nada hasta confirmar conectividad.
+        // Excepcion: si el usuario confirma ?forceMikrotik=1, eliminar igual
+        // (caso de MK caido o MK placeholder tipo "FALSO").
+        $forceMikrotik = !empty($_GET['forceMikrotik']) && $_GET['forceMikrotik'] == '1';
         $getIp       = $this->model->getContrato($idContrato);
         $getMikrotik = $this->model->getMikrotik($getIp['id_mikrotik']);
         $mkResult    = eliminarIpFirewall($getIp, $getMikrotik);
 
-        if (empty($mkResult['ok'])) {
-            // Mikrotik inalcanzable o error: NO eliminar contrato.
+        if (empty($mkResult['ok']) && !$forceMikrotik) {
+            // Mikrotik inalcanzable y NO confirmaron forzar:
+            // pedir confirmacion al frontend para eliminar de todos modos.
             echo json_encode([
-                'msg'  => $mkResult['msg'] ?? 'NO SE PUEDE ELIMINAR: error al conectar con Mikrotik.',
-                'type' => 'error'
+                'msg'             => 'MIKROTIK_INALCANZABLE',
+                'type'            => 'confirm',
+                'mikrotik_msg'    => $mkResult['msg'] ?? 'Mikrotik no responde',
+                'mikrotik_nombre' => $getMikrotik['nombre'] ?? '',
+                'mikrotik_ip'     => $getMikrotik['ip'] ?? '',
+                'idContrato'      => (int)$idContrato,
+                'confirmCreditos' => $confirmCreditos ? 1 : 0,
             ], JSON_UNESCAPED_UNICODE);
             die();
         }
 
-        // 2. Mikrotik OK -> ahora si anular creditos (si confirmo) y eliminar
+        // 2. Mikrotik OK (o forzado) -> anular creditos (si confirmo) y eliminar
         if ($cantPend > 0 && $confirmCreditos) {
             $this->model->anularCreditosContrato($idContrato);
         }
@@ -704,14 +713,36 @@ class Contratos extends Controller
     }
     public function suspender($idContrato)
     {
-        if (isset($_GET) && is_numeric($idContrato)) {
-            $data  = $this->model->eliminar(0, $idContrato);
-            $getIp = $this->model->getContrato($idContrato);
+        if (!is_numeric($idContrato)) {
+            echo json_encode(['msg' => 'ERROR DESCONOCIDO', 'type' => 'error'], JSON_UNESCAPED_UNICODE);
+            die();
+        }
 
-            $getMikrotik = $this->model->getMikrotik($getIp['id_mikrotik']);
+        // Refactor 2026-06-05: verificar Mikrotik ANTES de tocar BD (igual que eliminar()).
+        // Si MK falla y NO viene ?forceMikrotik=1, devolver MIKROTIK_INALCANZABLE
+        // para que el frontend pida confirmacion y reintentar forzando.
+        $forceMikrotik = !empty($_GET['forceMikrotik']) && $_GET['forceMikrotik'] == '1';
+        $getIp       = $this->model->getContrato($idContrato);
+        $getMikrotik = $this->model->getMikrotik($getIp['id_mikrotik']);
+        $mkResult    = bloquearIp($getIp, $getMikrotik);
 
-            bloquearIp($getIp, $getMikrotik);
-            $dataElectronico = $this->model->buscarPorNombreElectronicoMonto($getIp['nombre']);
+        if (empty($mkResult['ok']) && !$forceMikrotik) {
+            echo json_encode([
+                'msg'             => 'MIKROTIK_INALCANZABLE',
+                'type'            => 'confirm',
+                'mikrotik_msg'    => $mkResult['msg'] ?? 'Mikrotik no responde',
+                'mikrotik_nombre' => $getMikrotik['nombre'] ?? '',
+                'mikrotik_ip'     => $getMikrotik['ip'] ?? '',
+                'idContrato'      => (int)$idContrato,
+                'accion'          => 'suspender',
+            ], JSON_UNESCAPED_UNICODE);
+            die();
+        }
+
+        // MK OK (o forzado) -> recien ahora tocar BD
+        $data = $this->model->eliminar(0, $idContrato);
+
+        $dataElectronico = $this->model->buscarPorNombreElectronicoMonto($getIp['nombre']);
             $dataOrdenVenta  = $this->model->buscarPorNombreOrdenVentaMonto($getIp['id_cliente']);
             $datosValores    = array_merge($dataElectronico, $dataOrdenVenta);
 
@@ -765,19 +796,16 @@ class Contratos extends Controller
                     . '&text=' . rawurlencode($mensajeWA));
             }
 
-            if ($data > 0) {
-                $res = [
-                    'msg'           => 'CONTRATO SUSPENDIDO EXITOSAMENTE',
-                    'type'          => 'success',
-                    'whatsapp'      => $resWathsapp,
-                    'whatsapp_sent' => $waOk,
-                    'whatsapp_msg'  => $waMsg,
-                ];
-            } else {
-                $res = ['msg' => 'ERROR AL SUSPENDER', 'type' => 'error'];
-            }
+        if ($data > 0) {
+            $res = [
+                'msg'           => 'CONTRATO SUSPENDIDO EXITOSAMENTE',
+                'type'          => 'success',
+                'whatsapp'      => $resWathsapp,
+                'whatsapp_sent' => $waOk,
+                'whatsapp_msg'  => $waMsg,
+            ];
         } else {
-            $res = ['msg' => 'ERROR DESCONOCIDO', 'type' => 'error'];
+            $res = ['msg' => 'ERROR AL SUSPENDER', 'type' => 'error'];
         }
         echo json_encode($res, JSON_UNESCAPED_UNICODE);
         die();
@@ -1091,50 +1119,64 @@ class Contratos extends Controller
     }
     public function restaurar($idContrato)
     {
-        if (isset($_GET) && is_numeric($idContrato)) {
+        if (!is_numeric($idContrato)) {
+            echo json_encode(['msg' => 'ERROR DESCONOCIDO', 'type' => 'error'], JSON_UNESCAPED_UNICODE);
+            die();
+        }
 
-            $data  = $this->model->eliminar(1, $idContrato);
-            $getIp = $this->model->getContrato($idContrato);
+        // Refactor 2026-06-05: mismo patron que eliminar/suspender — chequear MK
+        // antes de tocar BD. Permitir forzar con ?forceMikrotik=1.
+        $forceMikrotik = !empty($_GET['forceMikrotik']) && $_GET['forceMikrotik'] == '1';
+        $getIp       = $this->model->getContrato($idContrato);
+        $getMikrotik = $this->model->getMikrotik($getIp['id_mikrotik']);
+        $mkResult    = habilitarIp($getIp, $getMikrotik);
 
-            $getMikrotik = $this->model->getMikrotik($getIp['id_mikrotik']);
+        if (empty($mkResult['ok']) && !$forceMikrotik) {
+            echo json_encode([
+                'msg'             => 'MIKROTIK_INALCANZABLE',
+                'type'            => 'confirm',
+                'mikrotik_msg'    => $mkResult['msg'] ?? 'Mikrotik no responde',
+                'mikrotik_nombre' => $getMikrotik['nombre'] ?? '',
+                'mikrotik_ip'     => $getMikrotik['ip'] ?? '',
+                'idContrato'      => (int)$idContrato,
+                'accion'          => 'restaurar',
+            ], JSON_UNESCAPED_UNICODE);
+            die();
+        }
 
-            habilitarIp($getIp, $getMikrotik);
+        $data = $this->model->eliminar(1, $idContrato);
 
-            $waOk = false; $waMsg = null;
-            if (empty($getIp['telefono'])) {
-                $resWathsapp = null;
-                $waMsg = 'Cliente sin telefono registrado';
-            } else {
-                // Renderizar plantilla whatsapp_activacion y enviar via API.
-                $tpl = function_exists('renderPlantilla') ? renderPlantilla('whatsapp_activacion', [
-                    'cliente_nombre' => $getIp['nombre'],
-                ]) : null;
-                $mensajeWA = is_array($tpl) && !empty($tpl['cuerpo'])
-                    ? $tpl['cuerpo']
-                    : ('SERVICIO ACTIVADO' . PHP_EOL . '*' . $getIp['nombre'] . '*');
-
-                if (function_exists('enviarWhatsappTexto')) {
-                    $apiRes = enviarWhatsappTexto($getIp['telefono'], $mensajeWA);
-                    $waOk   = !empty($apiRes['ok']);
-                    $waMsg  = $apiRes['msg'] ?? null;
-                }
-                $resWathsapp = $waOk ? null : ('https://web.whatsapp.com/send?phone=593' . $getIp['telefono']
-                    . '&text=' . rawurlencode($mensajeWA));
-            }
-
-            if ($data > 0) {
-                $res = [
-                    'msg'           => 'CONTRATO RESTAURADO EXITOSAMENTE',
-                    'type'          => 'success',
-                    'whatsapp'      => $resWathsapp,
-                    'whatsapp_sent' => $waOk,
-                    'whatsapp_msg'  => $waMsg,
-                ];
-            } else {
-                $res = ['msg' => 'ERROR AL RESTAURAR', 'type' => 'error'];
-            }
+        $waOk = false; $waMsg = null;
+        if (empty($getIp['telefono'])) {
+            $resWathsapp = null;
+            $waMsg = 'Cliente sin telefono registrado';
         } else {
-            $res = ['msg' => 'ERROR DESCONOCIDO', 'type' => 'error'];
+            $tpl = function_exists('renderPlantilla') ? renderPlantilla('whatsapp_activacion', [
+                'cliente_nombre' => $getIp['nombre'],
+            ]) : null;
+            $mensajeWA = is_array($tpl) && !empty($tpl['cuerpo'])
+                ? $tpl['cuerpo']
+                : ('SERVICIO ACTIVADO' . PHP_EOL . '*' . $getIp['nombre'] . '*');
+
+            if (function_exists('enviarWhatsappTexto')) {
+                $apiRes = enviarWhatsappTexto($getIp['telefono'], $mensajeWA);
+                $waOk   = !empty($apiRes['ok']);
+                $waMsg  = $apiRes['msg'] ?? null;
+            }
+            $resWathsapp = $waOk ? null : ('https://web.whatsapp.com/send?phone=593' . $getIp['telefono']
+                . '&text=' . rawurlencode($mensajeWA));
+        }
+
+        if ($data > 0) {
+            $res = [
+                'msg'           => 'CONTRATO RESTAURADO EXITOSAMENTE',
+                'type'          => 'success',
+                'whatsapp'      => $resWathsapp,
+                'whatsapp_sent' => $waOk,
+                'whatsapp_msg'  => $waMsg,
+            ];
+        } else {
+            $res = ['msg' => 'ERROR AL RESTAURAR', 'type' => 'error'];
         }
         echo json_encode($res, JSON_UNESCAPED_UNICODE);
         die();
@@ -1351,84 +1393,93 @@ function importarExcel($archivoExcel)
     echo json_encode($res, JSON_UNESCAPED_UNICODE);
 }
 
+// Refactor 2026-06-05: devuelve ['ok'=>bool,'msg'=>str] en vez de echo+exit.
+// Permite al caller decidir si forzar o abortar. Timeout 5s evita colgar 60s.
 function bloquearIp($data, $getMikrotik)
 {
-    //print_r($_SESSION);
-    require 'libraries/mikrotik/routeros_api.class.php';
+    require_once 'libraries/mikrotik/routeros_api.class.php';
 
-    //print_r($data); exit;
-    $targetIp = $data['ip_usuario'];
-    $cliente  = $data['nombre'];
+    $targetIp = $data['ip_usuario'] ?? null;
+    $cliente  = $data['nombre'] ?? '';
 
-    if (! $targetIp) {
-        $res = ['msg' => 'FALTA LA IP DEL OBJETIVO', 'type' => 'error'];
-        echo json_encode($res, JSON_UNESCAPED_UNICODE);
-
-        //echo json_encode(['error' => 'Falta la IP objetivo']);
-        exit;
-        
+    if (!$targetIp) {
+        return ['ok' => false, 'msg' => 'FALTA LA IP DEL OBJETIVO'];
+    }
+    if (empty($getMikrotik['ip']) || empty($getMikrotik['usuario'])) {
+        return ['ok' => false, 'msg' => 'NO SE PUEDE SUSPENDER: el contrato no tiene Mikrotik configurado.'];
     }
 
-    $API       = new RouterosAPI();
-    $API->port = $getMikrotik['puerto'] ?? 8728;
+    try {
+        $API = new RouterosAPI();
+        $API->port = $getMikrotik['puerto'] ?? 8728;
+        if (property_exists($API, 'timeout')) { $API->timeout = 5; }
 
-    if ($API->connect($getMikrotik['ip'], $getMikrotik['usuario'], $getMikrotik['clave'])) {
+        if (!@$API->connect($getMikrotik['ip'], $getMikrotik['usuario'], $getMikrotik['clave'])) {
+            return [
+                'ok'  => false,
+                'msg' => 'NO SE PUEDE SUSPENDER PORQUE NO SE TIENE CONEXION AL MIKROTIK ('
+                       . ($getMikrotik['nombre'] ?? $getMikrotik['ip']) . ').'
+            ];
+        }
 
         $API->comm("/ip/firewall/address-list/add", [
             "list"    => "XXXPAGO",
             "address" => $targetIp,
             "comment" => $cliente,
         ]);
-        // $res = ['msg' => 'IP BLOQUEADA', 'type' => 'success'];
 
-    } else {
-        $res = ['msg' => 'FALLO AL BLOQUEAR IP', 'type' => 'error'];
-        echo json_encode($res, JSON_UNESCAPED_UNICODE);
-        exit;
+        $API->disconnect();
+        return ['ok' => true, 'msg' => 'IP BLOQUEADA'];
+
+    } catch (\Throwable $e) {
+        return ['ok' => false, 'msg' => 'ERROR DE COMUNICACION CON EL MIKROTIK (' . $e->getMessage() . ').'];
     }
 }
 
 function habilitarIp($data, $getMikrotik)
 {
-
-    require 'libraries/mikrotik/routeros_api.class.php';
+    require_once 'libraries/mikrotik/routeros_api.class.php';
 
     $targetIp = $data['ip_usuario'] ?? null;
-    //$cliente  = $data['nombre'] ?? 'CLIENTE';
 
-    if (! $targetIp) {
-        $res = ['msg' => 'FALTA LA IP DEL OBJETIVO', 'type' => 'error'];
-        echo json_encode($res, JSON_UNESCAPED_UNICODE);
-        exit;
+    if (!$targetIp) {
+        return ['ok' => false, 'msg' => 'FALTA LA IP DEL OBJETIVO'];
+    }
+    if (empty($getMikrotik['ip']) || empty($getMikrotik['usuario'])) {
+        return ['ok' => false, 'msg' => 'NO SE PUEDE RESTAURAR: el contrato no tiene Mikrotik configurado.'];
     }
 
-    $API       = new RouterosAPI();
-    $API->port = $getMikrotik['puerto'] ?? 8728;
+    try {
+        $API = new RouterosAPI();
+        $API->port = $getMikrotik['puerto'] ?? 8728;
+        if (property_exists($API, 'timeout')) { $API->timeout = 5; }
 
-    if ($API->connect($getMikrotik['ip'], $getMikrotik['usuario'], $getMikrotik['clave'])) {
-        // Buscar si la IP está en la address list
+        if (!@$API->connect($getMikrotik['ip'], $getMikrotik['usuario'], $getMikrotik['clave'])) {
+            return [
+                'ok'  => false,
+                'msg' => 'NO SE PUEDE RESTAURAR PORQUE NO SE TIENE CONEXION AL MIKROTIK ('
+                       . ($getMikrotik['nombre'] ?? $getMikrotik['ip']) . ').'
+            ];
+        }
+
         $list = $API->comm("/ip/firewall/address-list/print", [
             "?address" => $targetIp,
             "?list"    => "XXXPAGO",
         ]);
 
-        if (! empty($list)) {
-
-            $idAddress = $list[0][".id"];
+        if (!empty($list)) {
             $API->comm("/ip/firewall/address-list/remove", [
-                ".id" => $idAddress,
+                ".id" => $list[0][".id"],
             ]);
-        } else {
-
-            $res = ['msg' => 'NO ESTA BLOQUEADO', 'type' => 'warning'];
-            echo json_encode($res, JSON_UNESCAPED_UNICODE);
-            exit;
         }
+        // Si la IP no estaba en la address-list, no es error: el cliente
+        // simplemente nunca fue bloqueado. Continuar normalmente.
 
         $API->disconnect();
-    } else {
+        return ['ok' => true, 'msg' => 'IP HABILITADA'];
 
-        exit;
+    } catch (\Throwable $e) {
+        return ['ok' => false, 'msg' => 'ERROR DE COMUNICACION CON EL MIKROTIK (' . $e->getMessage() . ').'];
     }
 }
 
