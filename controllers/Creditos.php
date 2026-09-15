@@ -451,6 +451,19 @@ class Creditos extends Controller
                     $datosCliente = $dataOrdenVenta;
                 }
 
+                // Si el credito no tiene factura electronica ni orden de venta
+                // asociada, $datosCliente llega vacio: sin esta guarda el acceso
+                // siguiente lanzaba un TypeError y la peticion moria sin responder
+                // (el navegador mostraba "No se pudo enviar / HTTP ?").
+                if (!is_array($datosCliente) || !isset($datosCliente['idCliente'])) {
+                    $res = array(
+                        'msg'  => 'NO SE PUDO IDENTIFICAR AL CLIENTE DE ESTE CREDITO. VUELVA A BUSCARLO Y SELECCIONELO DE LA LISTA.',
+                        'type' => 'error'
+                    );
+                    echo json_encode($res);
+                    die();
+                }
+
                 $idCliente = $datosCliente['idCliente'];
 
                 if ($total > $restante) {
