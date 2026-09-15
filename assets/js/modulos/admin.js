@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // ============ Uploader: Logo del Sistema ============
   const logoUploaderSistema = document.querySelector('#logoUploaderSistema')
   const MAX_LOGO_SISTEMA = 5 * 1024 * 1024  // 5 MB
-  foto.addEventListener('change', function (e) {
+  if (foto) foto.addEventListener('change', function (e) {
     const f = e.target.files[0]
     if (!f) return
     if (!f.type || !f.type.startsWith('image/')) {
@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function () {
     })
   }
   // Actualizar Datos
-  formulario.addEventListener('submit', function (e) {
+  if (formulario) formulario.addEventListener('submit', function (e) {
     e.preventDefault()
 
     errorRuc.textContent = ''
@@ -282,3 +282,236 @@ function deleteImgFactura() {
     + '<div class="lu-hint">Click o arrastra una imagen</div>'
   if (lu) lu.classList.remove('has-image')
 }
+
+/* ==========================================================================
+   Pantalla "Actualizacion del sistema" (views/admin/actualizacion.php)
+   admin.js se carga en varias vistas del panel, por eso todo va detras de una
+   guarda: si no existe #actualizacionPanel, este bloque no hace nada.
+
+   Endpoints (controllers/Admin.php):
+     GET  admin/actualizacionEstado[?solo_estado=1] -> {ok, configurado, check, status, log, mensaje}
+     POST admin/actualizar                          -> {ok, msg, from, to}
+   El trabajo real lo hace /usr/local/sbin/megahnet-update (root), que respalda
+   base de datos y codigo antes de aplicar cambios.
+   ========================================================================== */
+(function () {
+    const panel = document.querySelector('#actualizacionPanel');
+    if (!panel) return;
+
+    const elEstado     = document.querySelector('#actEstado');
+    const elLocalShort = document.querySelector('#actLocalShort');
+    const elLocalDate  = document.querySelector('#actLocalDate');
+    const elLocalSubj  = document.querySelector('#actLocalSubject');
+    const elRemShort   = document.querySelector('#actRemoteShort');
+    const elRemUrl     = document.querySelector('#actRemoteUrl');
+    const elBehind     = document.querySelector('#actBehind');
+    const elAhead      = document.querySelector('#actAhead');
+    const elDirtyBox   = document.querySelector('#actDirtyBox');
+    const elDirtyList  = document.querySelector('#actDirtyList');
+    const elBadge      = document.querySelector('#actStatusBadge');
+    const elDetalle    = document.querySelector('#actStatusDetalle');
+    const elLog        = document.querySelector('#actLog');
+    const btnComprobar = document.querySelector('#actBtnComprobar');
+    const btnActualizar= document.querySelector('#actBtnActualizar');
+
+    let temporizador = null;   // polling mientras la actualizacion corre
+    let enCurso      = false;  // evita relanzar o comprobar durante el proceso
+
+    const PASOS = {
+        preflight: 'Verificando requisitos',
+        respaldo:  'Generando respaldo de base de datos y codigo',
+        'git-pull':'Descargando cambios',
+        'patch-sri':'Aplicando parches de facturacion electronica',
+        install:   'Aplicando migraciones y dependencias',
+        fin:       'Finalizado'
+    };
+
+    function aviso(clase, iconoBx, html) {
+        elEstado.className = 'alert ' + clase + ' mb-3';
+        elEstado.innerHTML = '<i class="bx ' + iconoBx + '"></i> ' + html;
+    }
+
+    function pintarBadge(estado) {
+        const mapa = {
+            running: ['bg-info',      'en curso'],
+            ok:      ['bg-success',   'completada'],
+            error:   ['bg-danger',    'con error'],
+            vacio:   ['bg-secondary', 'sin datos']
+        };
+        const [clase, texto] = mapa[estado] || mapa.vacio;
+        elBadge.className = 'badge ' + clase;
+        elBadge.textContent = texto;
+    }
+
+    function pintarLog(texto) {
+        const pegadoAbajo = elLog.scrollHeight - elLog.scrollTop - elLog.clientHeight < 40;
+        elLog.textContent = (texto && texto.trim() !== '') ? texto : '(sin registro)';
+        if (pegadoAbajo) elLog.scrollTop = elLog.scrollHeight;
+    }
+
+    /** Pinta el resultado de `megahnet-update check` (versiones, pendientes, estado). */
+    function pintarCheck(check, configurado, mensaje) {
+        if (configurado === false) {
+            aviso('alert-warning', 'bx-error',
+                '<b>Actualizacion desde el panel no configurada en este servidor.</b><br>' +
+                'Ejecute <code>sudo bash install.sh</code> en el servidor para habilitarla.' +
+                (mensaje ? '<div class="small mt-1">' + mensaje + '</div>' : ''));
+            btnActualizar.disabled = true;
+            return;
+        }
+        if (!check) return;
+
+        const local  = check.local  || {};
+        const remoto = check.remote || {};
+        elLocalShort.textContent = local.short || '--';
+        elLocalDate.textContent  = local.date ? local.date.substring(0, 16) : '';
+        elLocalSubj.textContent  = local.subject || '';
+        elLocalSubj.title        = local.subject || '';
+        elRemShort.textContent   = remoto.short || '--';
+        elRemUrl.textContent     = check.remote_url || '';
+        elRemUrl.title           = check.remote_url || '';
+
+        const pendientes = parseInt(check.behind, 10) || 0;
+        elBehind.textContent = pendientes;
+        const adelante = parseInt(check.ahead, 10) || 0;
+        elAhead.textContent = adelante > 0 ? (adelante + ' commit(s) locales sin subir') : '';
+
+        // Archivos modificados en el servidor: bloquean la actualizacion
+        if (check.dirty && Array.isArray(check.dirty_files) && check.dirty_files.length) {
+            elDirtyList.textContent = check.dirty_files.join('\n');
+            elDirtyBox.hidden = false;
+        } else {
+            elDirtyBox.hidden = true;
+        }
+
+        if (!check.ok) {
+            aviso('alert-danger', 'bx-x-circle', check.reason || 'No se pudo consultar el repositorio.');
+            btnActualizar.disabled = true;
+        } else if (check.can_update) {
+            aviso('alert-primary', 'bx-cloud-download',
+                'Hay <b>' + pendientes + '</b> cambio(s) disponible(s): <code>' +
+                (local.short || '') + '</code> &rarr; <code>' + (remoto.short || '') + '</code>.');
+            btnActualizar.disabled = false;
+        } else if (pendientes === 0) {
+            aviso('alert-success', 'bx-check-circle', 'El sistema esta al dia.');
+            btnActualizar.disabled = true;
+        } else {
+            aviso('alert-warning', 'bx-error', check.reason || 'No se puede actualizar en este momento.');
+            btnActualizar.disabled = true;
+        }
+    }
+
+    /** Pinta status.json (progreso o resultado de la ultima corrida). */
+    function pintarStatus(status) {
+        if (!status || !status.state) { pintarBadge('vacio'); elDetalle.textContent = ''; return false; }
+        pintarBadge(status.state);
+        const paso = PASOS[status.step] || status.step || '';
+        const partes = [];
+        if (status.state === 'running' && paso) partes.push(paso + '...');
+        if (status.state !== 'running' && status.message) partes.push(status.message);
+        if (status.from && status.to) partes.push(status.from + ' → ' + status.to);
+        if (status.started_at) partes.push('inicio ' + status.started_at);
+        if (status.finished_at) partes.push('fin ' + status.finished_at);
+        elDetalle.textContent = partes.join('  ·  ');
+        return status.state === 'running';
+    }
+
+    /** Consulta el estado. soloEstado=true durante el polling (no corre git fetch). */
+    function cargarEstado(soloEstado) {
+        const url = base_url + 'admin/actualizacionEstado' + (soloEstado ? '?solo_estado=1' : '');
+        return fetch(url, { cache: 'no-store' })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (!res || res.ok === false) {
+                    aviso('alert-danger', 'bx-x-circle', (res && res.mensaje) || 'No se pudo consultar el estado.');
+                    return;
+                }
+                pintarLog(res.log || '');
+                const corriendo = pintarStatus(res.status);
+
+                if (corriendo) {
+                    enCurso = true;
+                    btnActualizar.disabled = true;
+                    btnComprobar.disabled = true;
+                    aviso('alert-info', 'bx-loader bx-spin',
+                        'Actualizacion en curso. No cierre esta pantalla.');
+                    arrancarPolling();
+                } else {
+                    if (enCurso) {
+                        // Acaba de terminar: avisar y refrescar versiones con un check real
+                        enCurso = false;
+                        detenerPolling();
+                        btnComprobar.disabled = false;
+                        const ok = res.status && res.status.state === 'ok';
+                        alertaPersonalizada(ok ? 'success' : 'error',
+                            ok ? 'Actualizacion completada' : ((res.status && res.status.message) || 'La actualizacion fallo'));
+                        cargarEstado(false);
+                        return;
+                    }
+                    btnComprobar.disabled = false;
+                    if (!soloEstado) pintarCheck(res.check, res.configurado, res.mensaje);
+                }
+            })
+            .catch(function () {
+                aviso('alert-danger', 'bx-x-circle', 'Error de red al consultar el estado.');
+            });
+    }
+
+    function arrancarPolling() {
+        if (temporizador) return;
+        temporizador = setInterval(function () { cargarEstado(true); }, 3000);
+    }
+    function detenerPolling() {
+        if (temporizador) { clearInterval(temporizador); temporizador = null; }
+    }
+
+    btnComprobar.addEventListener('click', function () {
+        if (enCurso) return;
+        btnComprobar.disabled = true;
+        aviso('alert-secondary', 'bx-loader bx-spin', 'Comprobando version instalada y disponible...');
+        cargarEstado(false);
+    });
+
+    btnActualizar.addEventListener('click', function () {
+        if (enCurso || btnActualizar.disabled) return;
+        Swal.fire({
+            title: 'Actualizar el sistema?',
+            html: 'Antes de aplicar cambios se generara un <b>respaldo de la base de datos y del codigo</b>.<br><br>' +
+                  'La operacion tarda unos minutos y el sistema puede ir mas lento mientras tanto.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Si, actualizar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#2563eb'
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            btnActualizar.disabled = true;
+            btnComprobar.disabled = true;
+            aviso('alert-info', 'bx-loader bx-spin', 'Iniciando actualizacion...');
+            fetch(base_url + 'admin/actualizar', { method: 'POST', cache: 'no-store' })
+                .then(function (rs) { return rs.json(); })
+                .then(function (res) {
+                    if (!res || !res.ok) {
+                        btnComprobar.disabled = false;
+                        alertaPersonalizada('warning', (res && res.msg) || 'No se pudo iniciar la actualizacion');
+                        cargarEstado(false);
+                        return;
+                    }
+                    enCurso = true;
+                    alertaPersonalizada('success', res.msg);
+                    aviso('alert-info', 'bx-loader bx-spin', 'Actualizacion en curso. No cierre esta pantalla.');
+                    pintarBadge('running');
+                    arrancarPolling();
+                })
+                .catch(function () {
+                    btnComprobar.disabled = false;
+                    alertaPersonalizada('error', 'Error de red al iniciar la actualizacion');
+                });
+        });
+    });
+
+    window.addEventListener('beforeunload', detenerPolling);
+
+    // Carga inicial
+    cargarEstado(false);
+})();

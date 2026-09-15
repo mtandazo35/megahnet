@@ -99,6 +99,7 @@
           ['sucursales', 'Sucursales', 'bx-store-alt'],
           ['admin/logs', 'Log de Acceso', 'bx-history'],
           ['admin/respaldos', 'Respaldos BD', 'bx-cloud-download'],
+          ['admin/actualizacion', 'Actualizacion del sistema', 'bx-refresh'],
           ['notificaciones', 'Notificaciones', 'bx-bell'],
       ],
   ];

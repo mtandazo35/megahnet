@@ -413,6 +413,89 @@ JSON
 fi
 
 # ---------------------------------------------------------------------------
+# 7d. Actualizacion desde el panel (boton "Actualizar ahora")
+# ---------------------------------------------------------------------------
+# Instala el script de actualizacion como root y habilita que el panel (www-data)
+# lo invoque via sudo SOLO con los subcomandos check/run. Todo idempotente.
+UPD_SRC="$PROJECT_DIR/scripts/megahnet-update"
+UPD_DST="/usr/local/sbin/megahnet-update"
+if [[ -f "$UPD_SRC" ]]; then
+    log "Instalando actualizador ($UPD_DST)..."
+    install -o root -g root -m 750 "$UPD_SRC" "$UPD_DST"
+
+    # sudoers: www-data puede correr SOLO estos dos subcomandos, sin password
+    SUDOERS_UPD="/etc/sudoers.d/megahnet-update"
+    SUDOERS_TMP="$(mktemp)"
+    cat > "$SUDOERS_TMP" <<'SUDOERS'
+www-data ALL=(root) NOPASSWD: /usr/local/sbin/megahnet-update check, /usr/local/sbin/megahnet-update run
+SUDOERS
+    if visudo -cf "$SUDOERS_TMP" >/dev/null 2>&1; then
+        install -o root -g root -m 440 "$SUDOERS_TMP" "$SUDOERS_UPD"
+        log "Regla sudoers instalada ($SUDOERS_UPD)"
+    else
+        warn "La regla sudoers no valida; el boton de actualizar quedara deshabilitado"
+    fi
+    rm -f "$SUDOERS_TMP"
+
+    # git rechaza operar como root sobre un repo de otro dueno (chown -R www-data)
+    if ! git config --global --get-all safe.directory 2>/dev/null | grep -qx "$PROJECT_DIR"; then
+        git config --global --add safe.directory "$PROJECT_DIR"
+        log "git safe.directory registrado para $PROJECT_DIR"
+    fi
+
+    # Carpeta de estado/log que lee el panel
+    mkdir -p "$PROJECT_DIR/storage/update"
+    chown -R www-data:www-data "$PROJECT_DIR/storage/update"
+    chmod 775 "$PROJECT_DIR/storage/update"
+
+    # Deploy key de SOLO LECTURA para que el server pueda hacer git fetch/pull
+    DEPLOY_KEY="/root/.ssh/id_ed25519_megahnet"
+    SSH_HOST_ALIAS="github.com-megahnet"
+    mkdir -p /root/.ssh && chmod 700 /root/.ssh
+    if [[ ! -f "$DEPLOY_KEY" ]]; then
+        log "Generando deploy key para actualizaciones..."
+        ssh-keygen -t ed25519 -N "" -C "megahnet-update@$(hostname)" -f "$DEPLOY_KEY" >/dev/null
+    fi
+    if ! grep -q "Host $SSH_HOST_ALIAS" /root/.ssh/config 2>/dev/null; then
+        cat >> /root/.ssh/config <<SSHCFG
+
+Host $SSH_HOST_ALIAS
+    HostName github.com
+    User git
+    IdentityFile $DEPLOY_KEY
+    IdentitiesOnly yes
+SSHCFG
+        chmod 600 /root/.ssh/config
+    fi
+    ssh-keyscan -t ed25519 github.com >> /root/.ssh/known_hosts 2>/dev/null
+    sort -u -o /root/.ssh/known_hosts /root/.ssh/known_hosts 2>/dev/null || true
+
+    # Si la key ya esta registrada en GitHub, pasar el remoto a SSH (permite git pull)
+    CUR_REMOTE="$(git -C "$PROJECT_DIR" remote get-url origin 2>/dev/null || echo '')"
+    if ssh -o StrictHostKeyChecking=no -o BatchMode=yes -T "git@$SSH_HOST_ALIAS" 2>&1 | grep -q 'successfully authenticated'; then
+        if [[ "$CUR_REMOTE" == https://* ]]; then
+            git -C "$PROJECT_DIR" remote set-url origin "git@${SSH_HOST_ALIAS}:mtandazo35/megahnet.git"
+            log "Remoto origin cambiado a SSH (deploy key activa)"
+        else
+            log "Deploy key activa y remoto ya en SSH"
+        fi
+    else
+        warn "La deploy key aun no esta registrada en GitHub: el boton 'Actualizar' no podra descargar cambios."
+        echo
+        echo "  Registra esta clave publica en GitHub como deploy key de SOLO LECTURA"
+        echo "  (repo mtandazo35/megahnet > Settings > Deploy keys > Add deploy key,"
+        echo "   NO marques 'Allow write access'):"
+        echo
+        echo "    $(cat "${DEPLOY_KEY}.pub")"
+        echo
+        echo "  Luego vuelve a correr: sudo bash install.sh"
+        echo
+    fi
+else
+    warn "scripts/megahnet-update no encontrado; actualizacion desde el panel no instalada"
+fi
+
+# ---------------------------------------------------------------------------
 # 8. Resumen final
 # ---------------------------------------------------------------------------
 SERVER_IP=$(hostname -I | awk '{print $1}')
@@ -449,5 +532,6 @@ fi
 echo
 fi
 echo "  Para actualizar a futuro:"
-echo "    cd ${PROJECT_DIR} && git pull && sudo bash install.sh"
+echo "    Panel > Administracion > Actualizacion  (boton, con respaldo automatico)"
+echo "    o en consola: cd ${PROJECT_DIR} && git pull && sudo bash install.sh"
 echo "=================================================================="

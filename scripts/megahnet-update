@@ -1,0 +1,238 @@
+#!/usr/bin/env bash
+# ============================================================================
+#  megahnet-update - Actualiza la instalacion desde GitHub con RESPALDO PREVIO
+#  OBLIGATORIO (base de datos + codigo/runtime). Si el respaldo falla, no se
+#  toca nada.
+#
+#  Uso (como root):
+#      megahnet-update check   -> imprime JSON con version local/remota, sin modificar nada
+#      megahnet-update run     -> respaldo + git pull --ff-only + parches SRI + install.sh
+#      megahnet-update help
+#
+#  install.sh lo copia a /usr/local/sbin/megahnet-update y crea la regla sudoers
+#  que permite a www-data invocar SOLO estos dos subcomandos desde el panel.
+#
+#  Estado para el panel:  <proyecto>/storage/update/status.json
+#  Log:                   <proyecto>/storage/update/update.log
+#  Respaldos:             ${BACKUP_DIR}/megahnet-pre-update-<fecha>.sql.gz / .tar.gz
+#  Snapshot Proxmox opcional si en .env existen PVE_API_URL, PVE_TOKEN_ID,
+#  PVE_TOKEN_SECRET, PVE_NODE y PVE_VMID (best-effort: nunca bloquea).
+# ============================================================================
+set -euo pipefail
+
+PROJECT_DIR="${PROJECT_DIR:-/var/www/megahnet}"
+BACKUP_DIR="${BACKUP_DIR:-/root/backups}"
+KEEP_BACKUPS="${KEEP_BACKUPS:-5}"
+BRANCH="${BRANCH:-main}"
+STATUS_DIR="$PROJECT_DIR/storage/update"
+STATUS_FILE="$STATUS_DIR/status.json"
+LOG_FILE="$STATUS_DIR/update.log"
+LOCK_FILE="/run/lock/megahnet-update.lock"
+MIN_FREE_KB=1048576   # 1 GB libres minimo antes de actualizar
+
+STARTED_AT=""; FROM=""; TO=""; CURRENT_STEP=""; FAILED=""
+
+# ----------------------------------------------------------------------------
+# utilidades
+# ----------------------------------------------------------------------------
+ts()   { date '+%Y-%m-%d %H:%M:%S'; }
+g()    { git -C "$PROJECT_DIR" "$@"; }
+# escapa un valor para meterlo dentro de un string JSON (sin saltos de linea)
+jesc() { printf '%s' "$1" | tr -d '\r' | tr '\n' ' ' | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+log()  { mkdir -p "$STATUS_DIR"; echo "[$(ts)] $*" >> "$LOG_FILE"; }
+# lee una variable del .env del proyecto (KEY=VALUE, con o sin comillas)
+envget() {
+    grep -E "^$1=" "$PROJECT_DIR/.env" 2>/dev/null | head -1 | cut -d= -f2- \
+        | sed -e 's/^["'\'']//' -e 's/["'\'']$//'
+}
+
+# status_write <state> <step> <mensaje>
+status_write() {
+    mkdir -p "$STATUS_DIR"
+    local state="$1" step="$2" msg="$3" fin=""
+    [[ "$state" != "running" ]] && fin="$(ts)"
+    printf '{"state":"%s","step":"%s","started_at":"%s","finished_at":"%s","from":"%s","to":"%s","message":"%s","log":"storage/update/update.log"}\n' \
+        "$state" "$(jesc "$step")" "$STARTED_AT" "$fin" "$FROM" "$TO" "$(jesc "$msg")" > "$STATUS_FILE"
+    chown www-data:www-data "$STATUS_DIR" "$STATUS_FILE" 2>/dev/null || true
+}
+
+fail() {
+    FAILED=1
+    log "ERROR: $*"
+    status_write error "${CURRENT_STEP:-?}" "$*"
+    log "ABORTADO en paso ${CURRENT_STEP:-?}"
+    exit 1
+}
+
+usage() {
+    sed -n '2,20p' "$0" | sed 's/^# \{0,2\}//'
+}
+
+# ----------------------------------------------------------------------------
+# check: solo lectura (hace fetch), imprime JSON para el panel
+# ----------------------------------------------------------------------------
+cmd_check() {
+    local ok=true reason="" fetch_err=""
+    if ! g rev-parse --git-dir >/dev/null 2>&1; then
+        printf '{"ok":false,"reason":"%s","can_update":false}\n' \
+            "$(jesc "$PROJECT_DIR no es un repositorio git o falta git config safe.directory (ejecute sudo bash install.sh)")"
+        return 0
+    fi
+    if ! fetch_err=$(g fetch -q origin "$BRANCH" 2>&1); then
+        ok=false
+        reason="sin acceso al repositorio remoto (deploy key no configurada?): $(echo "$fetch_err" | tail -1)"
+    fi
+
+    local lh ls ld lsub rh="" rs="" behind=0 ahead=0 dirty=false dfiles url can=false why="" arr="" f last="null"
+    lh=$(g rev-parse HEAD); ls=$(g rev-parse --short HEAD)
+    ld=$(g log -1 --format=%ci); lsub=$(g log -1 --format=%s)
+    if [[ "$ok" == true ]]; then
+        rh=$(g rev-parse "origin/$BRANCH"); rs=$(g rev-parse --short "origin/$BRANCH")
+        behind=$(g rev-list --count "HEAD..origin/$BRANCH")
+        ahead=$(g rev-list --count "origin/$BRANCH..HEAD")
+    fi
+    dfiles=$(g status --porcelain | head -20)
+    [[ -n "$dfiles" ]] && dirty=true
+    url=$(g remote get-url origin 2>/dev/null || echo "")
+
+    if   [[ "$ok" != true ]];      then why="$reason"
+    elif [[ "$dirty" == true ]];   then why="hay cambios locales sin subir al repositorio; no se puede actualizar"
+    elif (( behind == 0 ));        then why="el sistema esta al dia"
+    elif ! g merge-base --is-ancestor HEAD "origin/$BRANCH"; then why="la rama local divergio del remoto (no es fast-forward); requiere intervencion manual"
+    else can=true; why="hay $behind cambio(s) disponible(s)"
+    fi
+
+    while IFS= read -r f; do
+        [[ -z "$f" ]] && continue
+        arr+="${arr:+,}\"$(jesc "$f")\""
+    done <<< "$dfiles"
+    [[ -s "$STATUS_FILE" ]] && last=$(cat "$STATUS_FILE")
+
+    printf '{"ok":%s,"local":{"hash":"%s","short":"%s","date":"%s","subject":"%s"},"remote":{"hash":"%s","short":"%s"},"behind":%s,"ahead":%s,"dirty":%s,"dirty_files":[%s],"remote_url":"%s","can_update":%s,"reason":"%s","last_run":%s}\n' \
+        "$ok" "$lh" "$ls" "$(jesc "$ld")" "$(jesc "$lsub")" "$rh" "$rs" "$behind" "$ahead" "$dirty" "$arr" "$(jesc "$url")" "$can" "$(jesc "$why")" "$last"
+}
+
+# ----------------------------------------------------------------------------
+# respaldo Proxmox (opcional, best-effort). Devuelve 0 si se creo o no aplica.
+# ----------------------------------------------------------------------------
+pve_snapshot() {
+    local stamp="$1" url id sec node vmid resp upid st ex i
+    url=$(envget PVE_API_URL); id=$(envget PVE_TOKEN_ID); sec=$(envget PVE_TOKEN_SECRET)
+    node=$(envget PVE_NODE);   vmid=$(envget PVE_VMID)
+    if [[ -z "$url" || -z "$id" || -z "$sec" || -z "$node" || -z "$vmid" ]]; then
+        log "snapshot Proxmox: no configurado (variables PVE_* en .env), se omite"
+        return 0
+    fi
+    command -v curl >/dev/null 2>&1 || return 1
+    resp=$(curl -ksS -m 30 -X POST -H "Authorization: PVEAPIToken=${id}=${sec}" \
+        --data-urlencode "snapname=pre-update-${stamp}" --data-urlencode "vmstate=0" \
+        --data-urlencode "description=megahnet-update ${stamp}" \
+        "${url%/}/api2/json/nodes/${node}/qemu/${vmid}/snapshot" 2>>"$LOG_FILE") || return 1
+    upid=$(printf '%s' "$resp" | sed -n 's/.*"data":"\([^"]*\)".*/\1/p')
+    [[ -n "$upid" ]] || { log "snapshot Proxmox: respuesta inesperada de la API"; return 1; }
+    for i in $(seq 1 60); do
+        sleep 5
+        st=$(curl -ksS -m 15 -H "Authorization: PVEAPIToken=${id}=${sec}" \
+            "${url%/}/api2/json/nodes/${node}/tasks/${upid}/status" 2>/dev/null | sed -n 's/.*"status":"\([^"]*\)".*/\1/p')
+        [[ "$st" == "stopped" ]] && break
+    done
+    ex=$(curl -ksS -m 15 -H "Authorization: PVEAPIToken=${id}=${sec}" \
+        "${url%/}/api2/json/nodes/${node}/tasks/${upid}/status" 2>/dev/null | sed -n 's/.*"exitstatus":"\([^"]*\)".*/\1/p')
+    if [[ "$ex" == "OK" ]]; then
+        log "snapshot Proxmox 'pre-update-${stamp}' creado en ${node}/${vmid}"
+        return 0
+    fi
+    log "snapshot Proxmox termino con estado '${ex:-desconocido}'"
+    return 1
+}
+
+rotate_backups() {
+    ls -1t "$BACKUP_DIR"/megahnet-pre-update-*.sql.gz 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | xargs -r rm -f
+    ls -1t "$BACKUP_DIR"/megahnet-pre-update-*.tar.gz 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | xargs -r rm -f
+}
+
+# ----------------------------------------------------------------------------
+# run: actualizacion real
+# ----------------------------------------------------------------------------
+cmd_run() {
+    [[ $EUID -eq 0 ]] || { echo "megahnet-update run debe ejecutarse como root" >&2; exit 1; }
+    mkdir -p "$STATUS_DIR" "$BACKUP_DIR" "$(dirname "$LOCK_FILE")"
+    exec 9>"$LOCK_FILE"
+    flock -n 9 || { echo "ya hay una actualizacion en curso" >&2; exit 1; }
+
+    STARTED_AT="$(ts)"; CURRENT_STEP="preflight"
+    # Cualquier error no controlado (set -e) deja el estado en error para el panel
+    trap 'rc=$?; if [[ $rc -ne 0 && -z "$FAILED" ]]; then status_write error "$CURRENT_STEP" "error inesperado en el paso $CURRENT_STEP (ver update.log)"; log "ABORTADO en $CURRENT_STEP (rc=$rc)"; fi' EXIT
+
+    log "===== INICIO actualizacion ====="
+    status_write running preflight "verificando requisitos"
+    command -v git >/dev/null 2>&1 || fail "git no esta instalado"
+    g rev-parse --git-dir >/dev/null 2>&1 || fail "$PROJECT_DIR no es un repositorio git (falta git config safe.directory?)"
+    g fetch -q origin "$BRANCH" 2>>"$LOG_FILE" || fail "no se pudo conectar con el repositorio remoto (deploy key?)"
+    [[ -z "$(g status --porcelain)" ]] || fail "hay cambios locales sin subir al repositorio; actualizacion cancelada"
+    g merge-base --is-ancestor HEAD "origin/$BRANCH" || fail "la rama local divergio del remoto; requiere intervencion manual"
+    FROM=$(g rev-parse --short HEAD); TO=$(g rev-parse --short "origin/$BRANCH")
+    if [[ "$FROM" == "$TO" ]]; then
+        log "ya esta al dia ($FROM)"
+        status_write ok preflight "el sistema ya esta al dia ($FROM)"
+        trap - EXIT
+        return 0
+    fi
+    local free
+    free=$(df -Pk "$PROJECT_DIR" | awk 'NR==2{print $4}')
+    (( free >= MIN_FREE_KB )) || fail "espacio en disco insuficiente ($((free / 1024)) MB libres, minimo 1024 MB)"
+    log "actualizando de $FROM a $TO ($(g rev-list --count "HEAD..origin/$BRANCH") cambios)"
+
+    # --- RESPALDO OBLIGATORIO: sin respaldo valido no se toca nada -----------
+    CURRENT_STEP="respaldo"
+    status_write running respaldo "generando respaldo de base de datos y codigo"
+    local stamp dbh dbu dbp dbn sqlf tarf
+    stamp=$(date +%Y%m%d-%H%M%S)
+    dbh=$(envget DB_HOST); dbu=$(envget DB_USER); dbp=$(envget DB_PASSWORD); dbn=$(envget DB_NAME)
+    [[ -n "$dbu" && -n "$dbn" ]] || fail "no se pudieron leer las credenciales de BD del .env"
+    sqlf="$BACKUP_DIR/megahnet-pre-update-$stamp.sql.gz"
+    tarf="$BACKUP_DIR/megahnet-pre-update-$stamp.tar.gz"
+    if ! MYSQL_PWD="$dbp" mysqldump -h "${dbh:-localhost}" -u "$dbu" --single-transaction --routines --triggers "$dbn" 2>>"$LOG_FILE" | gzip > "$sqlf"; then
+        fail "fallo el respaldo de la base de datos"
+    fi
+    [[ -s "$sqlf" ]] || fail "el respaldo de la base de datos quedo vacio"
+    tar --exclude='./vendor' --exclude='./node_modules' --exclude='./.git' --exclude='*.log' \
+        -czf "$tarf" -C "$PROJECT_DIR" . 2>>"$LOG_FILE" || fail "fallo el respaldo del codigo"
+    [[ -s "$tarf" ]] || fail "el respaldo del codigo quedo vacio"
+    log "respaldo BD: $sqlf ($(du -h "$sqlf" | cut -f1)) | codigo: $tarf ($(du -h "$tarf" | cut -f1))"
+    pve_snapshot "$stamp" || log "AVISO: snapshot Proxmox no realizado; el respaldo BD+codigo si esta garantizado"
+    rotate_backups
+
+    # --- codigo -------------------------------------------------------------
+    CURRENT_STEP="git-pull"
+    status_write running git-pull "descargando cambios ($FROM -> $TO)"
+    g pull -q --ff-only origin "$BRANCH" >>"$LOG_FILE" 2>&1 || fail "git pull fallo"
+    log "codigo actualizado a $(g rev-parse --short HEAD)"
+
+    # --- libreria SRI (no viaja por git): re-aplicar parches ----------------
+    if [[ -d "$PROJECT_DIR/facturaelectronica" && -f "$PROJECT_DIR/scripts/patch_facturaelectronica.sh" ]]; then
+        CURRENT_STEP="patch-sri"
+        status_write running patch-sri "aplicando parches a facturaelectronica/"
+        ROOT="$PROJECT_DIR" bash "$PROJECT_DIR/scripts/patch_facturaelectronica.sh" >>"$LOG_FILE" 2>&1 \
+            || fail "fallo scripts/patch_facturaelectronica.sh"
+    fi
+
+    # --- migraciones, dependencias, permisos (sin reiniciar el WhatsApp API) -
+    CURRENT_STEP="install"
+    status_write running install "ejecutando install.sh (migraciones, dependencias, permisos)"
+    ( cd "$PROJECT_DIR" && SKIP_WA=1 DEBIAN_FRONTEND=noninteractive bash install.sh ) >>"$LOG_FILE" 2>&1 </dev/null \
+        || fail "install.sh termino con error (ver update.log)"
+
+    chown -R www-data:www-data "$STATUS_DIR" 2>/dev/null || true
+    CURRENT_STEP="fin"
+    status_write ok fin "actualizacion completada ($FROM -> $TO)"
+    log "===== FIN OK ($FROM -> $TO) ====="
+    trap - EXIT
+}
+
+case "${1:-help}" in
+    check)          cmd_check ;;
+    run)            cmd_run ;;
+    help|-h|--help) usage ;;
+    *)              usage; exit 1 ;;
+esac

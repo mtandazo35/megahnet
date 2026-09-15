@@ -1363,4 +1363,285 @@ class Admin extends Controller
             exit;
         }
     }
+
+    // =========================================================================
+    // Actualizacion del sistema desde GitHub.
+    // Todo el trabajo real lo hace /usr/local/sbin/megahnet-update (root) via
+    // sudoers sin contrasena (lo instala install.sh). Aqui solo se invoca
+    // `check` (JSON de estado) y `run` (larga duracion, en segundo plano) y se
+    // leen storage/update/status.json + storage/update/update.log.
+    // =========================================================================
+    const UPDATE_BIN = '/usr/local/sbin/megahnet-update';
+
+    /** Pantalla "Actualizacion del sistema" (solo administrador). */
+    public function actualizacion()
+    {
+        if (empty($_SESSION['id_usuario']) || ($_SESSION['rol'] ?? 0) != 1) {
+            header('Location: ' . BASE_URL . 'admin/permisos');
+            exit;
+        }
+        $data['title'] = 'Actualizacion del sistema';
+        $data['script'] = 'admin.js';
+        $this->views->getView('admin', 'actualizacion', $data);
+    }
+
+    /**
+     * GET admin/actualizacionEstado[?solo_estado=1]
+     * Devuelve {"ok","configurado","check","status","log","mensaje"}.
+     * Con solo_estado=1 (polling) no ejecuta `check`, solo lee status.json y el log.
+     */
+    public function actualizacionEstado()
+    {
+        header('Content-Type: application/json');
+        if (empty($_SESSION['id_usuario']) || ($_SESSION['rol'] ?? 0) != 1) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'msg' => 'Sin permiso']);
+            exit;
+        }
+        $res = [
+            'ok'          => true,
+            'configurado' => false,
+            'check'       => null,
+            'status'      => null,
+            'log'         => '',
+            'mensaje'     => '',
+        ];
+        try {
+            $res['status'] = $this->updateLeerStatus();
+            $res['log']    = $this->updateLeerLog(200);
+            $soloEstado    = !empty($_GET['solo_estado']);
+            $enCurso       = is_array($res['status']) && ($res['status']['state'] ?? '') === 'running';
+            if (!$soloEstado && !$enCurso) {
+                $chk = $this->updateCheck();
+                $res['configurado'] = $chk['configurado'];
+                $res['check']       = $chk['check'];
+                $res['mensaje']     = $chk['mensaje'];
+            } else {
+                // Durante una actualizacion no se corre git fetch; se asume configurado
+                // (si no lo estuviera, no habria status.json en running).
+                $res['configurado'] = $enCurso ? true : null;
+            }
+        } catch (\Throwable $e) {
+            $res['ok']      = false;
+            $res['mensaje'] = 'Error al consultar el estado: ' . $e->getMessage();
+        }
+        echo json_encode($res, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    /**
+     * POST admin/actualizar
+     * Lanza `megahnet-update run` en segundo plano (nohup) y responde de inmediato.
+     * El script hace respaldo de BD y codigo antes de aplicar cambios.
+     */
+    public function actualizar()
+    {
+        header('Content-Type: application/json');
+        if (empty($_SESSION['id_usuario']) || ($_SESSION['rol'] ?? 0) != 1) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'msg' => 'Sin permiso']);
+            exit;
+        }
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['ok' => false, 'msg' => 'Metodo no permitido']);
+            exit;
+        }
+
+        // Candado local contra doble clic / dos peticiones simultaneas.
+        // storage/ es escribible por www-data (ahi van modulos.json, servicios.json...).
+        $lockFile = ROOT_PATH . '/storage/update-panel.lock';
+        $lock = @fopen($lockFile, 'c');
+        if ($lock === false || !@flock($lock, LOCK_EX | LOCK_NB)) {
+            if ($lock) { fclose($lock); }
+            http_response_code(409);
+            echo json_encode(['ok' => false, 'msg' => 'Ya hay una peticion de actualizacion en curso, espere unos segundos.']);
+            exit;
+        }
+
+        try {
+            $status = $this->updateLeerStatus();
+            if (is_array($status) && ($status['state'] ?? '') === 'running') {
+                http_response_code(409);
+                echo json_encode(['ok' => false, 'msg' => 'Ya hay una actualizacion en curso.']);
+                exit;
+            }
+            // Si se lanzo hace menos de 90 s y el script aun no escribio status.json, no relanzar.
+            $marca = ROOT_PATH . '/storage/update-panel.launched';
+            if (is_file($marca) && (time() - (int)@filemtime($marca)) < 90) {
+                http_response_code(409);
+                echo json_encode(['ok' => false, 'msg' => 'La actualizacion se lanzo hace unos segundos; espere a que aparezca en el registro.']);
+                exit;
+            }
+
+            $chk = $this->updateCheck();
+            if (!$chk['configurado']) {
+                echo json_encode(['ok' => false, 'msg' => $chk['mensaje']]);
+                exit;
+            }
+            $c = $chk['check'];
+            if (empty($c['ok'])) {
+                echo json_encode(['ok' => false, 'msg' => $c['reason'] ?? 'El comprobador de actualizaciones reporto un error.']);
+                exit;
+            }
+            if (empty($c['can_update'])) {
+                $why = $c['reason'] ?? '';
+                if ($why === '') {
+                    $why = ((int)($c['behind'] ?? 0) === 0) ? 'El sistema ya esta al dia.' : 'No se puede actualizar en este momento.';
+                }
+                echo json_encode(['ok' => false, 'msg' => $why]);
+                exit;
+            }
+
+            // Lanzar en segundo plano: el shell devuelve de inmediato y el proceso
+            // sobrevive al request (stdio a /dev/null, nohup ignora SIGHUP).
+            $cmd = 'nohup sudo -n ' . escapeshellarg(self::UPDATE_BIN) . ' run > /dev/null 2>&1 &';
+            $descriptors = [
+                0 => ['file', '/dev/null', 'r'],
+                1 => ['file', '/dev/null', 'w'],
+                2 => ['file', '/dev/null', 'w'],
+            ];
+            $proc = @proc_open($cmd, $descriptors, $pipes, ROOT_PATH);
+            if (!is_resource($proc)) {
+                echo json_encode(['ok' => false, 'msg' => 'No se pudo lanzar el proceso de actualizacion (proc_open).']);
+                exit;
+            }
+            proc_close($proc);
+            @touch($marca);
+
+            echo json_encode([
+                'ok'   => true,
+                'msg'  => 'Actualizacion iniciada. Se hara un respaldo de BD y codigo antes de aplicar cambios.',
+                'from' => $c['local']['short'] ?? '',
+                'to'   => $c['remote']['short'] ?? '',
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            echo json_encode(['ok' => false, 'msg' => 'Error al iniciar la actualizacion: ' . $e->getMessage()]);
+        } finally {
+            @flock($lock, LOCK_UN);
+            @fclose($lock);
+        }
+        exit;
+    }
+
+    /**
+     * Ejecuta `sudo -n megahnet-update check` y clasifica el resultado.
+     * @return array{configurado:bool, check:?array, mensaje:string}
+     */
+    private function updateCheck()
+    {
+        $noConfig = 'Actualizacion desde el panel no configurada en este servidor: ejecute `sudo bash install.sh` para habilitarla.';
+        $r = $this->updateExec('check', 60);
+        $out = trim($r['out']);
+
+        if ($r['timeout']) {
+            return ['configurado' => true, 'check' => null,
+                'mensaje' => 'El comprobador de actualizaciones no respondio en 60 s (revise la conexion a GitHub).'];
+        }
+        // El script imprime SOLO JSON en stdout. Si sudo pide clave o el binario no
+        // existe, la salida no es JSON: se considera "no configurado".
+        $json = null;
+        $p = strpos($out, '{');
+        if ($p !== false) {
+            $json = json_decode(substr($out, $p), true);
+        }
+        if (!is_array($json) || !array_key_exists('ok', $json)) {
+            $detalle = $this->updateSanitizar(substr($out, 0, 300));
+            if ($r['rc'] === -1) {
+                $detalle = 'no se pudo ejecutar proc_open';
+            }
+            return ['configurado' => false, 'check' => null,
+                'mensaje' => $noConfig . ($detalle !== '' ? ' (' . $detalle . ')' : '')];
+        }
+        if (isset($json['remote_url'])) {
+            $json['remote_url'] = $this->updateSanitizar((string)$json['remote_url']);
+        }
+        return ['configurado' => true, 'check' => $json, 'mensaje' => ''];
+    }
+
+    /**
+     * Corre `sudo -n megahnet-update <sub> 2>&1` con timeout (segundos).
+     * @return array{rc:int, out:string, timeout:bool}
+     */
+    private function updateExec($sub, $timeout = 60)
+    {
+        $cmd = 'sudo -n ' . escapeshellarg(self::UPDATE_BIN) . ' ' . escapeshellarg($sub) . ' 2>&1';
+        $descriptors = [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w']];
+        $proc = @proc_open($cmd, $descriptors, $pipes, ROOT_PATH);
+        if (!is_resource($proc)) {
+            return ['rc' => -1, 'out' => '', 'timeout' => false];
+        }
+        stream_set_blocking($pipes[1], false);
+        $out = '';
+        $inicio = microtime(true);
+        $timedOut = false;
+        $rc = null;
+        while (true) {
+            $chunk = fread($pipes[1], 8192);
+            if ($chunk !== false && $chunk !== '') {
+                $out .= $chunk;
+                continue;
+            }
+            $st = proc_get_status($proc);
+            if (!$st['running']) {
+                // El codigo de salida solo se obtiene una vez via proc_get_status.
+                $rc = (int)$st['exitcode'];
+                $rest = stream_get_contents($pipes[1]);
+                if ($rest !== false) { $out .= $rest; }
+                break;
+            }
+            if ((microtime(true) - $inicio) > $timeout) {
+                $timedOut = true;
+                @proc_terminate($proc, 9);
+                break;
+            }
+            usleep(150000);
+        }
+        fclose($pipes[1]);
+        $close = proc_close($proc);
+        if ($rc === null) { $rc = (int)$close; }
+        return ['rc' => $rc, 'out' => $out, 'timeout' => $timedOut];
+    }
+
+    /** Lee storage/update/status.json (lo escribe el script como root). */
+    private function updateLeerStatus()
+    {
+        $f = ROOT_PATH . '/storage/update/status.json';
+        if (!is_file($f) || !is_readable($f)) { return null; }
+        $j = @json_decode((string)@file_get_contents($f), true);
+        if (!is_array($j)) { return null; }
+        foreach (['message', 'step'] as $k) {
+            if (isset($j[$k]) && is_string($j[$k])) { $j[$k] = $this->updateSanitizar($j[$k]); }
+        }
+        return $j;
+    }
+
+    /** Ultimas N lineas de storage/update/update.log (sin credenciales). */
+    private function updateLeerLog($lineas = 200)
+    {
+        $f = ROOT_PATH . '/storage/update/update.log';
+        if (!is_file($f) || !is_readable($f)) { return ''; }
+        $size = (int)@filesize($f);
+        if ($size <= 0) { return ''; }
+        $max = 256 * 1024;
+        $fh = @fopen($f, 'r');
+        if ($fh === false) { return ''; }
+        if ($size > $max) { fseek($fh, $size - $max); }
+        $buf = (string)stream_get_contents($fh);
+        fclose($fh);
+        $arr = preg_split("/\r\n|\n|\r/", $buf);
+        if (count($arr) > $lineas) {
+            $arr = array_slice($arr, -$lineas);
+        }
+        return $this->updateSanitizar(implode("\n", $arr));
+    }
+
+    /** Enmascara usuario:token en URLs (https://user:token@github.com/...) y tokens tipo ghp_. */
+    private function updateSanitizar($s)
+    {
+        $s = (string)$s;
+        $s = preg_replace('#(://)[^/@\s]+@#', '$1***@', $s);
+        $s = preg_replace('/\b(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/', '***', $s);
+        return $s;
+    }
 }

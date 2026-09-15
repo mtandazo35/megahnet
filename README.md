@@ -73,10 +73,61 @@ sudo SKIP_WA=1 bash install.sh    # solo PHP, sin servicio WhatsApp
 
 ### Actualizar el codigo
 
+Hay dos formas. **Desde el panel** (recomendada) o por consola.
+
+#### Desde el panel: Administracion > Actualizacion del sistema
+
+La pantalla compara la version instalada con la publicada en GitHub y, si hay
+cambios, permite aplicarlos con un boton. **Antes de tocar nada genera un
+respaldo de la base de datos y del codigo**; si el respaldo falla, la
+actualizacion se cancela.
+
+Pasos que ejecuta:
+
+1. Comprueba requisitos: repositorio accesible, **sin cambios locales sin subir**
+   y que el avance sea fast-forward. Si algo falla, no continua.
+2. Respalda en `/root/backups/`:
+   - `megahnet-pre-update-<fecha>.sql.gz` (volcado de la base)
+   - `megahnet-pre-update-<fecha>.tar.gz` (codigo y runtime)
+   - Snapshot de la VM en Proxmox **si** estan definidas las variables `PVE_*`
+     del `.env` (es un extra; si falla, solo avisa: el respaldo real son los dos
+     archivos anteriores). Se conservan los ultimos 5.
+3. `git pull --ff-only`
+4. Reaplica los parches de `facturaelectronica/` (esa carpeta no se versiona).
+5. Corre `install.sh` con `SKIP_WA=1` (migraciones, dependencias, permisos)
+   **sin reiniciar el servicio de WhatsApp**, para no cortar las sesiones.
+
+El progreso y el registro se ven en la misma pantalla. Estado y log quedan en
+`storage/update/status.json` y `storage/update/update.log`.
+
+**Requisitos** (los deja listos `install.sh`):
+
+- `/usr/local/sbin/megahnet-update` instalado y regla en `/etc/sudoers.d/megahnet-update`
+  que permite a `www-data` ejecutar solo `check` y `run`.
+- **Deploy key de solo lectura** registrada en GitHub. `install.sh` genera la clave
+  (`/root/.ssh/id_ed25519_megahnet`) y la muestra: hay que pegarla en
+  *repo > Settings > Deploy keys > Add deploy key*, **sin marcar "Allow write access"**.
+  Hasta que se registre, el boton avisa que no puede descargar cambios.
+- Variables opcionales en `.env` para el snapshot: `PVE_API_URL`, `PVE_TOKEN_ID`,
+  `PVE_TOKEN_SECRET`, `PVE_NODE`, `PVE_VMID` (el token necesita permiso `VM.Snapshot`).
+
+**Si algo sale mal**, restaurar con los respaldos previos:
+
 ```bash
-cd /var/www/html/megahnet
-git pull
-sudo bash install.sh   # idempotente, refresca composer/symlinks/vhost
+cd /var/www/megahnet
+tar xzf /root/backups/megahnet-pre-update-<fecha>.tar.gz          # codigo
+zcat /root/backups/megahnet-pre-update-<fecha>.sql.gz | mysql <BD>  # base de datos
+```
+
+#### Por consola
+
+```bash
+cd /var/www/megahnet
+sudo /usr/local/sbin/megahnet-update check   # JSON con version local/remota, no modifica nada
+sudo /usr/local/sbin/megahnet-update run     # respaldo + actualizacion
+
+# equivalente manual (sin respaldo automatico):
+git pull && sudo bash install.sh
 ```
 
 ## Estructura
