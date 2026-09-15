@@ -41,7 +41,7 @@ $idUsuarioSistema = 4; // MEGAHNET (mismo user que usa el cron de facturas SRI)
 
 echo "[" . date('Y-m-d H:i:s') . "] CRON ORDEN VENTA - Mes: {$mesActual}\n";
 
-$contratos = $model->getContratosFacturar($mesActual, 1, 0);
+$contratos = $model->getContratosFacturar($mesActual, 1, 0, (int)($argv[1] ?? 0)); // argv[1] = limite opcional de contratos por corrida
 $total = count($contratos);
 echo "Contratos encontrados (factura=0): {$total}\n";
 if (empty($contratos)) {
