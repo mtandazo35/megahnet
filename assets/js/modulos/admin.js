@@ -295,6 +295,10 @@ function deleteImgFactura() {
    base de datos y codigo antes de aplicar cambios.
    ========================================================================== */
 (function () {
+    // admin.js se re-ejecuta en cada navegacion PJAX: cortar el sondeo de la
+    // instancia anterior para que no se acumulen temporizadores.
+    if (window.__actTimer) { clearInterval(window.__actTimer); window.__actTimer = null; }
+
     const panel = document.querySelector('#actualizacionPanel');
     if (!panel) return;
 
@@ -459,10 +463,17 @@ function deleteImgFactura() {
 
     function arrancarPolling() {
         if (temporizador) return;
-        temporizador = setInterval(function () { cargarEstado(true); }, 3000);
+        temporizador = setInterval(function () {
+            // PJAX no dispara beforeunload: si la pantalla ya no esta en el DOM
+            // (el usuario navego a otra seccion), dejar de sondear.
+            if (!document.body.contains(panel)) { detenerPolling(); return; }
+            cargarEstado(true);
+        }, 3000);
+        window.__actTimer = temporizador;
     }
     function detenerPolling() {
         if (temporizador) { clearInterval(temporizador); temporizador = null; }
+        window.__actTimer = null;
     }
 
     btnComprobar.addEventListener('click', function () {

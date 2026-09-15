@@ -238,6 +238,7 @@
                         <li data-url="admin/modulos"><a href="<?php echo BASE_URL . 'admin/modulos'; ?>"><i class="bx bx-grid-alt"></i>Modulos del sistema</a></li>
                         <?php if (function_exists('moduloActivo') ? moduloActivo('admin/roles') : true): ?><li data-url="admin/roles"><a href="<?php echo BASE_URL . 'admin/roles'; ?>"><i class="bx bx-id-card"></i>Roles de usuarios</a></li><?php endif; ?>
                         <li data-url="admin/logs"><a href="<?php echo BASE_URL . 'admin/logs'; ?>"><i class="bx bx-history"></i>Log de Acceso</a></li>
+                        <?php if (($_SESSION['rol'] ?? 0) == 1 && (function_exists('moduloActivo') ? moduloActivo('admin/actualizacion') : true)): ?><li data-url="admin/actualizacion"><a href="<?php echo BASE_URL . 'admin/actualizacion'; ?>"><i class="bx bx-refresh"></i>Actualizar sistema</a></li><?php endif; ?>
                     </ul>
                 </li>
 
