@@ -328,6 +328,54 @@ public function getFacturasParaCorreo()
     return $this->selectAll($sql);
 }
 
+/**
+  * Marca la factura como PENDIENTE de enviar el WhatsApp de "GRACIAS POR SU PAGO".
+  * Solo la llama el cobro manual desde "Facturar Contratos": la facturacion
+  * automatica mensual factura a todos (hayan pagado o no) y debe quedarse con
+  * el valor por defecto (1 = no enviar nada).
+  */
+ public function marcarWhatsappPendiente($numSerie)
+ {
+     $sql = "UPDATE datos_cabecera_electronica
+             SET whatsapp_enviado = 0
+             WHERE orden_no = ?";
+     return $this->save($sql, [$numSerie]);
+ }
+
+ /** Da por resuelto el WhatsApp de pago (enviado, o sin telefono al que enviarlo). */
+ public function marcarWhatsappEnviado($numSerie)
+ {
+     $sql = "UPDATE datos_cabecera_electronica
+             SET whatsapp_enviado = 1
+             WHERE orden_no = ?";
+     return $this->save($sql, [$numSerie]);
+ }
+
+ /**
+  * Facturas de cobro manual ya AUTORIZADAS a las que todavia no se les envio el
+  * WhatsApp de pago (el SRI no autorizo en el acto y lo hizo el cron despues).
+  * La ventana de 3 dias acota los reintentos de un numero que falla siempre y
+  * es una segunda barrera contra cualquier envio retroactivo masivo.
+  */
+ public function getFacturasParaWhatsapp()
+ {
+     $sql = "SELECT dce.orden_no, dce.cliente, dce.telefono, dce.claveacceso,
+                    (SELECT dfe.item
+                       FROM detalle_factura_electronica dfe
+                      WHERE dfe.orden_no = dce.orden_no
+                      ORDER BY dfe.id_tabla LIMIT 1) AS descripcion
+             FROM datos_cabecera_electronica dce
+             WHERE dce.whatsapp_enviado = 0
+               AND dce.estado_proceso = 1
+               AND dce.sri_enviado = 1
+               AND dce.claveacceso IS NOT NULL
+               AND dce.claveacceso <> ''
+               AND dce.fecha >= DATE_SUB(CURDATE(), INTERVAL 3 DAY)
+             ORDER BY dce.id DESC
+             LIMIT 20";
+     return $this->selectAll($sql);
+ }
+
 public function marcarCorreoEnviado($numSerie)
 {
     $sql = "UPDATE datos_cabecera_electronica

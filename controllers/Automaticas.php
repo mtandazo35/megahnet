@@ -1218,6 +1218,11 @@ class Automaticas extends Controller
                 $idCliente
             );
             if ($ventaEncabezado > 0) {
+                // Cobro manual desde "Facturar Contratos": esta factura si debe generar el
+                // WhatsApp de "GRACIAS POR SU PAGO". Se marca pendiente para que, si el SRI
+                // no autoriza en el acto, lo envie el cron cuando la factura quede autorizada.
+                // (La facturacion automatica mensual no pasa por aqui y no manda nada.)
+                $this->model->marcarWhatsappPendiente($numSerieElectronica);
                 foreach ($productos as $producto) {
 
                     $result = $this->model->getProducto($producto['id']);
@@ -1317,6 +1322,9 @@ class Automaticas extends Controller
 
                         $tel = $facturaElectronica['telefono'] ?? '';
                         if ($tel === '') {
+                            // Sin telefono no hay nada que enviar: se da por resuelto
+                            // para que el cron no lo reintente indefinidamente.
+                            $this->model->marcarWhatsappEnviado($numSerieElectronica);
                             $resWathsapp = null;
                         } else {
                             $textoWa = "Buen dia estimado/a cliente\n*" . ($empresa['nombre'] ?? '') . "*\n*GRACIAS POR SU PAGO*\n\n"
@@ -1327,6 +1335,11 @@ class Automaticas extends Controller
                             if (function_exists('enviarWhatsappTexto')) {
                                 $apiRes = enviarWhatsappTexto($tel, $textoWa);
                                 $waOk = !empty($apiRes['ok']);
+                            }
+                            // Solo si salio se da por resuelto; si la API fallo se deja
+                            // pendiente y el cron lo reintenta dentro de la ventana.
+                            if ($waOk) {
+                                $this->model->marcarWhatsappEnviado($numSerieElectronica);
                             }
                             $resWathsapp = $waOk ? null
                                          : ('https://web.whatsapp.com/send?phone=593' . $tel
