@@ -511,10 +511,10 @@ document.addEventListener('DOMContentLoaded', function () {
   $('#tblHistorial').DataTable({
     deferRender: true,
     stateSave: true,
-    stateDuration: -1,
+    stateDuration: 60 * 60 * 24 * 7, // 7 dias: un estado guardado con pagina grande caduca solo
     colReorder: true,
     pageLength: 10,
-    lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
+    lengthMenu: [[5, 10, 20, 50, 100], [5, 10, 20, 50, 100]],
     stateLoadParams: function(settings, data){
       // Descartar diseño guardado si cambió el numero de columnas (evita desalineacion
       // tras agregar/quitar columnas, p.ej. Cedula y Discapacidad).
@@ -523,7 +523,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var savedCols  = data && data.columns ? data.columns.length : 0;
         if (actualCols && savedCols && actualCols !== savedCols) { return false; }
       } catch(e){}
-      var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; }
+      var v=[5,10,20,50,100]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; }
     },
     colReorder: true,
     stateSave: true,
@@ -566,11 +566,11 @@ document.addEventListener('DOMContentLoaded', function () {
   /*tblHistorial = $('#tblHistorial').DataTable({
     deferRender: true,
     stateSave: true,
-    stateDuration: -1,
+    stateDuration: 60 * 60 * 24 * 7, // 7 dias: un estado guardado con pagina grande caduca solo
     colReorder: true,
     pageLength: 10,
-    lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
-    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
+    lengthMenu: [[5, 10, 20, 50, 100], [5, 10, 20, 50, 100]],
+    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
     
     ajax: {
       url: base_url + 'contratos/listar',
@@ -599,11 +599,11 @@ document.addEventListener('DOMContentLoaded', function () {
   tblcontratosSuspender = $('#tblcontratosSuspender').DataTable({
     deferRender: true,
     stateSave: true,
-    stateDuration: -1,
+    stateDuration: 60 * 60 * 24 * 7, // 7 dias: un estado guardado con pagina grande caduca solo
     colReorder: true,
     pageLength: 10,
-    lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
-    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
+    lengthMenu: [[5, 10, 20, 50, 100], [5, 10, 20, 50, 100]],
+    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
     processing: true,
     serverSide: true,
     ajax: {

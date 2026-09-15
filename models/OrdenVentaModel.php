@@ -78,7 +78,7 @@ class OrdenVentaModel extends Query
         }
         if ($start  < 0)   $start  = 0;
         if ($length < 1)   $length = 10;
-        if ($length > 500) $length = 500;
+        if ($length > 100) $length = 100;
 
         // WHERE compartido entre el COUNT(filtered) y la query de rows
         $where  = " WHERE 1=1";

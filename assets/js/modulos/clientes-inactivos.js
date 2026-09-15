@@ -10,11 +10,11 @@ document.addEventListener('DOMContentLoaded', function(){
     serverSide: true,
     deferRender: true,
     stateSave: true,
-    stateDuration: -1,
+    stateDuration: 60 * 60 * 24 * 7, // 7 dias: un estado guardado con pagina grande caduca solo
     colReorder: true,
     pageLength: 10,
-    lengthMenu: [[5, 10, 20, 50, 100, 200], [5, 10, 20, 50, 100, 200]],
-    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100,200]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
+    lengthMenu: [[5, 10, 20, 50, 100], [5, 10, 20, 50, 100]],
+    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
 
         ajax: {
             url: base_url + 'clientes/listarInactivos',

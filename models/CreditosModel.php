@@ -333,7 +333,7 @@ INNER JOIN datos_cabecera_electronica dce ON dce.id=cr.id_electronica";
         $params[] = $estado;
         $sql .= buildSearchClause($search, ["LOWER(COALESCE(dce.cliente, cl.nombre, ''))", 'CAST(cr.id AS CHAR)'], $params, ' AND ');
         $start = max(0, intval($start));
-        $length = (intval($length) > 0 && intval($length) <= 200) ? intval($length) : 25;
+        $length = (intval($length) > 0 && intval($length) <= 100) ? intval($length) : 25;
         $sql .= " ORDER BY cr.fecha DESC, cr.id DESC LIMIT $start, $length";
         return $this->select2($sql, $params);
     }
@@ -354,7 +354,7 @@ INNER JOIN datos_cabecera_electronica dce ON dce.id=cr.id_electronica";
     public function getAbonosUnificadosPaginado($start, $length, $search)
     {
         $start = max(0, intval($start));
-        $length = (intval($length) > 0 && intval($length) <= 200) ? intval($length) : 25;
+        $length = (intval($length) > 0 && intval($length) <= 100) ? intval($length) : 25;
         $params = [];
         $sql = "SELECT * FROM (
                   SELECT a.id, a.id_credito, a.abono, a.fecha,

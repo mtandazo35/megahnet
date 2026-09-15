@@ -277,7 +277,7 @@ class OrdenVenta extends Controller
         $length = isset($src['length']) ? (int)$src['length'] : 10;
         if ($start  < 0)   $start  = 0;
         if ($length < 1)   $length = 10;
-        if ($length > 500) $length = 500;
+        if ($length > 100) $length = 100;
 
         // search[value]
         $search = '';

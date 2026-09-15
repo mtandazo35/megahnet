@@ -151,7 +151,7 @@ class VentasModel extends Query
                        ) AS contratos_activos";
         $sql .= $this->ventasElectronicaFromWhere($search, $filtroSri, $filtroCorreo, $params);
         $start  = max(0, intval($start));
-        $length = (intval($length) > 0 && intval($length) <= 200) ? intval($length) : 25;
+        $length = (intval($length) > 0 && intval($length) <= 100) ? intval($length) : 25;
         $sql .= " GROUP BY dce.id
                 ORDER BY dce.id DESC LIMIT $start, $length";
         return $this->select2($sql, $params);

@@ -29,7 +29,7 @@ class ClientesModel extends Query{
     /**
      * Listado paginado para DataTables serverSide (activos e inactivos).
      * $ordenCol y $ordenDir vienen de DataTables y se validan contra la lista blanca;
-     * el resto va con parametros ligados. LIMIT saneado: start >= 0, length 1..200 (default 10).
+     * el resto va con parametros ligados. LIMIT saneado: start >= 0, length 1..100 (default 10).
      */
     public function getClientesPaginado($start, $length, $search, $estado, $ordenCol = 'nombre', $ordenDir = 'asc')
     {
@@ -37,7 +37,7 @@ class ClientesModel extends Query{
         $sql = "SELECT * FROM clientes WHERE estado = ?";
         $sql .= buildSearchClause($search, self::$busquedaClientes, $params, ' AND ');
         $start  = max(0, intval($start));
-        $length = (intval($length) > 0 && intval($length) <= 200) ? intval($length) : 10;
+        $length = (intval($length) > 0 && intval($length) <= 100) ? intval($length) : 10;
         $ordenCol = in_array($ordenCol, self::$ordenClientes, true) ? $ordenCol : 'nombre';
         $ordenDir = (strtolower((string)$ordenDir) === 'desc') ? 'DESC' : 'ASC';
         $sql .= " ORDER BY $ordenCol $ordenDir, id ASC LIMIT $start, $length";

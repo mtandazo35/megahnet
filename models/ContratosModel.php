@@ -356,7 +356,7 @@ public function contarContratos($estado )
         $where = "WHERE cr.estado = 1 AND c.estado = 1";
         $where .= buildSearchClause($search, ['LOWER(cl.nombre)', 'LOWER(c.ip_usuario)'], $params, " AND ");
         $start = max(0, intval($start));
-        $length = (intval($length) > 0 && intval($length) <= 200) ? intval($length) : 25;
+        $length = (intval($length) > 0 && intval($length) <= 100) ? intval($length) : 25;
         $cantidad = intval($cantidad);
 
         $sql = "SELECT cr.id_contrato AS id, c.ip_usuario, cl.id AS id_cliente, cl.nombre,

@@ -51,11 +51,11 @@ document.addEventListener('DOMContentLoaded', function () {
     serverSide: true,
     deferRender: true,
     stateSave: true,
-    stateDuration: -1,
+    stateDuration: 60 * 60 * 24 * 7, // 7 dias: un estado guardado con pagina grande caduca solo
     colReorder: true,
     pageLength: 10,
-    lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
-    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
+    lengthMenu: [[5, 10, 20, 50, 100], [5, 10, 20, 50, 100]],
+    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
     
         ajax: {
             url: base_url + 'creditos/listar',
@@ -92,11 +92,11 @@ $('#nav-abonos-tab').on('shown.bs.tab', function () {
     serverSide: true,
     deferRender: true,
     stateSave: true,
-    stateDuration: -1,
+    stateDuration: 60 * 60 * 24 * 7, // 7 dias: un estado guardado con pagina grande caduca solo
     colReorder: true,
     pageLength: 10,
-    lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
-    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
+    lengthMenu: [[5, 10, 20, 50, 100], [5, 10, 20, 50, 100]],
+    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
     
             ajax: {
                 url: base_url + 'creditos/listarAbonos',
@@ -129,11 +129,11 @@ $('#nav-completados-tab').on('shown.bs.tab', function () {
     serverSide: true,
     deferRender: true,
     stateSave: true,
-    stateDuration: -1,
+    stateDuration: 60 * 60 * 24 * 7, // 7 dias: un estado guardado con pagina grande caduca solo
     colReorder: true,
     pageLength: 10,
-    lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
-    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
+    lengthMenu: [[5, 10, 20, 50, 100], [5, 10, 20, 50, 100]],
+    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
     
             ajax: {
                 url: base_url + 'creditos/listarCompletados',
@@ -165,11 +165,11 @@ $('#nav-completados-tab').on('shown.bs.tab', function () {
     serverSide: true,
     deferRender: true,
     stateSave: true,
-    stateDuration: -1,
+    stateDuration: 60 * 60 * 24 * 7, // 7 dias: un estado guardado con pagina grande caduca solo
     colReorder: true,
     pageLength: 10,
-    lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
-    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
+    lengthMenu: [[5, 10, 20, 50, 100], [5, 10, 20, 50, 100]],
+    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
     
         ajax: {
             url: base_url + 'creditos/listarAbonos',
@@ -196,11 +196,11 @@ $('#nav-completados-tab').on('shown.bs.tab', function () {
     serverSide: true,
     deferRender: true,
     stateSave: true,
-    stateDuration: -1,
+    stateDuration: 60 * 60 * 24 * 7, // 7 dias: un estado guardado con pagina grande caduca solo
     colReorder: true,
     pageLength: 10,
-    lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
-    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100,-1]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
+    lengthMenu: [[5, 10, 20, 50, 100], [5, 10, 20, 50, 100]],
+    stateLoadParams: function(settings, data){ var v=[5,10,20,50,100]; if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; } },
     
         ajax: {
             url: base_url + 'creditos/listarCompletados',
@@ -247,19 +247,21 @@ $('#nav-completados-tab').on('shown.bs.tab', function () {
         minLength: 2,
         select: function (event, ui) {
             telefonoCliente.value = ui.item.telefono;
-            direccionCliente.innerHTML = ui.item.direccion;
+            direccionCliente.textContent = ui.item.direccion;
             idCredito.value = ui.item.id;
             abonado.value = ui.item.abonado;
             restante.value = ui.item.restante;
             monto_total.value = ui.item.monto;
             fecha.value = ui.item.fecha;
 
+            cliente.value = ui.item.label;
             if(ui.item.anticipos != 0){
                 agregarTipoPago(6, 'ANTICIPOS',ui.item.anticipos)
                 return false
 
             }
-            inputBuscarNombreTipoPago.focus();
+            document.querySelector('#selectTipoPago').focus();
+            return false;
             //monto_abonar.focus();
         }
     });
@@ -279,6 +281,9 @@ $('#nav-completados-tab').on('shown.bs.tab', function () {
 
       // mostrarProductoTipoPago()
       localStorage.removeItem('posTipoPago');
+      listaCarrito = [];
+      document.querySelector('#selectTipoPago').value = '';
+      errorCliente.textContent = '';
       tblNuevaTipoPago.innerHTML = `<tr>
       <td colspan="4" class="text-center">SIN TIPO PAGOS</td>
   </tr>`;
@@ -287,11 +292,10 @@ $('#nav-completados-tab').on('shown.bs.tab', function () {
     })
 
     btnAccion.addEventListener('click', function () {
-        let filas = document.querySelectorAll('#tblNuevaTipoPago tr').length;
-        if (filas < 2) {
+        if (!Array.isArray(listaCarrito) || listaCarrito.length === 0) {
             alertaPersonalizada('warning', 'SIN TIPOS PAGOS');
             return;
-        }else if (idCredito.value == '' && cliente.value == '') {
+        }else if (idCredito.value == '') {
             alertaPersonalizada('warning', 'BUSCA Y SELECCIONA CLIENTE');
             return;
         //} 
@@ -460,55 +464,54 @@ $('#nav-completados-tab').on('shown.bs.tab', function () {
 
 //cargar productos
 function mostrarProductoTipoPago() {
-    if (localStorage.getItem(nombreKey) != null) {
-        const url = base_url + 'productos/mostrarDatosTipoPago';
-        //hacer una instancia del objeto XMLHttpRequest 
-       // localStorage.removeItem('posTipoPago');
-
-        const http = new XMLHttpRequest();
-        //Abrir una Conexion - POST - GET
-        http.open('POST', url, true);
-        //Enviar Datos
-        http.send(JSON.stringify(listaCarrito));
-        //verificar estados
-        http.onreadystatechange = function () {
-            if (this.readyState == 4 && this.status == 200) {
-                const res = JSON.parse(this.responseText);
-                let html = '';
-                if (res.tipoPago.length > 0) {
-                    res.tipoPago.forEach(tipoPago => {
-                        html += `<tr>
-                        <td>
-                                        <input style="width:175px"; type="text" class="form-control inputDescripcion" data-id="${tipoPago.id}" value="${tipoPago.nombre}">
-                                        </td>
-                                         <td>
-                                        <input style="width:175px"; type="text" class="form-control inputCodigoComprobante" data-id="${tipoPago.id}" value="${tipoPago.codigoComprobante}">
-                                        </td>
-
-                                        <td>                   
-                                     <input style="width:100px"; type="number" class="form-control inputPrecio" data-id="${tipoPago.id}" value="${tipoPago.precio}" ${tipoPago.disabled}>
-                                                </td>   
-                                        
-                                        
-                                        <td><button class="btn btn-danger btnEliminar" data-id="${tipoPago.id}" type="button" ${tipoPago.none}><i class="fas fa-trash"></i></button></td>
-                                    </tr>`;
-                    });
-                    tblNuevaTipoPago.innerHTML = html;
-                    total.value = res.total;
-                    btnEliminarTipoPago();
-                    agregarPrecio()
-                    agregarDescripcion()
-                    agregarCodigoComprobante();
-                } else {
-                    tblNuevaTipoPago.innerHTML = '';
-                }
+    tblNuevaTipoPago.innerHTML = '';
+    let suma = 0;
+    const pagos = Array.isArray(listaCarrito) ? listaCarrito : [];
+    pagos.forEach(pago => {
+        const fila = document.createElement('tr');
+        const anticipo = String(pago.id) === '6';
+        const campos = [
+            ['inputDescripcion', 'text', pago.nombre],
+            ['inputCodigoComprobante', 'text', pago.codigoComprobante || ''],
+            ['inputPrecio', 'number', pago.precio || 0]
+        ];
+        campos.forEach(([clase, tipo, valor]) => {
+            const celda = document.createElement('td');
+            const input = document.createElement('input');
+            input.className = 'form-control ' + clase;
+            input.type = tipo;
+            input.dataset.id = pago.id;
+            input.value = valor;
+            if (tipo === 'number') {
+                input.step = '0.01';
+                input.min = '0';
+                input.disabled = anticipo;
             }
-        }
-    } else {
-        tblNuevaTipoPago.innerHTML = `<tr>
-            <td colspan="4" class="text-center">SIN TIPO PAGOS</td>
-        </tr>`;
+            celda.appendChild(input);
+            fila.appendChild(celda);
+        });
+        const acciones = document.createElement('td');
+        const eliminar = document.createElement('button');
+        eliminar.className = 'btn btn-danger btnEliminar';
+        eliminar.type = 'button';
+        eliminar.dataset.id = pago.id;
+        eliminar.innerHTML = '<i class="fas fa-trash"></i>';
+        eliminar.hidden = anticipo;
+        acciones.appendChild(eliminar);
+        fila.appendChild(acciones);
+        tblNuevaTipoPago.appendChild(fila);
+        const valor = Number(pago.precio);
+        suma += Number.isFinite(valor) ? valor : 0;
+    });
+    total.value = suma.toFixed(2);
+    if (pagos.length === 0) {
+        tblNuevaTipoPago.innerHTML = '<tr><td colspan="4" class="text-center">SIN TIPO PAGOS</td></tr>';
+        return;
     }
+    btnEliminarTipoPago();
+    agregarPrecio();
+    agregarDescripcion();
+    agregarCodigoComprobante();
 }
 function eliminarAbono(idAbono) {
     const url = base_url + 'creditos/eliminarAbono/' + idAbono;

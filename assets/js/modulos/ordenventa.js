@@ -131,13 +131,13 @@ document.addEventListener('DOMContentLoaded', function () {
     deferRender: true,
     serverSide: true,
     stateSave: true,
-    stateDuration: -1,
+    stateDuration: 60 * 60 * 24 * 7, // 7 dias: un estado guardado con pagina grande caduca solo
     colReorder: true,
     pageLength: 10,
     searchDelay: 400,
-    lengthMenu: [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, "Todos"]],
+    lengthMenu: [[5, 10, 20, 50, 100], [5, 10, 20, 50, 100]],
     stateLoadParams: function(settings, data){
-        var v=[5,10,20,50,100,-1];
+        var v=[5,10,20,50,100];
         if(data && data.length && v.indexOf(data.length)===-1){ data.length=10; }
         // Limpiar search residual guardado en localStorage que puede dejar la tabla en 0 resultados
         if(data && data.search) data.search.search = '';
