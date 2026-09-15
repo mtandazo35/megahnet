@@ -317,6 +317,23 @@ chown -R www-data:www-data "$PROJECT_DIR"
 chmod -R 775 storage facturaelectronica static
 chmod 640 "$ENV_FILE" 2>/dev/null || true
 
+# El chown de arriba alcanza tambien a las carpetas que el contenedor del
+# WhatsApp API monta desde el proyecto (sesiones, static, backups). Ese
+# contenedor corre como 'node' (uid 1000): si quedan en www-data no puede
+# escribir sus credenciales, se cae al arrancar y entra en bucle de reinicios,
+# dejando al sistema sin poder enviar WhatsApp. Se les devuelve su dueno.
+# (Postgres y Redis usan volumenes de Docker, fuera del proyecto: no aplica.)
+WA_MOUNT_UID="${WA_MOUNT_UID:-1000}"
+WA_MOUNTS_DIR="$PROJECT_DIR/services/whatsapp-api"
+if [[ -d "$WA_MOUNTS_DIR" ]]; then
+    for _wa_dir in sesiones static backups; do
+        if [[ -d "$WA_MOUNTS_DIR/$_wa_dir" ]]; then
+            chown -R "${WA_MOUNT_UID}:${WA_MOUNT_UID}" "$WA_MOUNTS_DIR/$_wa_dir"
+            log "Permisos del WhatsApp API restaurados: services/whatsapp-api/$_wa_dir"
+        fi
+    done
+fi
+
 # ---------------------------------------------------------------------------
 # 7. Apache vhost
 # ---------------------------------------------------------------------------
