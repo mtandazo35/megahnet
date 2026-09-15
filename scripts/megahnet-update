@@ -5,16 +5,19 @@
 #  toca nada.
 #
 #  Uso (como root):
-#      megahnet-update check   -> imprime JSON con version local/remota, sin modificar nada
-#      megahnet-update run     -> respaldo + git pull --ff-only + parches SRI + install.sh
+#      megahnet-update check    -> imprime JSON con version local/remota, sin modificar nada
+#      megahnet-update run      -> respaldo + git pull --ff-only + parches SRI + install.sh + verificacion
+#      megahnet-update rollback -> vuelve a la version anterior usando el ultimo respaldo pre-update
 #      megahnet-update help
 #
 #  install.sh lo copia a /usr/local/sbin/megahnet-update y crea la regla sudoers
-#  que permite a www-data invocar SOLO estos dos subcomandos desde el panel.
+#  que permite a www-data invocar SOLO estos subcomandos desde el panel.
 #
 #  Estado para el panel:  <proyecto>/storage/update/status.json
+#  Bandera mantenimiento: <proyecto>/storage/update/maintenance.flag
 #  Log:                   <proyecto>/storage/update/update.log
 #  Respaldos:             ${BACKUP_DIR}/megahnet-pre-update-<fecha>.sql.gz / .tar.gz
+#                         ${BACKUP_DIR}/megahnet-pre-rollback-<fecha>.sql.gz / .tar.gz
 #  Snapshot Proxmox opcional si en .env existen PVE_API_URL, PVE_TOKEN_ID,
 #  PVE_TOKEN_SECRET, PVE_NODE y PVE_VMID (best-effort: nunca bloquea).
 # ============================================================================
@@ -26,11 +29,14 @@ KEEP_BACKUPS="${KEEP_BACKUPS:-5}"
 BRANCH="${BRANCH:-main}"
 STATUS_DIR="$PROJECT_DIR/storage/update"
 STATUS_FILE="$STATUS_DIR/status.json"
+MAINT_FILE="$STATUS_DIR/maintenance.flag"
 LOG_FILE="$STATUS_DIR/update.log"
 LOCK_FILE="/run/lock/megahnet-update.lock"
 MIN_FREE_KB=1048576   # 1 GB libres minimo antes de actualizar
 
 STARTED_AT=""; FROM=""; TO=""; CURRENT_STEP=""; FAILED=""
+BK_SQL=""; BK_TAR=""; BK_ERR=""; BK_STAMP=""
+RB_TARGET=""; RB_SQL=""; RB_TAR=""; RB_DATE=""; RB_OK=false
 
 # ----------------------------------------------------------------------------
 # utilidades
@@ -46,6 +52,13 @@ envget() {
         | sed -e 's/^["'\'']//' -e 's/["'\'']$//'
 }
 
+# lee una clave de tipo string del status.json previo (sin depender de jq)
+status_get() {
+    [[ -s "$STATUS_FILE" ]] || return 0
+    grep -o "\"$1\":\"[^\"]*\"" "$STATUS_FILE" 2>/dev/null | head -1 \
+        | sed -e "s/^\"$1\":\"//" -e 's/"$//'
+}
+
 # status_write <state> <step> <mensaje>
 status_write() {
     mkdir -p "$STATUS_DIR"
@@ -56,16 +69,104 @@ status_write() {
     chown www-data:www-data "$STATUS_DIR" "$STATUS_FILE" 2>/dev/null || true
 }
 
+# ----------------------------------------------------------------------------
+# modo mantenimiento: el panel muestra la pantalla de "actualizando" mientras
+# exista este archivo. Se crea tras el preflight y se borra SIEMPRE al salir.
+# ----------------------------------------------------------------------------
+maint_on() {
+    mkdir -p "$STATUS_DIR"
+    printf '{"desde":"%s","motivo":"%s"}\n' "$(ts)" "$(jesc "$1")" > "$MAINT_FILE"
+    chown www-data:www-data "$MAINT_FILE" 2>/dev/null || true
+    log "modo mantenimiento ACTIVADO ($1)"
+}
+maint_off() {
+    if [[ -e "$MAINT_FILE" ]]; then
+        rm -f "$MAINT_FILE" 2>/dev/null || true
+        log "modo mantenimiento DESACTIVADO"
+    fi
+}
+
 fail() {
     FAILED=1
     log "ERROR: $*"
     status_write error "${CURRENT_STEP:-?}" "$*"
     log "ABORTADO en paso ${CURRENT_STEP:-?}"
+    maint_off
     exit 1
 }
 
 usage() {
-    sed -n '2,20p' "$0" | sed 's/^# \{0,2\}//'
+    sed -n '2,22p' "$0" | sed 's/^# \{0,2\}//'
+}
+
+# ----------------------------------------------------------------------------
+# respaldos y restauracion (compartido por run y rollback)
+# ----------------------------------------------------------------------------
+# do_backup <prefijo>  -> deja BK_SQL / BK_TAR; devuelve !=0 y BK_ERR si falla
+do_backup() {
+    local prefix="$1" stamp dbh dbu dbp dbn
+    BK_ERR=""; BK_SQL=""; BK_TAR=""
+    stamp=$(date +%Y%m%d-%H%M%S)
+    dbh=$(envget DB_HOST); dbu=$(envget DB_USER); dbp=$(envget DB_PASSWORD); dbn=$(envget DB_NAME)
+    if [[ -z "$dbu" || -z "$dbn" ]]; then
+        BK_ERR="no se pudieron leer las credenciales de BD del .env"; return 1
+    fi
+    mkdir -p "$BACKUP_DIR"
+    BK_SQL="$BACKUP_DIR/megahnet-$prefix-$stamp.sql.gz"
+    BK_TAR="$BACKUP_DIR/megahnet-$prefix-$stamp.tar.gz"
+    if ! MYSQL_PWD="$dbp" mysqldump -h "${dbh:-localhost}" -u "$dbu" \
+            --single-transaction --routines --triggers "$dbn" 2>>"$LOG_FILE" | gzip > "$BK_SQL"; then
+        BK_ERR="fallo el respaldo de la base de datos"; return 1
+    fi
+    if [[ ! -s "$BK_SQL" ]]; then
+        BK_ERR="el respaldo de la base de datos quedo vacio"; return 1
+    fi
+    if ! tar --exclude='./vendor' --exclude='./node_modules' --exclude='./.git' --exclude='*.log' \
+            -czf "$BK_TAR" -C "$PROJECT_DIR" . 2>>"$LOG_FILE"; then
+        BK_ERR="fallo el respaldo del codigo"; return 1
+    fi
+    if [[ ! -s "$BK_TAR" ]]; then
+        BK_ERR="el respaldo del codigo quedo vacio"; return 1
+    fi
+    log "respaldo BD: $BK_SQL ($(du -h "$BK_SQL" | cut -f1)) | codigo: $BK_TAR ($(du -h "$BK_TAR" | cut -f1))"
+    BK_STAMP="$stamp"
+    return 0
+}
+
+# restore_db <archivo.sql.gz>
+restore_db() {
+    local f="$1" dbh dbu dbp dbn
+    [[ -s "$f" ]] || { log "ERROR: no existe el respaldo de BD $f"; return 1; }
+    dbh=$(envget DB_HOST); dbu=$(envget DB_USER); dbp=$(envget DB_PASSWORD); dbn=$(envget DB_NAME)
+    [[ -n "$dbu" && -n "$dbn" ]] || { log "ERROR: credenciales de BD no disponibles"; return 1; }
+    zcat "$f" | MYSQL_PWD="$dbp" mysql -h "${dbh:-localhost}" -u "$dbu" "$dbn" 2>>"$LOG_FILE" || return 1
+    return 0
+}
+
+rotate_backups() {
+    local p
+    for p in pre-update pre-rollback; do
+        ls -1t "$BACKUP_DIR"/megahnet-$p-*.sql.gz 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | xargs -r rm -f
+        ls -1t "$BACKUP_DIR"/megahnet-$p-*.tar.gz 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | xargs -r rm -f
+    done
+}
+
+# localiza el ultimo par de respaldos pre-update y el commit al que se volveria
+rollback_sources() {
+    local base stamp
+    RB_TARGET=""; RB_SQL=""; RB_TAR=""; RB_DATE=""; RB_OK=false
+    RB_SQL=$(ls -1t "$BACKUP_DIR"/megahnet-pre-update-*.sql.gz 2>/dev/null | head -1 || true)
+    if [[ -n "$RB_SQL" ]]; then
+        base=$(basename "$RB_SQL"); stamp="${base#megahnet-pre-update-}"; stamp="${stamp%.sql.gz}"
+        RB_TAR="$BACKUP_DIR/megahnet-pre-update-$stamp.tar.gz"
+        [[ -s "$RB_TAR" ]] || RB_TAR=""
+        RB_DATE=$(date -r "$RB_SQL" '+%Y-%m-%d %H:%M' 2>/dev/null || true)
+    fi
+    RB_TARGET=$(status_get from || true)
+    if [[ -n "$RB_SQL" && -n "$RB_TAR" && -n "$RB_TARGET" ]]; then
+        if g cat-file -e "${RB_TARGET}^{commit}" 2>/dev/null; then RB_OK=true; fi
+    fi
+    return 0
 }
 
 # ----------------------------------------------------------------------------
@@ -74,7 +175,7 @@ usage() {
 cmd_check() {
     local ok=true reason="" fetch_err=""
     if ! g rev-parse --git-dir >/dev/null 2>&1; then
-        printf '{"ok":false,"reason":"%s","can_update":false}\n' \
+        printf '{"ok":false,"reason":"%s","can_update":false,"commits":[],"rollback":{"disponible":false,"to":"","backup_sql":"","backup_tar":"","fecha":""}}\n' \
             "$(jesc "$PROJECT_DIR no es un repositorio git o falta git config safe.directory (ejecute sudo bash install.sh)")"
         return 0
     fi
@@ -84,6 +185,7 @@ cmd_check() {
     fi
 
     local lh ls ld lsub rh="" rs="" behind=0 ahead=0 dirty=false dfiles url can=false why="" arr="" f last="null"
+    local commits="" c d s
     lh=$(g rev-parse HEAD); ls=$(g rev-parse --short HEAD)
     ld=$(g log -1 --format=%ci); lsub=$(g log -1 --format=%s)
     if [[ "$ok" == true ]]; then
@@ -102,14 +204,26 @@ cmd_check() {
     else can=true; why="hay $behind cambio(s) disponible(s)"
     fi
 
+    # changelog: commits pendientes entre HEAD y origin/<BRANCH> (maximo 20)
+    if [[ "$ok" == true ]] && (( behind > 0 )); then
+        while IFS='|' read -r c d s; do
+            [[ -z "$c" ]] && continue
+            commits+="${commits:+,}{\"short\":\"$(jesc "$c")\",\"date\":\"$(jesc "$d")\",\"subject\":\"$(jesc "$s")\"}"
+        done < <(g log --format='%h|%ci|%s' -n 20 "HEAD..origin/$BRANCH" 2>/dev/null || true)
+    fi
+
+    rollback_sources
+
     while IFS= read -r f; do
         [[ -z "$f" ]] && continue
         arr+="${arr:+,}\"$(jesc "$f")\""
     done <<< "$dfiles"
     [[ -s "$STATUS_FILE" ]] && last=$(cat "$STATUS_FILE")
 
-    printf '{"ok":%s,"local":{"hash":"%s","short":"%s","date":"%s","subject":"%s"},"remote":{"hash":"%s","short":"%s"},"behind":%s,"ahead":%s,"dirty":%s,"dirty_files":[%s],"remote_url":"%s","can_update":%s,"reason":"%s","last_run":%s}\n' \
-        "$ok" "$lh" "$ls" "$(jesc "$ld")" "$(jesc "$lsub")" "$rh" "$rs" "$behind" "$ahead" "$dirty" "$arr" "$(jesc "$url")" "$can" "$(jesc "$why")" "$last"
+    printf '{"ok":%s,"local":{"hash":"%s","short":"%s","date":"%s","subject":"%s"},"remote":{"hash":"%s","short":"%s"},"behind":%s,"ahead":%s,"dirty":%s,"dirty_files":[%s],"remote_url":"%s","can_update":%s,"reason":"%s","commits":[%s],"rollback":{"disponible":%s,"to":"%s","backup_sql":"%s","backup_tar":"%s","fecha":"%s"},"last_run":%s}\n' \
+        "$ok" "$lh" "$ls" "$(jesc "$ld")" "$(jesc "$lsub")" "$rh" "$rs" "$behind" "$ahead" "$dirty" "$arr" \
+        "$(jesc "$url")" "$can" "$(jesc "$why")" "$commits" \
+        "$RB_OK" "$(jesc "$RB_TARGET")" "$(jesc "$RB_SQL")" "$(jesc "$RB_TAR")" "$(jesc "$RB_DATE")" "$last"
 }
 
 # ----------------------------------------------------------------------------
@@ -146,9 +260,92 @@ pve_snapshot() {
     return 1
 }
 
-rotate_backups() {
-    ls -1t "$BACKUP_DIR"/megahnet-pre-update-*.sql.gz 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | xargs -r rm -f
-    ls -1t "$BACKUP_DIR"/megahnet-pre-update-*.tar.gz 2>/dev/null | tail -n +$((KEEP_BACKUPS + 1)) | xargs -r rm -f
+# ----------------------------------------------------------------------------
+# verificacion post-actualizacion. Imprime el detalle del fallo y devuelve 1.
+# ----------------------------------------------------------------------------
+verificar() {
+    local php f dbh dbu dbp dbn bl host code
+
+    php=$(command -v php 2>/dev/null || true)
+    if [[ -n "$php" ]]; then
+        for f in index.php config/Config.php config/Helpers.php controllers/Admin.php; do
+            [[ -f "$PROJECT_DIR/$f" ]] || continue
+            if ! "$php" -l "$PROJECT_DIR/$f" >>"$LOG_FILE" 2>&1; then
+                echo "error de sintaxis PHP en $f"; return 1
+            fi
+        done
+        log "verificacion: php -l OK"
+    else
+        log "verificacion: php no encontrado en el PATH, se omite php -l"
+    fi
+
+    dbh=$(envget DB_HOST); dbu=$(envget DB_USER); dbp=$(envget DB_PASSWORD); dbn=$(envget DB_NAME)
+    if [[ -n "$dbu" && -n "$dbn" ]] && command -v mysql >/dev/null 2>&1; then
+        if ! MYSQL_PWD="$dbp" mysql -h "${dbh:-localhost}" -u "$dbu" -N -B \
+                -e "SELECT 1; SELECT COUNT(*) FROM usuarios;" "$dbn" >>"$LOG_FILE" 2>>"$LOG_FILE"; then
+            echo "la base de datos no responde o falta la tabla usuarios"; return 1
+        fi
+        log "verificacion: consulta a la base de datos OK"
+    else
+        log "verificacion: cliente mysql o credenciales no disponibles, se omite la consulta"
+    fi
+
+    if command -v curl >/dev/null 2>&1; then
+        bl=$(envget BASE_URL); host=""
+        if [[ -n "$bl" ]]; then
+            host=$(printf '%s' "$bl" | sed -e 's#^[A-Za-z]*://##' -e 's#/.*##' -e 's/:.*$//')
+        fi
+        if [[ -n "$host" && "$host" != "127.0.0.1" && "$host" != "localhost" ]]; then
+            code=$(curl -s -o /dev/null -w '%{http_code}' -m 20 -H "Host: $host" http://127.0.0.1/ 2>>"$LOG_FILE" || echo 000)
+        else
+            code=$(curl -s -o /dev/null -w '%{http_code}' -m 20 http://127.0.0.1/ 2>>"$LOG_FILE" || echo 000)
+        fi
+        if [[ ! "$code" =~ ^[23][0-9][0-9]$ ]]; then
+            echo "la aplicacion respondio HTTP ${code:-sin respuesta} en http://127.0.0.1/"; return 1
+        fi
+        log "verificacion: HTTP $code OK"
+    else
+        log "verificacion: curl no disponible, se omite la prueba HTTP"
+    fi
+    return 0
+}
+
+# ----------------------------------------------------------------------------
+# rollback_core: revierte codigo + BD al ultimo estado pre-update.
+# Requiere rollback_sources() previa con RB_OK=true. Devuelve !=0 si falla.
+# ----------------------------------------------------------------------------
+rollback_core() {
+    CURRENT_STEP="rollback-respaldo"
+    status_write running rollback-respaldo "respaldando el estado actual antes de revertir"
+    if ! do_backup pre-rollback; then
+        log "ERROR: respaldo previo a la reversion fallido: $BK_ERR"
+        return 1
+    fi
+    rotate_backups
+
+    CURRENT_STEP="rollback-codigo"
+    status_write running rollback-codigo "restaurando el codigo en $RB_TARGET"
+    g reset --hard "$RB_TARGET" >>"$LOG_FILE" 2>&1 || { log "ERROR: git reset --hard $RB_TARGET fallo"; return 1; }
+    log "codigo restaurado en $(g rev-parse --short HEAD)"
+
+    CURRENT_STEP="rollback-bd"
+    status_write running rollback-bd "restaurando la base de datos desde $RB_SQL"
+    restore_db "$RB_SQL" || { log "ERROR: la restauracion de la base de datos fallo"; return 1; }
+    log "base de datos restaurada desde $RB_SQL"
+
+    if [[ -d "$PROJECT_DIR/facturaelectronica" && -f "$PROJECT_DIR/scripts/patch_facturaelectronica.sh" ]]; then
+        status_write running rollback-codigo "reaplicando parches a facturaelectronica/"
+        ROOT="$PROJECT_DIR" bash "$PROJECT_DIR/scripts/patch_facturaelectronica.sh" >>"$LOG_FILE" 2>&1 \
+            || { log "ERROR: fallo scripts/patch_facturaelectronica.sh durante la reversion"; return 1; }
+    fi
+
+    CURRENT_STEP="rollback-install"
+    status_write running rollback-install "ejecutando install.sh (migraciones, dependencias, permisos)"
+    ( cd "$PROJECT_DIR" && SKIP_WA=1 DEBIAN_FRONTEND=noninteractive bash install.sh ) >>"$LOG_FILE" 2>&1 </dev/null \
+        || { log "ERROR: install.sh fallo durante la reversion"; return 1; }
+
+    chown -R www-data:www-data "$STATUS_DIR" 2>/dev/null || true
+    return 0
 }
 
 # ----------------------------------------------------------------------------
@@ -158,11 +355,12 @@ cmd_run() {
     [[ $EUID -eq 0 ]] || { echo "megahnet-update run debe ejecutarse como root" >&2; exit 1; }
     mkdir -p "$STATUS_DIR" "$BACKUP_DIR" "$(dirname "$LOCK_FILE")"
     exec 9>"$LOCK_FILE"
-    flock -n 9 || { echo "ya hay una actualizacion en curso" >&2; exit 1; }
+    flock -n 9 || { echo "ya hay una actualizacion o reversion en curso" >&2; exit 1; }
 
     STARTED_AT="$(ts)"; CURRENT_STEP="preflight"
     # Cualquier error no controlado (set -e) deja el estado en error para el panel
-    trap 'rc=$?; if [[ $rc -ne 0 && -z "$FAILED" ]]; then status_write error "$CURRENT_STEP" "error inesperado en el paso $CURRENT_STEP (ver update.log)"; log "ABORTADO en $CURRENT_STEP (rc=$rc)"; fi' EXIT
+    # y SIEMPRE quita la bandera de mantenimiento.
+    trap 'rc=$?; maint_off; if [[ $rc -ne 0 && -z "$FAILED" ]]; then status_write error "$CURRENT_STEP" "error inesperado en el paso $CURRENT_STEP (ver update.log)"; log "ABORTADO en $CURRENT_STEP (rc=$rc)"; fi' EXIT
 
     log "===== INICIO actualizacion ====="
     status_write running preflight "verificando requisitos"
@@ -175,6 +373,7 @@ cmd_run() {
     if [[ "$FROM" == "$TO" ]]; then
         log "ya esta al dia ($FROM)"
         status_write ok preflight "el sistema ya esta al dia ($FROM)"
+        maint_off
         trap - EXIT
         return 0
     fi
@@ -183,24 +382,15 @@ cmd_run() {
     (( free >= MIN_FREE_KB )) || fail "espacio en disco insuficiente ($((free / 1024)) MB libres, minimo 1024 MB)"
     log "actualizando de $FROM a $TO ($(g rev-list --count "HEAD..origin/$BRANCH") cambios)"
 
+    # --- modo mantenimiento (el panel muestra "actualizando") ----------------
+    maint_on actualizacion
+
     # --- RESPALDO OBLIGATORIO: sin respaldo valido no se toca nada -----------
     CURRENT_STEP="respaldo"
     status_write running respaldo "generando respaldo de base de datos y codigo"
-    local stamp dbh dbu dbp dbn sqlf tarf
-    stamp=$(date +%Y%m%d-%H%M%S)
-    dbh=$(envget DB_HOST); dbu=$(envget DB_USER); dbp=$(envget DB_PASSWORD); dbn=$(envget DB_NAME)
-    [[ -n "$dbu" && -n "$dbn" ]] || fail "no se pudieron leer las credenciales de BD del .env"
-    sqlf="$BACKUP_DIR/megahnet-pre-update-$stamp.sql.gz"
-    tarf="$BACKUP_DIR/megahnet-pre-update-$stamp.tar.gz"
-    if ! MYSQL_PWD="$dbp" mysqldump -h "${dbh:-localhost}" -u "$dbu" --single-transaction --routines --triggers "$dbn" 2>>"$LOG_FILE" | gzip > "$sqlf"; then
-        fail "fallo el respaldo de la base de datos"
-    fi
-    [[ -s "$sqlf" ]] || fail "el respaldo de la base de datos quedo vacio"
-    tar --exclude='./vendor' --exclude='./node_modules' --exclude='./.git' --exclude='*.log' \
-        -czf "$tarf" -C "$PROJECT_DIR" . 2>>"$LOG_FILE" || fail "fallo el respaldo del codigo"
-    [[ -s "$tarf" ]] || fail "el respaldo del codigo quedo vacio"
-    log "respaldo BD: $sqlf ($(du -h "$sqlf" | cut -f1)) | codigo: $tarf ($(du -h "$tarf" | cut -f1))"
-    pve_snapshot "$stamp" || log "AVISO: snapshot Proxmox no realizado; el respaldo BD+codigo si esta garantizado"
+    do_backup pre-update || fail "${BK_ERR:-fallo el respaldo previo}"
+    local sqlf="$BK_SQL"
+    pve_snapshot "${BK_STAMP:-$(date +%Y%m%d-%H%M%S)}" || log "AVISO: snapshot Proxmox no realizado; el respaldo BD+codigo si esta garantizado"
     rotate_backups
 
     # --- codigo -------------------------------------------------------------
@@ -223,16 +413,87 @@ cmd_run() {
     ( cd "$PROJECT_DIR" && SKIP_WA=1 DEBIAN_FRONTEND=noninteractive bash install.sh ) >>"$LOG_FILE" 2>&1 </dev/null \
         || fail "install.sh termino con error (ver update.log)"
 
+    # --- verificacion: si falla, se revierte solo ----------------------------
+    CURRENT_STEP="verificacion"
+    status_write running verificacion "verificando que la aplicacion responde"
+    local vdet=""
+    if ! vdet=$(verificar); then
+        FAILED=1
+        log "VERIFICACION FALLIDA: $vdet"
+        # el respaldo pre-update recien creado es el punto de retorno
+        RB_TARGET="$FROM"; RB_SQL="$sqlf"; RB_TAR="$BK_TAR"
+        log "revirtiendo automaticamente a $RB_TARGET"
+        if rollback_core; then
+            CURRENT_STEP="verificacion"
+            status_write error verificacion "la verificacion fallo ($vdet); se restauro la version anterior $RB_TARGET"
+            log "===== FIN ERROR: revertido a $RB_TARGET ====="
+        else
+            CURRENT_STEP="verificacion"
+            status_write error verificacion "la verificacion fallo ($vdet) y la reversion automatica tambien fallo; restaure a mano: codigo $RB_TAR, base de datos $RB_SQL (git reset --hard $RB_TARGET y zcat $RB_SQL | mysql)"
+            log "===== FIN ERROR: reversion fallida, restaurar a mano ($RB_TAR / $RB_SQL) ====="
+        fi
+        maint_off
+        trap - EXIT
+        exit 1
+    fi
+    log "verificacion OK"
+
     chown -R www-data:www-data "$STATUS_DIR" 2>/dev/null || true
     CURRENT_STEP="fin"
-    status_write ok fin "actualizacion completada ($FROM -> $TO)"
+    status_write ok fin "actualizacion completada y verificada ($FROM -> $TO)"
     log "===== FIN OK ($FROM -> $TO) ====="
+    maint_off
+    trap - EXIT
+}
+
+# ----------------------------------------------------------------------------
+# rollback: vuelve a la version anterior usando el ultimo respaldo pre-update
+# ----------------------------------------------------------------------------
+cmd_rollback() {
+    [[ $EUID -eq 0 ]] || { echo "megahnet-update rollback debe ejecutarse como root" >&2; exit 1; }
+    mkdir -p "$STATUS_DIR" "$BACKUP_DIR" "$(dirname "$LOCK_FILE")"
+    exec 9>"$LOCK_FILE"
+    flock -n 9 || { echo "ya hay una actualizacion o reversion en curso" >&2; exit 1; }
+
+    STARTED_AT="$(ts)"; CURRENT_STEP="preflight"
+    trap 'rc=$?; maint_off; if [[ $rc -ne 0 && -z "$FAILED" ]]; then status_write error "$CURRENT_STEP" "error inesperado en el paso $CURRENT_STEP (ver update.log)"; log "ABORTADO en $CURRENT_STEP (rc=$rc)"; fi' EXIT
+
+    log "===== INICIO reversion ====="
+    command -v git >/dev/null 2>&1 || fail "git no esta instalado"
+    g rev-parse --git-dir >/dev/null 2>&1 || fail "$PROJECT_DIR no es un repositorio git (falta git config safe.directory?)"
+
+    rollback_sources
+    [[ -n "$RB_SQL" ]] || fail "no hay respaldo pre-update de base de datos en $BACKUP_DIR; no se puede revertir"
+    [[ -n "$RB_TAR" ]] || fail "no hay respaldo pre-update de codigo en $BACKUP_DIR; no se puede revertir"
+    [[ -n "$RB_TARGET" ]] || fail "no hay una actualizacion previa registrada en status.json; no se sabe a que version volver"
+    [[ "$RB_OK" == true ]] || fail "el commit $RB_TARGET no existe en el repositorio; no se puede revertir"
+
+    FROM=$(g rev-parse --short HEAD); TO="$RB_TARGET"
+    status_write running preflight "preparando la reversion de $FROM a $TO"
+    log "revirtiendo de $FROM a $TO (respaldo $RB_SQL del ${RB_DATE:-desconocido})"
+
+    maint_on reversion
+
+    if ! rollback_core; then
+        FAILED=1
+        status_write error "${CURRENT_STEP:-rollback}" "la reversion fallo en el paso ${CURRENT_STEP:-rollback}; restaure a mano: codigo $RB_TAR, base de datos $RB_SQL (git reset --hard $TO y zcat $RB_SQL | mysql)"
+        log "===== FIN ERROR reversion (restaurar a mano: $RB_TAR / $RB_SQL) ====="
+        maint_off
+        trap - EXIT
+        exit 1
+    fi
+
+    CURRENT_STEP="fin"
+    status_write ok fin "se restauro la version $TO"
+    log "===== FIN OK reversion ($FROM -> $TO) ====="
+    maint_off
     trap - EXIT
 }
 
 case "${1:-help}" in
     check)          cmd_check ;;
     run)            cmd_run ;;
+    rollback)       cmd_rollback ;;
     help|-h|--help) usage ;;
     *)              usage; exit 1 ;;
 esac

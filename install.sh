@@ -427,7 +427,7 @@ if [[ -f "$UPD_SRC" ]]; then
     SUDOERS_UPD="/etc/sudoers.d/megahnet-update"
     SUDOERS_TMP="$(mktemp)"
     cat > "$SUDOERS_TMP" <<'SUDOERS'
-www-data ALL=(root) NOPASSWD: /usr/local/sbin/megahnet-update check, /usr/local/sbin/megahnet-update run
+www-data ALL=(root) NOPASSWD: /usr/local/sbin/megahnet-update check, /usr/local/sbin/megahnet-update run, /usr/local/sbin/megahnet-update rollback
 SUDOERS
     if visudo -cf "$SUDOERS_TMP" >/dev/null 2>&1; then
         install -o root -g root -m 440 "$SUDOERS_TMP" "$SUDOERS_UPD"
@@ -452,9 +452,38 @@ SUDOERS
     DEPLOY_KEY="/root/.ssh/id_ed25519_megahnet"
     SSH_HOST_ALIAS="github.com-megahnet"
     mkdir -p /root/.ssh && chmod 700 /root/.ssh
-    if [[ ! -f "$DEPLOY_KEY" ]]; then
+    # Dos modos:
+    #   a) DEPLOY_KEY_FILE=/ruta/clave  -> reutiliza UNA sola llave para toda la flota
+    #      (se registra una unica deploy key de solo lectura en GitHub)
+    #   b) sin variable                 -> genera una llave propia de este servidor
+    DEPLOY_KEY_SHARED="${DEPLOY_KEY_FILE:-}"
+    if [[ -n "$DEPLOY_KEY_SHARED" ]]; then
+        if [[ ! -f "$DEPLOY_KEY_SHARED" ]]; then
+            err "DEPLOY_KEY_FILE apunta a '$DEPLOY_KEY_SHARED' y ese archivo no existe"
+        fi
+        if ! ssh-keygen -y -f "$DEPLOY_KEY_SHARED" >/dev/null 2>&1; then
+            err "DEPLOY_KEY_FILE '$DEPLOY_KEY_SHARED' no es una clave privada valida (o tiene passphrase)"
+        fi
+        if [[ "$(readlink -f "$DEPLOY_KEY_SHARED")" == "$(readlink -f "$DEPLOY_KEY" 2>/dev/null)" ]]; then
+            log "Deploy key compartida ya instalada en $DEPLOY_KEY"
+        elif [[ -f "$DEPLOY_KEY" ]] && cmp -s "$DEPLOY_KEY_SHARED" "$DEPLOY_KEY"; then
+            log "Deploy key compartida ya instalada en $DEPLOY_KEY"
+        else
+            log "Instalando deploy key compartida desde $DEPLOY_KEY_SHARED..."
+            install -o root -g root -m 600 "$DEPLOY_KEY_SHARED" "$DEPLOY_KEY"
+        fi
+        # La publica se deriva de la privada (puede no venir el .pub al lado)
+        if [[ -f "${DEPLOY_KEY_SHARED}.pub" ]]; then
+            install -o root -g root -m 644 "${DEPLOY_KEY_SHARED}.pub" "${DEPLOY_KEY}.pub"
+        else
+            ssh-keygen -y -f "$DEPLOY_KEY" > "${DEPLOY_KEY}.pub" 2>/dev/null || true
+            chmod 644 "${DEPLOY_KEY}.pub" 2>/dev/null || true
+        fi
+    elif [[ ! -f "$DEPLOY_KEY" ]]; then
         log "Generando deploy key para actualizaciones..."
         ssh-keygen -t ed25519 -N "" -C "megahnet-update@$(hostname)" -f "$DEPLOY_KEY" >/dev/null
+    else
+        chmod 600 "$DEPLOY_KEY" 2>/dev/null || true
     fi
     if ! grep -q "Host $SSH_HOST_ALIAS" /root/.ssh/config 2>/dev/null; then
         cat >> /root/.ssh/config <<SSHCFG
@@ -490,6 +519,15 @@ SSHCFG
         echo
         echo "  Luego vuelve a correr: sudo bash install.sh"
         echo
+        if [[ -z "$DEPLOY_KEY_SHARED" ]]; then
+            echo "  SUGERENCIA: esta MISMA llave sirve para todos los tenants. En los demas"
+            echo "  servidores copia $DEPLOY_KEY y corre:"
+            echo
+            echo "    sudo DEPLOY_KEY_FILE=/ruta/a/id_ed25519_megahnet bash install.sh"
+            echo
+            echo "  Asi solo hay que registrar UNA deploy key en GitHub (sin acceso de escritura)."
+            echo
+        fi
     fi
 else
     warn "scripts/megahnet-update no encontrado; actualizacion desde el panel no instalada"

@@ -238,7 +238,28 @@
                         <li data-url="admin/modulos"><a href="<?php echo BASE_URL . 'admin/modulos'; ?>"><i class="bx bx-grid-alt"></i>Modulos del sistema</a></li>
                         <?php if (function_exists('moduloActivo') ? moduloActivo('admin/roles') : true): ?><li data-url="admin/roles"><a href="<?php echo BASE_URL . 'admin/roles'; ?>"><i class="bx bx-id-card"></i>Roles de usuarios</a></li><?php endif; ?>
                         <li data-url="admin/logs"><a href="<?php echo BASE_URL . 'admin/logs'; ?>"><i class="bx bx-history"></i>Log de Acceso</a></li>
-                        <?php if (($_SESSION['rol'] ?? 0) == 1 && (function_exists('moduloActivo') ? moduloActivo('admin/actualizacion') : true)): ?><li data-url="admin/actualizacion"><a href="<?php echo BASE_URL . 'admin/actualizacion'; ?>"><i class="bx bx-refresh"></i>Actualizar sistema</a></li><?php endif; ?>
+                        <?php if (($_SESSION['rol'] ?? 0) == 1 && (function_exists('moduloActivo') ? moduloActivo('admin/actualizacion') : true)): ?><li data-url="admin/actualizacion"><a href="<?php echo BASE_URL . 'admin/actualizacion'; ?>"><i class="bx bx-refresh"></i>Actualizar sistema<span id="actBadgeMenu" class="badge bg-danger ms-1" hidden></span></a></li>
+                        <script>
+                        // Aviso de version disponible. El header no se re-ejecuta con PJAX:
+                        // basta consultarlo una vez al cargar. Falla en silencio.
+                        (function () {
+                            var b = document.getElementById('actBadgeMenu');
+                            if (!b || window.__actBadgeMenuDone) { return; }
+                            window.__actBadgeMenuDone = true;
+                            try {
+                                fetch('<?php echo BASE_URL; ?>admin/actualizacionDisponible', { credentials: 'same-origin' })
+                                    .then(function (r) { return r.ok ? r.json() : null; })
+                                    .then(function (d) {
+                                        if (!d || !d.ok || !d.hay) { return; }
+                                        var n = parseInt(d.behind, 10);
+                                        b.textContent = (isNaN(n) || n <= 0) ? '1' : String(n);
+                                        b.hidden = false;
+                                    })
+                                    .catch(function () {});
+                            } catch (e) {}
+                        })();
+                        </script>
+                        <?php endif; ?>
                     </ul>
                 </li>
 

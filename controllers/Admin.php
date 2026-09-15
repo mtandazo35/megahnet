@@ -1525,6 +1525,147 @@ class Admin extends Controller
     }
 
     /**
+     * POST admin/revertir
+     * Lanza `megahnet-update rollback` en segundo plano (nohup) y responde de inmediato.
+     * Restaura codigo Y base de datos al estado del ultimo respaldo previo a una
+     * actualizacion; se pierde lo registrado despues de esa fecha.
+     */
+    public function revertir()
+    {
+        header('Content-Type: application/json');
+        if (empty($_SESSION['id_usuario']) || ($_SESSION['rol'] ?? 0) != 1) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'msg' => 'Sin permiso']);
+            exit;
+        }
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['ok' => false, 'msg' => 'Metodo no permitido']);
+            exit;
+        }
+
+        // Mismo candado que actualizar(): flock + marca temporal (nombre propio
+        // para no pisar la marca de `run`).
+        $lockFile = ROOT_PATH . '/storage/update-panel.lock';
+        $lock = @fopen($lockFile, 'c');
+        if ($lock === false || !@flock($lock, LOCK_EX | LOCK_NB)) {
+            if ($lock) { fclose($lock); }
+            http_response_code(409);
+            echo json_encode(['ok' => false, 'msg' => 'Ya hay una peticion en curso, espere unos segundos.']);
+            exit;
+        }
+
+        try {
+            $status = $this->updateLeerStatus();
+            if (is_array($status) && ($status['state'] ?? '') === 'running') {
+                http_response_code(409);
+                echo json_encode(['ok' => false, 'msg' => 'Hay una operacion en curso; espere a que termine.']);
+                exit;
+            }
+            $marca = ROOT_PATH . '/storage/update-panel.launched-rollback';
+            if (is_file($marca) && (time() - (int)@filemtime($marca)) < 90) {
+                http_response_code(409);
+                echo json_encode(['ok' => false, 'msg' => 'La reversion se lanzo hace unos segundos; espere a que aparezca en el registro.']);
+                exit;
+            }
+
+            $chk = $this->updateCheck();
+            if (!$chk['configurado']) {
+                echo json_encode(['ok' => false, 'msg' => $chk['mensaje']]);
+                exit;
+            }
+            $c  = is_array($chk['check']) ? $chk['check'] : [];
+            $rb = (isset($c['rollback']) && is_array($c['rollback'])) ? $c['rollback'] : [];
+            if (empty($rb['disponible'])) {
+                echo json_encode([
+                    'ok'  => false,
+                    'msg' => 'No hay un respaldo previo utilizable para revertir. La reversion solo es posible '
+                           . 'despues de una actualizacion hecha desde este panel, y unicamente mientras el '
+                           . 'respaldo de codigo y base de datos siga en el servidor.',
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
+            $cmd = 'nohup sudo -n ' . escapeshellarg(self::UPDATE_BIN) . ' rollback > /dev/null 2>&1 &';
+            $descriptors = [
+                0 => ['file', '/dev/null', 'r'],
+                1 => ['file', '/dev/null', 'w'],
+                2 => ['file', '/dev/null', 'w'],
+            ];
+            $proc = @proc_open($cmd, $descriptors, $pipes, ROOT_PATH);
+            if (!is_resource($proc)) {
+                echo json_encode(['ok' => false, 'msg' => 'No se pudo lanzar el proceso de reversion (proc_open).']);
+                exit;
+            }
+            proc_close($proc);
+            @touch($marca);
+
+            echo json_encode([
+                'ok'   => true,
+                'msg'  => 'Reversion iniciada. Se restauraran el codigo y la base de datos al respaldo del '
+                        . (($rb['fecha'] ?? '') !== '' ? $rb['fecha'] : 'ultimo respaldo') . '.',
+                'from' => $c['local']['short'] ?? '',
+                'to'   => $rb['to'] ?? '',
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            echo json_encode(['ok' => false, 'msg' => 'Error al iniciar la reversion: ' . $e->getMessage()]);
+        } finally {
+            @flock($lock, LOCK_UN);
+            @fclose($lock);
+        }
+        exit;
+    }
+
+    /**
+     * GET admin/actualizacionDisponible
+     * Aviso liviano para el menu: {"ok":true,"hay":bool,"behind":N}.
+     * Cacheado 1 h en storage/update/badge.json: correr `git fetch` en cada carga
+     * de pagina seria inaceptable. Nunca lanza excepcion hacia la vista.
+     */
+    public function actualizacionDisponible()
+    {
+        header('Content-Type: application/json');
+        $vacio = ['ok' => true, 'hay' => false, 'behind' => 0];
+        if (empty($_SESSION['id_usuario']) || ($_SESSION['rol'] ?? 0) != 1) {
+            echo json_encode($vacio);
+            exit;
+        }
+        $ttl   = 3600;
+        $cache = ROOT_PATH . '/storage/update/badge.json';
+        try {
+            if (is_file($cache) && is_readable($cache) && (time() - (int)@filemtime($cache)) < $ttl) {
+                $j = @json_decode((string)@file_get_contents($cache), true);
+                if (is_array($j) && isset($j['ts']) && (time() - (int)$j['ts']) < $ttl) {
+                    echo json_encode([
+                        'ok'     => true,
+                        'hay'    => !empty($j['hay']),
+                        'behind' => (int)($j['behind'] ?? 0),
+                    ]);
+                    exit;
+                }
+            }
+
+            $chk    = $this->updateCheck();
+            $c      = is_array($chk['check']) ? $chk['check'] : [];
+            $behind = 0;
+            $hay    = false;
+            if ($chk['configurado'] && !empty($c['ok'])) {
+                $behind = (int)($c['behind'] ?? 0);
+                $hay    = $behind > 0;
+            }
+            $dir = dirname($cache);
+            if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
+            @file_put_contents($cache, json_encode([
+                'ts' => time(), 'hay' => $hay, 'behind' => $behind,
+            ]), LOCK_EX);
+            echo json_encode(['ok' => true, 'hay' => $hay, 'behind' => $behind]);
+        } catch (\Throwable $e) {
+            echo json_encode($vacio);
+        }
+        exit;
+    }
+
+    /**
      * Ejecuta `sudo -n megahnet-update check` y clasifica el resultado.
      * @return array{configurado:bool, check:?array, mensaje:string}
      */

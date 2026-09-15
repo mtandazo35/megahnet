@@ -291,6 +291,7 @@ function deleteImgFactura() {
    Endpoints (controllers/Admin.php):
      GET  admin/actualizacionEstado[?solo_estado=1] -> {ok, configurado, check, status, log, mensaje}
      POST admin/actualizar                          -> {ok, msg, from, to}
+     POST admin/revertir                            -> {ok, msg, from, to}
    El trabajo real lo hace /usr/local/sbin/megahnet-update (root), que respalda
    base de datos y codigo antes de aplicar cambios.
    ========================================================================== */
@@ -317,9 +318,16 @@ function deleteImgFactura() {
     const elLog        = document.querySelector('#actLog');
     const btnComprobar = document.querySelector('#actBtnComprobar');
     const btnActualizar= document.querySelector('#actBtnActualizar');
+    const btnRevertir  = document.querySelector('#actBtnRevertir');
+    const elRevInfo    = document.querySelector('#actRevertirInfo');
+    const elCommitsBox = document.querySelector('#actCommitsBox');
+    const elCommitsList= document.querySelector('#actCommitsLista');
+    const elCommitsNum = document.querySelector('#actCommitsCount');
 
     let temporizador = null;   // polling mientras la actualizacion corre
     let enCurso      = false;  // evita relanzar o comprobar durante el proceso
+    let rollback     = null;   // ultimo check.rollback conocido (para el Swal)
+    let revirtiendo  = false;  // la corrida en curso la lanzo el boton de revertir
 
     const PASOS = {
         preflight: 'Verificando requisitos',
@@ -327,6 +335,10 @@ function deleteImgFactura() {
         'git-pull':'Descargando cambios',
         'patch-sri':'Aplicando parches de facturacion electronica',
         install:   'Aplicando migraciones y dependencias',
+        'rollback-respaldo': 'Respaldando el estado actual antes de revertir',
+        'rollback-codigo':   'Restaurando el codigo de la version anterior',
+        'rollback-bd':       'Restaurando la base de datos del respaldo',
+        'rollback-install':  'Reaplicando dependencias y migraciones',
         fin:       'Finalizado'
     };
 
@@ -353,6 +365,56 @@ function deleteImgFactura() {
         if (pegadoAbajo) elLog.scrollTop = elLog.scrollHeight;
     }
 
+    /** Lista los commits pendientes (check.commits). Oculta la seccion si viene vacia. */
+    function pintarCommits(commits) {
+        elCommitsList.textContent = '';
+        if (!Array.isArray(commits) || commits.length === 0) {
+            elCommitsBox.hidden = true;
+            return;
+        }
+        commits.forEach(function (c) {
+            if (!c) return;
+            const fila = document.createElement('div');
+            fila.className = 'act-commit';
+            const h = document.createElement('span');
+            h.className = 'act-commit-hash';
+            h.textContent = c.short || '';
+            const f = document.createElement('span');
+            f.className = 'act-commit-date';
+            f.textContent = c.date ? String(c.date).substring(0, 16) : '';
+            const t = document.createElement('span');
+            t.className = 'act-commit-subject';
+            // textContent y no innerHTML: los asuntos traen comillas y acentos
+            t.textContent = c.subject || '';
+            t.title = c.subject || '';
+            fila.appendChild(h);
+            fila.appendChild(f);
+            fila.appendChild(t);
+            elCommitsList.appendChild(fila);
+        });
+        elCommitsNum.textContent = commits.length;
+        elCommitsBox.hidden = false;
+    }
+
+    /** Habilita/deshabilita el boton de reversion segun check.rollback. */
+    function pintarRollback(rb) {
+        rollback = (rb && rb.disponible) ? rb : null;
+        if (!rollback) {
+            btnRevertir.disabled = true;
+            btnRevertir.title = 'No hay un respaldo previo utilizable para revertir';
+            elRevInfo.textContent = '';
+            elRevInfo.hidden = true;
+            return;
+        }
+        const texto = 'Se puede volver a la version ' + (rollback.to || '?') +
+            ' con el respaldo del ' + (rollback.fecha || 'fecha desconocida') +
+            ' (se restaura tambien la base de datos).';
+        btnRevertir.disabled = enCurso;
+        btnRevertir.title = texto;
+        elRevInfo.textContent = texto;
+        elRevInfo.hidden = false;
+    }
+
     /** Pinta el resultado de `megahnet-update check` (versiones, pendientes, estado). */
     function pintarCheck(check, configurado, mensaje) {
         if (configurado === false) {
@@ -361,9 +423,14 @@ function deleteImgFactura() {
                 'Ejecute <code>sudo bash install.sh</code> en el servidor para habilitarla.' +
                 (mensaje ? '<div class="small mt-1">' + mensaje + '</div>' : ''));
             btnActualizar.disabled = true;
+            pintarCommits(null);
+            pintarRollback(null);
             return;
         }
         if (!check) return;
+
+        pintarCommits(check.commits);
+        pintarRollback(check.rollback);
 
         const local  = check.local  || {};
         const remoto = check.remote || {};
@@ -436,6 +503,7 @@ function deleteImgFactura() {
                 if (corriendo) {
                     enCurso = true;
                     btnActualizar.disabled = true;
+                    btnRevertir.disabled = true;
                     btnComprobar.disabled = true;
                     aviso('alert-info', 'bx-loader bx-spin',
                         'Actualizacion en curso. No cierre esta pantalla.');
@@ -447,8 +515,13 @@ function deleteImgFactura() {
                         detenerPolling();
                         btnComprobar.disabled = false;
                         const ok = res.status && res.status.state === 'ok';
+                        const paso = (res.status && typeof res.status.step === 'string') ? res.status.step : '';
+                        const esRollback = revirtiendo || paso.indexOf('rollback-') === 0;
+                        revirtiendo = false;
+                        const okMsg  = esRollback ? 'Reversion completada' : 'Actualizacion completada';
+                        const malMsg = esRollback ? 'La reversion fallo' : 'La actualizacion fallo';
                         alertaPersonalizada(ok ? 'success' : 'error',
-                            ok ? 'Actualizacion completada' : ((res.status && res.status.message) || 'La actualizacion fallo'));
+                            ok ? okMsg : ((res.status && res.status.message) || malMsg));
                         cargarEstado(false);
                         return;
                     }
@@ -497,6 +570,7 @@ function deleteImgFactura() {
         }).then(function (r) {
             if (!r.isConfirmed) return;
             btnActualizar.disabled = true;
+            btnRevertir.disabled = true;
             btnComprobar.disabled = true;
             aviso('alert-info', 'bx-loader bx-spin', 'Iniciando actualizacion...');
             fetch(base_url + 'admin/actualizar', { method: 'POST', cache: 'no-store' })
@@ -517,6 +591,55 @@ function deleteImgFactura() {
                 .catch(function () {
                     btnComprobar.disabled = false;
                     alertaPersonalizada('error', 'Error de red al iniciar la actualizacion');
+                });
+        });
+    });
+
+    btnRevertir.addEventListener('click', function () {
+        if (enCurso || btnRevertir.disabled) return;
+        if (!rollback) {
+            alertaPersonalizada('warning', 'No hay un respaldo previo utilizable para revertir.');
+            return;
+        }
+        Swal.fire({
+            title: 'Volver a la version anterior?',
+            html: 'Se restaurara el sistema a la version <code>' + (rollback.to || '?') + '</code> ' +
+                  'con el respaldo del <b>' + (rollback.fecha || 'fecha desconocida') + '</b>.<br><br>' +
+                  '<b class="text-danger">Se restaura tambien la BASE DE DATOS</b> al estado de ese ' +
+                  'respaldo: <b>se perdera todo lo registrado despues de esa fecha</b> (clientes, pagos, ' +
+                  'facturas, tickets y cualquier otro cambio).<br><br>' +
+                  'Esta operacion no se puede deshacer desde el panel. Continuar?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Si, revertir y restaurar la BD',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc3545',
+            focusCancel: true
+        }).then(function (r) {
+            if (!r.isConfirmed) return;
+            btnRevertir.disabled = true;
+            btnActualizar.disabled = true;
+            btnComprobar.disabled = true;
+            aviso('alert-info', 'bx-loader bx-spin', 'Iniciando reversion...');
+            fetch(base_url + 'admin/revertir', { method: 'POST', cache: 'no-store' })
+                .then(function (rs) { return rs.json(); })
+                .then(function (res) {
+                    if (!res || !res.ok) {
+                        btnComprobar.disabled = false;
+                        alertaPersonalizada('warning', (res && res.msg) || 'No se pudo iniciar la reversion');
+                        cargarEstado(false);
+                        return;
+                    }
+                    enCurso = true;
+                    revirtiendo = true;
+                    alertaPersonalizada('success', res.msg);
+                    aviso('alert-info', 'bx-loader bx-spin', 'Reversion en curso. No cierre esta pantalla.');
+                    pintarBadge('running');
+                    arrancarPolling();
+                })
+                .catch(function () {
+                    btnComprobar.disabled = false;
+                    alertaPersonalizada('error', 'Error de red al iniciar la reversion');
                 });
         });
     });

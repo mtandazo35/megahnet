@@ -18,6 +18,12 @@
     white-space: pre-wrap; word-break: break-word; margin: 0; min-height: 120px;
   }
   .act-dirty-list { font-family: ui-monospace, Menlo, monospace; font-size: .78rem; max-height: 140px; overflow: auto; }
+  #actCommitsLista { max-height: 260px; overflow: auto; }
+  #actCommitsLista .act-commit { display: flex; gap: .65rem; align-items: baseline; padding: .35rem .25rem; border-bottom: 1px solid #f1f3f7; }
+  #actCommitsLista .act-commit:last-child { border-bottom: 0; }
+  #actCommitsLista .act-commit-hash { font-family: ui-monospace, Menlo, monospace; font-size: .78rem; color: #2563eb; flex: 0 0 auto; }
+  #actCommitsLista .act-commit-date { font-size: .74rem; color: #9ca3af; flex: 0 0 auto; white-space: nowrap; }
+  #actCommitsLista .act-commit-subject { font-size: .82rem; color: #374151; word-break: break-word; }
 </style>
 
 <div class="page-content" id="actualizacionPanel">
@@ -37,8 +43,12 @@
             <div class="d-flex flex-wrap gap-2">
               <button id="actBtnComprobar" class="btn btn-light border"><i class="bx bx-search-alt"></i> Volver a comprobar</button>
               <button id="actBtnActualizar" class="btn btn-primary" disabled><i class="bx bx-cloud-download"></i> Actualizar ahora</button>
+              <button id="actBtnRevertir" class="btn btn-outline-danger" disabled title="No hay un respaldo previo utilizable"><i class="bx bx-undo"></i> Volver a la version anterior</button>
             </div>
           </div>
+
+          <!-- A que version se volveria y de que fecha es el respaldo (lo pinta el JS) -->
+          <div id="actRevertirInfo" class="small text-muted mb-2" hidden></div>
 
           <!-- Estado general (se pinta por JS) -->
           <div id="actEstado" class="alert alert-secondary mb-3">
@@ -74,6 +84,24 @@
             <strong><i class="bx bx-error"></i> Cambios locales sin subir.</strong>
             No se puede actualizar automaticamente mientras haya archivos modificados en el servidor:
             <div class="act-dirty-list mt-1" id="actDirtyList"></div>
+          </div>
+
+          <!-- Changelog: commits pendientes de aplicar (lo pinta el JS; oculto si no hay) -->
+          <div id="actCommitsBox" class="card border mb-3" hidden>
+            <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center"
+                 role="button" data-bs-toggle="collapse" data-bs-target="#actCommitsCollapse"
+                 aria-expanded="true" aria-controls="actCommitsCollapse">
+              <h6 class="mb-0 fw-semibold"><i class="bx bx-list-ul"></i> Cambios que se aplicaran
+                <span id="actCommitsCount" class="badge bg-primary ms-1">0</span>
+              </h6>
+              <i class="bx bx-chevron-down"></i>
+            </div>
+            <div class="collapse show" id="actCommitsCollapse">
+              <div class="card-body py-2">
+                <div id="actCommitsLista"></div>
+                <div class="small text-muted mt-2">Se muestran hasta 20 commits; si hay mas, el resto tambien se aplicara.</div>
+              </div>
+            </div>
           </div>
 
           <div class="alert alert-info mb-3">

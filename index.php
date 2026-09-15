@@ -11,6 +11,42 @@ $ruta = (!empty($_GET['url'])) ? $_GET['url'] : 'principal/index';
 $array = explode('/', $ruta);
 // alias factura -> ventas (URL renombrada manteniendo controlador interno)
 if (isset($array[0]) && strtolower($array[0]) === 'factura') { $array[0] = 'ventas'; }
+
+// ---------------------------------------------------------------------------
+// Modo mantenimiento (lo activa /usr/local/sbin/megahnet-update con un flag).
+// Una sola comprobacion is_file() por request: si no hay flag, coste ~0.
+// ---------------------------------------------------------------------------
+$__mantFlag = ROOT_PATH . '/storage/update/maintenance.flag';
+if (is_file($__mantFlag)) {
+    // Rutas que NUNCA se bloquean: son las que usa el propio panel de
+    // actualizacion para seguir el progreso y poder revertir.
+    $__rutaMant = strtolower($array[0] . '/' . ((isset($array[1]) && $array[1] !== '') ? $array[1] : 'index'));
+    $__mantLibres = array(
+        'admin/actualizacion',
+        'admin/actualizacionestado',
+        'admin/actualizaciondisponible',
+        'admin/actualizar',
+        'admin/revertir',
+    );
+    if (!in_array($__rutaMant, $__mantLibres, true)) {
+        // Anti-bloqueo permanente: si el actualizador murio sin limpiar el
+        // flag, a los 30 minutos se ignora (y se intenta borrar).
+        $__mantEdad = time() - (int)@filemtime($__mantFlag);
+        if ($__mantEdad >= 0 && $__mantEdad < 1800) {
+            $__mantMotivo = 'actualizacion';
+            $__mantJson = @json_decode((string)@file_get_contents($__mantFlag), true);
+            if (is_array($__mantJson) && !empty($__mantJson['motivo'])) {
+                $__mantMotivo = (string)$__mantJson['motivo'];
+            }
+            header('HTTP/1.1 503 Service Unavailable', true, 503);
+            header('Retry-After: 120');
+            header('Cache-Control: no-store');
+            require ROOT_PATH . '/views/templates/mantenimiento.php';
+            exit;
+        }
+        @unlink($__mantFlag);
+    }
+}
 $controller = ucfirst($array[0]);
 $metodo = 'index';
 $parametro = '';

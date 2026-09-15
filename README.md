@@ -104,12 +104,67 @@ El progreso y el registro se ven en la misma pantalla. Estado y log quedan en
 
 - `/usr/local/sbin/megahnet-update` instalado y regla en `/etc/sudoers.d/megahnet-update`
   que permite a `www-data` ejecutar solo `check` y `run`.
-- **Deploy key de solo lectura** registrada en GitHub. `install.sh` genera la clave
-  (`/root/.ssh/id_ed25519_megahnet`) y la muestra: hay que pegarla en
-  *repo > Settings > Deploy keys > Add deploy key*, **sin marcar "Allow write access"**.
-  Hasta que se registre, el boton avisa que no puede descargar cambios.
+- **Deploy key de solo lectura** registrada en GitHub (ver abajo).
 - Variables opcionales en `.env` para el snapshot: `PVE_API_URL`, `PVE_TOKEN_ID`,
   `PVE_TOKEN_SECRET`, `PVE_NODE`, `PVE_VMID` (el token necesita permiso `VM.Snapshot`).
+
+##### Deploy key: una por servidor o una compartida
+
+El servidor necesita una **deploy key de solo lectura** en GitHub para poder
+hacer `git fetch/pull`. Se registra en *repo > Settings > Deploy keys > Add deploy
+key*, **sin marcar "Allow write access"**. Hay dos opciones:
+
+**a) Una llave por servidor (por defecto).** `install.sh` genera
+`/root/.ssh/id_ed25519_megahnet` y muestra la publica al final; hay que pegarla en
+GitHub. Con 7 tenants significa registrar 7 deploy keys.
+
+**b) Una sola llave compartida para toda la flota (recomendado).** Se genera una
+vez, se registra **una sola** deploy key en GitHub y en cada servidor se pasa el
+archivo por variable de entorno:
+
+```bash
+# En el primer servidor (o en tu equipo), una sola vez:
+ssh-keygen -t ed25519 -N "" -C "megahnet-update@flota" -f /root/.ssh/id_ed25519_megahnet
+cat /root/.ssh/id_ed25519_megahnet.pub   # <- registrar en GitHub, SOLO LECTURA
+
+# En cada tenant, copiando el archivo privado de forma segura (scp):
+sudo DEPLOY_KEY_FILE=/root/id_ed25519_megahnet bash install.sh
+```
+
+`install.sh` la copia a `/root/.ssh/id_ed25519_megahnet` con modo `600` en lugar de
+generar una nueva. Es idempotente: si la clave ya instalada es la misma, no la
+toca; si `DEPLOY_KEY_FILE` apunta a otra distinta, la reemplaza. Si el archivo no
+existe o no es una clave privada valida (o tiene passphrase), el instalador aborta.
+
+Hasta que la llave este registrada en GitHub, el boton "Actualizar" avisa que no
+puede descargar cambios.
+
+##### Modo mantenimiento
+
+Mientras `megahnet-update` actualiza o revierte, crea el flag
+`storage/update/maintenance.flag` (JSON con `desde` y `motivo`) y lo borra al
+terminar. Mientras exista, `index.php` responde **HTTP 503** con
+`Retry-After: 120` y muestra `views/templates/mantenimiento.php`: una pagina
+autocontenida (CSS inline, sin depender de assets que pueden estar
+actualizandose) que se recarga sola cada 30 segundos.
+
+- **El administrador sigue viendo el progreso**: las rutas `admin/actualizacion`,
+  `admin/actualizacionEstado`, `admin/actualizacionDisponible`, `admin/actualizar`
+  y `admin/revertir` nunca se bloquean.
+- **Caduca a los 30 minutos**: si el actualizador muriera sin limpiar el flag, a
+  partir de esa edad `index.php` lo ignora y lo borra, para que el sistema no
+  quede caido de forma permanente.
+- Para probarlo a mano:
+  `echo '{"desde":"'"$(date -Is)"'","motivo":"actualizacion"}' > storage/update/maintenance.flag`
+  y borrarlo con `rm storage/update/maintenance.flag`.
+
+##### Aviso de version disponible en el menu
+
+El menu lateral (*Sistema > Actualizar sistema*) muestra un badge rojo con el
+numero de commits pendientes. El header consulta una vez al cargar el endpoint
+`admin/actualizacionDisponible` (cacheado 1 hora en el servidor) y falla en
+silencio si no responde. El panel navega con PJAX y el script del header no se
+re-ejecuta, asi que la consulta ocurre una sola vez por carga completa.
 
 **Si algo sale mal**, restaurar con los respaldos previos:
 
