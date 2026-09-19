@@ -59,21 +59,22 @@
             <div class="col-md-4">
               <div class="act-kpi">
                 <div class="act-kpi-label"><i class="bx bx-hdd"></i> Version instalada</div>
-                <div class="act-kpi-value" id="actLocalShort">&mdash;</div>
-                <div class="act-kpi-sub" id="actLocalDate"></div>
+                <div class="act-kpi-value" id="actLocalVersion">&mdash;</div>
+                <div class="act-kpi-sub"><code id="actLocalShort">&mdash;</code> <span id="actLocalDate"></span></div>
                 <div class="act-kpi-sub text-truncate" id="actLocalSubject" title=""></div>
               </div>
             </div>
             <div class="col-md-4">
               <div class="act-kpi">
                 <div class="act-kpi-label"><i class="bx bxl-github"></i> Disponible en GitHub</div>
-                <div class="act-kpi-value" id="actRemoteShort">&mdash;</div>
+                <div class="act-kpi-value" id="actRemoteVersion">&mdash;</div>
+                <div class="act-kpi-sub"><code id="actRemoteShort">&mdash;</code></div>
                 <div class="act-kpi-sub text-truncate" id="actRemoteUrl" title=""></div>
               </div>
             </div>
             <div class="col-md-4">
               <div class="act-kpi">
-                <div class="act-kpi-label"><i class="bx bx-git-commit"></i> Cambios pendientes</div>
+                <div class="act-kpi-label"><i class="bx bx-package"></i> Mejoras por aplicar</div>
                 <div class="act-kpi-value" id="actBehind">&mdash;</div>
                 <div class="act-kpi-sub" id="actAhead"></div>
               </div>
@@ -86,17 +87,29 @@
             <div class="act-dirty-list mt-1" id="actDirtyList"></div>
           </div>
 
+          <!-- Mejoras de las versiones pendientes, en lenguaje llano (del CHANGELOG.md) -->
+          <div id="actMejorasBox" class="card border border-primary mb-3" hidden>
+            <div class="card-header bg-primary bg-opacity-10 py-2">
+              <h6 class="mb-0 fw-semibold text-primary">
+                <i class="bx bx-gift"></i> Que mejora esta actualizacion
+              </h6>
+            </div>
+            <div class="card-body py-2">
+              <ul class="mb-0 ps-3" id="actMejorasLista"></ul>
+            </div>
+          </div>
+
           <!-- Changelog: commits pendientes de aplicar (lo pinta el JS; oculto si no hay) -->
           <div id="actCommitsBox" class="card border mb-3" hidden>
             <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center"
                  role="button" data-bs-toggle="collapse" data-bs-target="#actCommitsCollapse"
-                 aria-expanded="true" aria-controls="actCommitsCollapse">
-              <h6 class="mb-0 fw-semibold"><i class="bx bx-list-ul"></i> Cambios que se aplicaran
+                 aria-expanded="false" aria-controls="actCommitsCollapse">
+              <h6 class="mb-0 fw-semibold text-muted"><i class="bx bx-code-alt"></i> Detalle tecnico
                 <span id="actCommitsCount" class="badge bg-primary ms-1">0</span>
               </h6>
               <i class="bx bx-chevron-down"></i>
             </div>
-            <div class="collapse show" id="actCommitsCollapse">
+            <div class="collapse" id="actCommitsCollapse">
               <div class="card-body py-2">
                 <div id="actCommitsLista"></div>
                 <div class="small text-muted mt-2">Se muestran hasta 20 commits; si hay mas, el resto tambien se aplicara.</div>

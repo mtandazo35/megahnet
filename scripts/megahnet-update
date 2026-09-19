@@ -179,17 +179,28 @@ cmd_check() {
             "$(jesc "$PROJECT_DIR no es un repositorio git o falta git config safe.directory (ejecute sudo bash install.sh)")"
         return 0
     fi
-    if ! fetch_err=$(g fetch -q origin "$BRANCH" 2>&1); then
+    # --tags: las versiones (1.0, 1.1...) son etiquetas de git; sin esto el
+    # panel solo podria mostrar el hash del commit, que a nadie le dice nada.
+    if ! fetch_err=$(g fetch -q --tags --force origin "$BRANCH" 2>&1); then
         ok=false
         reason="sin acceso al repositorio remoto (deploy key no configurada?): $(echo "$fetch_err" | tail -1)"
     fi
 
     local lh ls ld lsub rh="" rs="" behind=0 ahead=0 dirty=false dfiles url can=false why="" arr="" f last="null"
     local commits="" c d s
+    local lver="" rver="" mejoras="" linea=""
     lh=$(g rev-parse HEAD); ls=$(g rev-parse --short HEAD)
     ld=$(g log -1 --format=%ci); lsub=$(g log -1 --format=%s)
+    # Version legible = ultima etiqueta alcanzable (v1.1 -> "1.1"). Si el commit
+    # instalado va por delante de la etiqueta se marca con "+", para no dar por
+    # hecho que es exactamente esa version publicada.
+    lver=$(g describe --tags --abbrev=0 HEAD 2>/dev/null | sed 's/^v//')
+    if [[ -n "$lver" ]] && ! g describe --tags --exact-match HEAD >/dev/null 2>&1; then
+        lver="$lver+"
+    fi
     if [[ "$ok" == true ]]; then
         rh=$(g rev-parse "origin/$BRANCH"); rs=$(g rev-parse --short "origin/$BRANCH")
+        rver=$(g describe --tags --abbrev=0 "origin/$BRANCH" 2>/dev/null | sed 's/^v//')
         behind=$(g rev-list --count "HEAD..origin/$BRANCH")
         ahead=$(g rev-list --count "origin/$BRANCH..HEAD")
     fi
@@ -212,6 +223,20 @@ cmd_check() {
         done < <(g log --format='%h|%ci|%s' -n 20 "HEAD..origin/$BRANCH" 2>/dev/null || true)
     fi
 
+    # Mejoras a aplicar, en lenguaje llano: se leen del CHANGELOG.md publicado,
+    # tomando desde arriba hasta llegar a la version ya instalada. Si ese archivo
+    # no existe (versiones antiguas), el panel cae en la lista de commits.
+    if [[ "$ok" == true ]] && (( behind > 0 )); then
+        while IFS= read -r linea; do
+            [[ -z "$linea" ]] && continue
+            mejoras+="${mejoras:+,}\"$(jesc "$linea")\""
+        done < <(g show "origin/$BRANCH:CHANGELOG.md" 2>/dev/null \
+            | awk -v inst="${lver%%+*}" '
+                /^## / { if (inst != "" && $2 == inst) exit; next }
+                /^- /  { sub(/^- /, ""); gsub(/\*\*/, ""); print }
+              ' | head -40 || true)
+    fi
+
     rollback_sources
 
     while IFS= read -r f; do
@@ -220,8 +245,9 @@ cmd_check() {
     done <<< "$dfiles"
     [[ -s "$STATUS_FILE" ]] && last=$(cat "$STATUS_FILE")
 
-    printf '{"ok":%s,"local":{"hash":"%s","short":"%s","date":"%s","subject":"%s"},"remote":{"hash":"%s","short":"%s"},"behind":%s,"ahead":%s,"dirty":%s,"dirty_files":[%s],"remote_url":"%s","can_update":%s,"reason":"%s","commits":[%s],"rollback":{"disponible":%s,"to":"%s","backup_sql":"%s","backup_tar":"%s","fecha":"%s"},"last_run":%s}\n' \
-        "$ok" "$lh" "$ls" "$(jesc "$ld")" "$(jesc "$lsub")" "$rh" "$rs" "$behind" "$ahead" "$dirty" "$arr" \
+    printf '{"ok":%s,"local":{"hash":"%s","short":"%s","date":"%s","subject":"%s","version":"%s"},"remote":{"hash":"%s","short":"%s","version":"%s"},"mejoras":[%s],"behind":%s,"ahead":%s,"dirty":%s,"dirty_files":[%s],"remote_url":"%s","can_update":%s,"reason":"%s","commits":[%s],"rollback":{"disponible":%s,"to":"%s","backup_sql":"%s","backup_tar":"%s","fecha":"%s"},"last_run":%s}\n' \
+        "$ok" "$lh" "$ls" "$(jesc "$ld")" "$(jesc "$lsub")" "$(jesc "$lver")" "$rh" "$rs" "$(jesc "$rver")" "$mejoras" \
+        "$behind" "$ahead" "$dirty" "$arr" \
         "$(jesc "$url")" "$can" "$(jesc "$why")" "$commits" \
         "$RB_OK" "$(jesc "$RB_TARGET")" "$(jesc "$RB_SQL")" "$(jesc "$RB_TAR")" "$(jesc "$RB_DATE")" "$last"
 }

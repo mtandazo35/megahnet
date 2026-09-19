@@ -321,6 +321,10 @@ function deleteImgFactura() {
     const btnRevertir  = document.querySelector('#actBtnRevertir');
     const elRevInfo    = document.querySelector('#actRevertirInfo');
     const elCommitsBox = document.querySelector('#actCommitsBox');
+    const elLocalVer   = document.querySelector('#actLocalVersion');
+    const elRemVer     = document.querySelector('#actRemoteVersion');
+    const elMejorasBox = document.querySelector('#actMejorasBox');
+    const elMejorasLis = document.querySelector('#actMejorasLista');
     const elCommitsList= document.querySelector('#actCommitsLista');
     const elCommitsNum = document.querySelector('#actCommitsCount');
 
@@ -363,6 +367,27 @@ function deleteImgFactura() {
         const pegadoAbajo = elLog.scrollHeight - elLog.scrollTop - elLog.clientHeight < 40;
         elLog.textContent = (texto && texto.trim() !== '') ? texto : '(sin registro)';
         if (pegadoAbajo) elLog.scrollTop = elLog.scrollHeight;
+    }
+
+    /**
+     * Mejoras en lenguaje llano (check.mejoras, sacadas del CHANGELOG publicado).
+     * Si no vienen -por ser una version anterior al changelog- se oculta y manda
+     * el detalle tecnico de los commits.
+     */
+    function pintarMejoras(mejoras) {
+        if (!elMejorasBox || !elMejorasLis) return;
+        elMejorasLis.textContent = '';
+        if (!Array.isArray(mejoras) || mejoras.length === 0) {
+            elMejorasBox.hidden = true;
+            return;
+        }
+        mejoras.forEach(function (m) {
+            const li = document.createElement('li');
+            li.className = 'mb-1';
+            li.textContent = m;
+            elMejorasLis.appendChild(li);
+        });
+        elMejorasBox.hidden = false;
     }
 
     /** Lista los commits pendientes (check.commits). Oculta la seccion si viene vacia. */
@@ -430,10 +455,14 @@ function deleteImgFactura() {
         if (!check) return;
 
         pintarCommits(check.commits);
+        pintarMejoras(check.mejoras);
         pintarRollback(check.rollback);
 
         const local  = check.local  || {};
         const remoto = check.remote || {};
+        // La version es lo que se ensena; el hash queda de apoyo para soporte.
+        if (elLocalVer) elLocalVer.textContent = local.version ? ('v' + local.version) : 'sin version';
+        if (elRemVer)   elRemVer.textContent   = remoto.version ? ('v' + remoto.version) : 'sin version';
         elLocalShort.textContent = local.short || '--';
         elLocalDate.textContent  = local.date ? local.date.substring(0, 16) : '';
         elLocalSubj.textContent  = local.subject || '';
@@ -443,7 +472,9 @@ function deleteImgFactura() {
         elRemUrl.title           = check.remote_url || '';
 
         const pendientes = parseInt(check.behind, 10) || 0;
-        elBehind.textContent = pendientes;
+        // La tarjeta cuenta mejoras si las hay; si no, cae en el numero de commits.
+        const nMejoras = Array.isArray(check.mejoras) ? check.mejoras.length : 0;
+        elBehind.textContent = nMejoras > 0 ? nMejoras : pendientes;
         const adelante = parseInt(check.ahead, 10) || 0;
         elAhead.textContent = adelante > 0 ? (adelante + ' commit(s) locales sin subir') : '';
 
@@ -460,8 +491,9 @@ function deleteImgFactura() {
             btnActualizar.disabled = true;
         } else if (check.can_update) {
             aviso('alert-primary', 'bx-cloud-download',
-                'Hay <b>' + pendientes + '</b> cambio(s) disponible(s): <code>' +
-                (local.short || '') + '</code> &rarr; <code>' + (remoto.short || '') + '</code>.');
+                'Hay una actualizacion disponible: <b>' +
+                (local.version ? 'v' + local.version : local.short || '') + '</b> &rarr; <b>v' +
+                (remoto.version || remoto.short || '') + '</b>.');
             btnActualizar.disabled = false;
         } else if (pendientes === 0) {
             aviso('alert-success', 'bx-check-circle', 'El sistema esta al dia.');
