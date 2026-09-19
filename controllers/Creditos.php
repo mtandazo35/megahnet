@@ -451,11 +451,21 @@ class Creditos extends Controller
                     $datosCliente = $dataOrdenVenta;
                 }
 
-                // Si el credito no tiene factura electronica ni orden de venta
-                // asociada, $datosCliente llega vacio: sin esta guarda el acceso
-                // siguiente lanzaba un TypeError y la peticion moria sin responder
-                // (el navegador mostraba "No se pudo enviar / HTTP ?").
-                if (!is_array($datosCliente) || !isset($datosCliente['idCliente'])) {
+                // Las dos consultas de arriba traen el detalle de la factura y el
+                // producto del catalogo, cosas que aqui no se usan para nada: de
+                // $datosCliente solo sale el idCliente. Si el producto ya no esta
+                // en el catalogo, esas consultas no devuelven nada y el abono se
+                // quedaba bloqueado aunque el cliente estuviera identificado (solo
+                // dejaba cobrar el total, que va por otro camino mas simple).
+                // Se vuelve a buscar sin esas condiciones de mas.
+                if (!is_array($datosCliente) || empty($datosCliente['idCliente'])) {
+                    $datosCliente = $this->model->getIdClienteDeCredito($idCredito);
+                }
+
+                // Solo si ni la factura electronica ni la orden de venta llevan a un
+                // cliente: sin esta guarda el acceso siguiente lanzaba un TypeError y
+                // la peticion moria sin responder ("No se pudo enviar / HTTP ?").
+                if (!is_array($datosCliente) || empty($datosCliente['idCliente'])) {
                     $res = array(
                         'msg'  => 'NO SE PUDO IDENTIFICAR AL CLIENTE DE ESTE CREDITO. VUELVA A BUSCARLO Y SELECCIONELO DE LA LISTA.',
                         'type' => 'error'

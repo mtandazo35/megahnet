@@ -212,6 +212,34 @@ WHERE dce.orden_no = $valor AND cr.estado = 1";
          WHERE cr.id = $idCredito";
         return $this->select($sql);
     }
+    // Identifica al cliente de un credito sin depender del detalle de la factura
+    // ni del catalogo de productos. getCreditoElectronica() exige ademas
+    // detalle_factura_electronica y productos: si el producto ya no existe en el
+    // catalogo (o la factura quedo sin detalle) no devuelve nada y el abono se
+    // quedaba sin cliente, aunque el cliente este perfectamente identificado.
+    // Se busca primero por la factura electronica y, si no, por la orden de venta.
+    public function getIdClienteDeCredito($idCredito)
+    {
+        $sql = "SELECT cl.id AS idCliente, dce.cliente AS nombre, dce.telefono, dce.direccion
+        FROM creditos cr
+        INNER JOIN datos_cabecera_electronica dce ON dce.orden_no = cr.id_electronica
+        INNER JOIN clientes cl ON cl.num_identidad = dce.ruc
+        WHERE cr.id = ? LIMIT 1";
+        $data = $this->select($sql, array($idCredito));
+        if (!empty($data) && !empty($data['idCliente'])) {
+            return $data;
+        }
+
+        $sql = "SELECT cl.id AS idCliente, cl.nombre, cl.telefono, cl.direccion
+        FROM creditos cr
+        INNER JOIN orden_venta ov ON ov.id = cr.id_orden_venta
+        INNER JOIN clientes cl ON cl.id = ov.id_cliente
+        WHERE cr.id = ? LIMIT 1";
+        $data = $this->select($sql, array($idCredito));
+
+        return (!empty($data) && !empty($data['idCliente'])) ? $data : null;
+    }
+
     public function actualizarCredito($estado, $idCredito)
     {
         $sql = "UPDATE creditos SET estado = ? WHERE id = ?";
