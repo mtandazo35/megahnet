@@ -295,6 +295,70 @@ function notificarWhatsappFactura(res) {
     if (estado === 'manual' || (!estado && res.whatsapp)) {
         return previsualizarYAbrirWhatsapp(res.whatsapp);
     }
+    // Vista previa antes de enviar: se ve el mensaje tal cual va a salir, se
+    // puede corregir, y solo se manda al confirmar. Si dice que no, se avisa al
+    // servidor para que el reintento automatico no lo mande por detras.
+    if (estado === 'por_confirmar') {
+        var telPrev = String(res.telefonoCliente || '').replace(/^0/, '');
+        var textoPrev = String(res.whatsappMensaje || '');
+        return Swal.fire({
+            title: 'Confirmar pago al cliente',
+            html: '<div style="text-align:left;font-size:.85rem;color:#374151;margin-bottom:.5rem;">' +
+                  '<i class="bx bxl-whatsapp" style="color:#16a34a;font-size:18px;vertical-align:-3px;"></i> Se enviara a <b>+593' + telPrev + '</b>' +
+                  ' <small class="text-muted ms-2">(editable)</small></div>' +
+                  '<textarea id="waFactMsg" style="width:100%;background:#dcfce7;color:#0f172a;padding:.75rem .9rem;' +
+                  'border-radius:10px;font-family:ui-monospace,Menlo,monospace;font-size:.8rem;line-height:1.45;' +
+                  'height:210px;border:1px solid #bbf7d0;resize:vertical;">' +
+                  textoPrev.replace(/[&<>]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]; }) +
+                  '</textarea>' +
+                  '<small class="text-muted d-block mt-1" style="font-size:.7rem;">Asteriscos para *negrita*, guion bajo para _cursiva_.</small>',
+            showCancelButton: true,
+            confirmButtonText: '<i class="bx bx-paper-plane me-1"></i>Enviar',
+            cancelButtonText: 'No enviar',
+            confirmButtonColor: '#16a34a',
+            width: 560,
+            focusConfirm: false
+        }).then(function (r) {
+            var campo = document.getElementById('waFactMsg');
+            var texto = campo ? campo.value : textoPrev;
+            return fetch(base_url + 'automaticas/enviarWhatsappFactura', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ordenNo: res.idVenta,
+                    mensaje: texto,
+                    telefono: res.telefonoCliente,
+                    enviar: !!r.isConfirmed
+                })
+            }).then(function (resp) { return resp.json(); })
+              .then(function (d) {
+                  if (!r.isConfirmed) { return; }
+                  if (d.ok && d.enviado) {
+                      return Swal.fire({
+                          icon: 'success', title: 'WhatsApp enviado',
+                          html: '<span style="font-size:.9rem;color:#374151;">Se confirmo el pago al cliente a +593' + telPrev + '.</span>',
+                          timer: 2400, timerProgressBar: true, showConfirmButton: false
+                      });
+                  }
+                  // La API fallo: se ofrece mandarlo a mano, sin perder el texto.
+                  return Swal.fire({
+                      icon: 'warning',
+                      title: 'No se pudo enviar por la API',
+                      text: (d.msg || 'Fallo el envio') + '. Abrir WhatsApp Web para enviarlo a mano?',
+                      showCancelButton: true,
+                      confirmButtonText: 'Abrir WhatsApp Web',
+                      cancelButtonText: 'Cerrar'
+                  }).then(function (r2) {
+                      if (r2.isConfirmed && d.resWhatsapp) { window.open(d.resWhatsapp, '_blank'); }
+                  });
+              })
+              .catch(function () {
+                  return Swal.fire({ icon: 'error', title: 'Error de red', text: 'No se pudo contactar al servidor' });
+              });
+        });
+    }
+
     if (estado === 'enviado') {
         var tel = res.telefonoCliente ? (' a +593' + String(res.telefonoCliente).replace(/^0/, '')) : '';
         return Swal.fire({

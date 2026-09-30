@@ -1080,13 +1080,18 @@ class Automaticas extends Controller
         // Numero de comprobante (transferencia, deposito...). Es opcional: solo
         // se comprueba si viene con algo escrito.
         $codigoComprobante = trim((string)($datos['codigoComprobante'] ?? ''));
-        if ($codigoComprobante !== '') {
+        // Un mismo comprobante puede cubrir varios contratos (una transferencia
+        // que paga tres servicios), asi que avisar y dejar decidir, en vez de
+        // bloquear. La pantalla pregunta y reenvia con comprobanteConfirmado.
+        $comprobanteConfirmado = !empty($datos['comprobanteConfirmado']);
+        if ($codigoComprobante !== '' && !$comprobanteConfirmado) {
             $usado = $this->model->getComprobanteUsado($codigoComprobante);
             if (!empty($usado)) {
                 $res = array(
                     'msg'  => 'EL COMPROBANTE ' . $codigoComprobante . ' YA SE REGISTRO ANTES EN ' .
                               $usado['origen'] . ' ' . $usado['referencia'] . ' (' . $usado['fecha'] . ')',
-                    'type' => 'error'
+                    'type' => 'duplicado',
+                    'detalle' => $usado
                 );
                 echo json_encode($res);
                 die();
@@ -1349,24 +1354,18 @@ class Automaticas extends Controller
                                      . "Su saldo a la fecha es: $0.00\n"
                                      . "Incluido *SERVICIO " . $mesesSeleccionado . "*\n"
                                      . "*" . $facturaElectronica['cliente'] . "*";
-                            $waOk = false;
-                            if (function_exists('enviarWhatsappTexto')) {
-                                $apiRes = enviarWhatsappTexto($tel, $textoWa);
-                                $waOk = !empty($apiRes['ok']);
-                            }
-                            // Solo si salio se da por resuelto; si la API fallo se deja
-                            // pendiente y el cron lo reintenta dentro de la ventana.
-                            if ($waOk) {
-                                $this->model->marcarWhatsappEnviado($numSerieElectronica);
-                            }
-                            $waEstado = $waOk ? 'enviado' : 'manual';
-                            $resWathsapp = $waOk ? null
-                                         : ('https://web.whatsapp.com/send?phone=593' . $tel
-                                            . '&text=' . rawurlencode($textoWa));
+                            // No se envia aqui: el mensaje se devuelve para que la
+                            // pantalla lo ensene y el usuario lo revise antes. El envio
+                            // real ocurre en enviarWhatsappFactura(). La factura queda
+                            // marcada como pendiente, asi que si el usuario cierra la
+                            // ventana sin decidir, el cron lo reintenta igual.
+                            $waEstado = 'por_confirmar';
+                            $resWathsapp = 'https://web.whatsapp.com/send?phone=593' . $tel
+                                         . '&text=' . rawurlencode($textoWa);
                         }
                         // whatsappEstado: la pantalla no puede distinguir "salio bien"
                         // de "no hay telefono" mirando solo el enlace vacio.
-                        $res = array('msg' => 'FACTURA ELECTRONICA GENERADA EXITOSAMENTE', 'type' => 'success', 'ClaveAcceso' => $claveAcceso, 'factura' => 'electronica', 'idVenta' => $numSerieElectronica, 'whatsapp' => $resWathsapp, 'whatsappEstado' => $waEstado, 'telefonoCliente' => $tel);
+                        $res = array('msg' => 'FACTURA ELECTRONICA GENERADA EXITOSAMENTE', 'type' => 'success', 'ClaveAcceso' => $claveAcceso, 'factura' => 'electronica', 'idVenta' => $numSerieElectronica, 'whatsapp' => $resWathsapp, 'whatsappEstado' => $waEstado, 'telefonoCliente' => $tel, 'whatsappMensaje' => isset($textoWa) ? $textoWa : '');
                         // Alerta admin: cliente sin correo registrado
                         if (empty($dataInfo['email']) || !filter_var($dataInfo['email'], FILTER_VALIDATE_EMAIL)) {
                             try {
@@ -1679,6 +1678,65 @@ class Automaticas extends Controller
 
         // Output the generated PDF to Browser
         $dompdf->stream('Reportes.pdf', array('Attachment' => false));
+    }
+
+    /**
+     * Envia el WhatsApp de "gracias por su pago" que el usuario acaba de revisar
+     * en pantalla (puede haberlo corregido), o lo descarta si dice que no.
+     * En ambos casos la factura queda resuelta, para que el reintento del cron
+     * no mande por detras un mensaje que el usuario ya decidio.
+     */
+    public function enviarWhatsappFactura()
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        if (empty($_SESSION['id_usuario'])) {
+            echo json_encode(array('ok' => false, 'msg' => 'No autorizado'));
+            die();
+        }
+
+        $datos    = json_decode(file_get_contents('php://input'), true);
+        $ordenNo  = isset($datos['ordenNo']) ? (int)$datos['ordenNo'] : 0;
+        $mensaje  = trim((string)($datos['mensaje'] ?? ''));
+        $telefono = preg_replace('/[^0-9]/', '', (string)($datos['telefono'] ?? ''));
+        $enviar   = !empty($datos['enviar']);
+
+        if ($ordenNo <= 0) {
+            echo json_encode(array('ok' => false, 'msg' => 'Factura no identificada'));
+            die();
+        }
+
+        // "No enviar" tambien se registra: el usuario ya decidio por esta factura.
+        if (!$enviar) {
+            $this->model->marcarWhatsappEnviado($ordenNo);
+            echo json_encode(array('ok' => true, 'enviado' => false));
+            die();
+        }
+
+        if ($mensaje === '' || $telefono === '') {
+            echo json_encode(array('ok' => false, 'msg' => 'Falta el mensaje o el telefono'));
+            die();
+        }
+
+        $waOk = false;
+        if (function_exists('enviarWhatsappTexto')) {
+            $apiRes = enviarWhatsappTexto($telefono, $mensaje);
+            $waOk = !empty($apiRes['ok']);
+        }
+        if ($waOk) {
+            $this->model->marcarWhatsappEnviado($ordenNo);
+            echo json_encode(array('ok' => true, 'enviado' => true, 'telefono' => $telefono));
+            die();
+        }
+
+        // La API no pudo: se deja pendiente (el cron reintenta) y se ofrece el
+        // enlace para mandarlo a mano desde WhatsApp Web.
+        echo json_encode(array(
+            'ok'  => false,
+            'msg' => 'La API de WhatsApp no pudo enviarlo',
+            'resWhatsapp' => 'https://web.whatsapp.com/send?phone=593' . $telefono
+                             . '&text=' . rawurlencode($mensaje)
+        ));
+        die();
     }
 
     public function listarElectronica()

@@ -20,7 +20,8 @@ const RAIZ = path.join(__dirname, '..');
 
 // --- doble de Swal: recuerda lo que se pinto y cierra con la respuesta dada ---
 function crearEntorno(respuestaModal) {
-    const registro = { modales: [], recargas: 0, ventanas: [], ordenEventos: [] };
+    const registro = { modales: [], recargas: 0, ventanas: [], ordenEventos: [], peticiones: [],
+                       respuestaEnvio: { ok: true, enviado: true } };
 
     const Swal = {
         fire(opciones) {
@@ -33,6 +34,12 @@ function crearEntorno(respuestaModal) {
 
     const contexto = {
         Swal,
+        // Doble de fetch: guarda lo que se mandaria al servidor y responde lo
+        // que pida la prueba.
+        fetch: (url, opciones) => {
+            registro.peticiones.push({ url, cuerpo: JSON.parse(opciones.body) });
+            return Promise.resolve({ json: () => Promise.resolve(registro.respuestaEnvio) });
+        },
         console,
         Promise,
         URL,
@@ -137,6 +144,48 @@ prueba('enlace vacio directo a la vista previa: no revienta', async () => {
     try { await contexto.previsualizarYAbrirWhatsapp(null); } catch (e) { fallo = e; }
     igual(fallo, null, 'no debe lanzar excepcion');
     igual(registro.modales.length, 0, 'no abre vista previa sin enlace');
+});
+
+prueba('vista previa: ensena el mensaje y lo envia al confirmar', async () => {
+    const { contexto, registro } = crearEntorno({ isConfirmed: true });
+    await trasFacturar(contexto, registro, {
+        type: 'success', factura: 'electronica', idVenta: 13996,
+        whatsappEstado: 'por_confirmar', telefonoCliente: '0959864493',
+        whatsappMensaje: ['Buen dia estimado/a cliente', '*MEGAHNET*', '*GRACIAS POR SU PAGO*'].join(String.fromCharCode(10))
+    });
+    contiene(registro.modales[0].title, 'Confirmar pago al cliente', 'titulo del modal');
+    contiene(registro.modales[0].html, 'GRACIAS POR SU PAGO', 'el mensaje se ve');
+    contiene(registro.modales[0].html, '+593959864493', 'telefono');
+    igual(registro.modales[0].cancelButtonText, 'No enviar', 'boton de descartar');
+    igual(registro.peticiones.length, 1, 'peticiones al servidor');
+    igual(registro.peticiones[0].cuerpo.enviar, true, 'pide enviar');
+    igual(registro.peticiones[0].cuerpo.ordenNo, 13996, 'factura');
+    igual(registro.recargas, 1, 'recargas');
+});
+
+prueba('vista previa: si dice "No enviar" avisa al servidor y no presume envio', async () => {
+    const { contexto, registro } = crearEntorno({ isConfirmed: false });
+    registro.respuestaEnvio = { ok: true, enviado: false };
+    await trasFacturar(contexto, registro, {
+        type: 'success', factura: 'electronica', idVenta: 13997,
+        whatsappEstado: 'por_confirmar', telefonoCliente: '0959864493',
+        whatsappMensaje: 'texto'
+    });
+    igual(registro.peticiones[0].cuerpo.enviar, false, 'pide NO enviar');
+    igual(registro.modales.length, 1, 'no muestra aviso de enviado');
+    igual(registro.recargas, 1, 'recargas');
+});
+
+prueba('vista previa: si la API falla ofrece WhatsApp Web', async () => {
+    const { contexto, registro } = crearEntorno({ isConfirmed: true });
+    registro.respuestaEnvio = { ok: false, msg: 'La API no pudo', resWhatsapp: 'https://web.whatsapp.com/send?phone=593999&text=hola' };
+    await trasFacturar(contexto, registro, {
+        type: 'success', factura: 'electronica', idVenta: 13998,
+        whatsappEstado: 'por_confirmar', telefonoCliente: '0999999999', whatsappMensaje: 'hola'
+    });
+    contiene(registro.modales[1].title, 'No se pudo enviar por la API', 'segundo modal');
+    igual(registro.ventanas.length, 1, 'abre WhatsApp Web al confirmar');
+    igual(registro.recargas, 1, 'recargas');
 });
 
 // ------------------------------------------------------------------ arranque

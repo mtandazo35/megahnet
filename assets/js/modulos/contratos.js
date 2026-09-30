@@ -285,11 +285,15 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
       const url = base_url + 'automaticas/facturarContrato';
       //hacer una instancia del objeto XMLHttpRequest 
+      // Se envuelve en una funcion porque puede repetirse: si el comprobante
+      // ya estaba usado se pregunta y, si el usuario confirma, se reenvia.
+      const facturar = function (comprobanteConfirmado) {
       const http = new XMLHttpRequest();
       //Abrir una Conexion - POST - GET
       http.open('POST', url, true);
       //Enviar Datos
       http.send(JSON.stringify({
+        comprobanteConfirmado: !!comprobanteConfirmado,
         idContrato: idContrato.value,
         enero: chEnero.value,
         febrero: chFebrero.value,
@@ -314,7 +318,22 @@ document.addEventListener('DOMContentLoaded', function () {
       http.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
           const res = JSON.parse(this.responseText)
-          console.log(this.responseText)
+          // Comprobante ya usado: no se bloquea, se pregunta. Puede ser correcto
+          // (una transferencia que cubre varios contratos) o un error de tecleo.
+          if (res.type == 'duplicado') {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Comprobante repetido',
+              html: '<div style="font-size:.9rem;color:#374151;">' + res.msg + '</div>' +
+                    '<div style="font-size:.8rem;color:#6b7280;margin-top:.6rem;">Si es una transferencia que cubre varios contratos, puedes continuar.</div>',
+              showCancelButton: true,
+              confirmButtonText: 'Facturar igual',
+              cancelButtonText: 'Revisar',
+              confirmButtonColor: '#d97706',
+              width: 520
+            }).then(function (r) { if (r.isConfirmed) { facturar(true); } });
+            return;
+          }
           alertaPersonalizada(res.type, res.msg)
           if (res.type == 'success') {
             if (res.factura == 'ordenVenta') {
@@ -362,6 +381,8 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         }
       }
+      };
+      facturar(false);
     }
   })
 
