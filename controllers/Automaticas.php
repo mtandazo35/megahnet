@@ -1321,6 +1321,7 @@ class Automaticas extends Controller
                         );
 
                         $tel = $facturaElectronica['telefono'] ?? '';
+                        $waEstado = 'sin_telefono';
                         if ($tel === '') {
                             // Sin telefono no hay nada que enviar: se da por resuelto
                             // para que el cron no lo reintente indefinidamente.
@@ -1341,11 +1342,14 @@ class Automaticas extends Controller
                             if ($waOk) {
                                 $this->model->marcarWhatsappEnviado($numSerieElectronica);
                             }
+                            $waEstado = $waOk ? 'enviado' : 'manual';
                             $resWathsapp = $waOk ? null
                                          : ('https://web.whatsapp.com/send?phone=593' . $tel
                                             . '&text=' . rawurlencode($textoWa));
                         }
-                        $res = array('msg' => 'FACTURA ELECTRONICA GENERADA EXITOSAMENTE', 'type' => 'success', 'ClaveAcceso' => $claveAcceso, 'factura' => 'electronica', 'idVenta' => $numSerieElectronica, 'whatsapp' => $resWathsapp);
+                        // whatsappEstado: la pantalla no puede distinguir "salio bien"
+                        // de "no hay telefono" mirando solo el enlace vacio.
+                        $res = array('msg' => 'FACTURA ELECTRONICA GENERADA EXITOSAMENTE', 'type' => 'success', 'ClaveAcceso' => $claveAcceso, 'factura' => 'electronica', 'idVenta' => $numSerieElectronica, 'whatsapp' => $resWathsapp, 'whatsappEstado' => $waEstado, 'telefonoCliente' => $tel);
                         // Alerta admin: cliente sin correo registrado
                         if (empty($dataInfo['email']) || !filter_var($dataInfo['email'], FILTER_VALIDATE_EMAIL)) {
                             try {
@@ -1464,6 +1468,7 @@ class Automaticas extends Controller
                 );
 
                 $tel = $getordenVenta['telefono'] ?? '';
+                $waEstado = 'sin_telefono';
                 if ($tel === '') {
                     $resWathsapp = null;
                 } else {
@@ -1476,12 +1481,13 @@ class Automaticas extends Controller
                         $apiRes = enviarWhatsappTexto($tel, $textoWa);
                         $waOk = !empty($apiRes['ok']);
                     }
+                    $waEstado = $waOk ? 'enviado' : 'manual';
                     $resWathsapp = $waOk ? null
                                  : ('https://web.whatsapp.com/send?phone=593' . $tel
                                     . '&text=' . rawurlencode($textoWa));
                 }
 
-                $res = array('msg' => 'ORDEN VENTA GENERADA EXITOSAMENTE', 'type' => 'success', 'idVenta' => $ordenVenta, 'factura' => 'ordenVenta', 'whatsapp' => $resWathsapp);
+                $res = array('msg' => 'ORDEN VENTA GENERADA EXITOSAMENTE', 'type' => 'success', 'idVenta' => $ordenVenta, 'factura' => 'ordenVenta', 'whatsapp' => $resWathsapp, 'whatsappEstado' => $waEstado, 'telefonoCliente' => $tel);
                 sendEmailOrden($dataInfo, 'email_facturaelectronica');
 
             } else {

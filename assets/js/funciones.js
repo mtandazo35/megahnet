@@ -280,20 +280,63 @@ function alertaPersonalizada(type, msg) {
 // Previsualiza un mensaje WhatsApp (URL tipo wa.me / web.whatsapp.com/send?text=...)
 // antes de abrirlo. El usuario puede editar el mensaje en el modal y los cambios
 // se reflejan en la URL final que se abre.
+/**
+ * Avisa del resultado del WhatsApp que acompana a una factura y devuelve SIEMPRE
+ * una promesa, para que quien llame pueda recargar la pagina despues (y no a la
+ * vez, que era lo que borraba el aviso antes de verse).
+ *   enviado      -> la API lo mando sola, solo se confirma
+ *   sin_telefono -> el cliente no tiene numero: se avisa, no es un error
+ *   manual       -> la API fallo; se abre la vista previa para mandarlo a mano
+ */
+function notificarWhatsappFactura(res) {
+    res = res || {};
+    var estado = res.whatsappEstado || (res.whatsapp ? 'manual' : '');
+
+    if (estado === 'manual' || (!estado && res.whatsapp)) {
+        return previsualizarYAbrirWhatsapp(res.whatsapp);
+    }
+    if (estado === 'enviado') {
+        var tel = res.telefonoCliente ? (' a +593' + String(res.telefonoCliente).replace(/^0/, '')) : '';
+        return Swal.fire({
+            icon: 'success',
+            title: 'WhatsApp enviado',
+            html: '<span style="font-size:.9rem;color:#374151;">Se confirmo el pago al cliente' + tel + '.</span>',
+            timer: 2600,
+            timerProgressBar: true,
+            showConfirmButton: false
+        });
+    }
+    if (estado === 'sin_telefono') {
+        return Swal.fire({
+            icon: 'info',
+            title: 'Sin WhatsApp',
+            html: '<span style="font-size:.9rem;color:#374151;">El cliente no tiene telefono registrado, no se envio la confirmacion.</span>',
+            confirmButtonText: 'Entendido'
+        });
+    }
+    // Respuesta de una version anterior del servidor: no se inventa nada.
+    return Promise.resolve();
+}
+
 function previsualizarYAbrirWhatsapp(url) {
     var text = '';
     var phone = '';
+    // Sin enlace no hay nada que previsualizar: antes se intentaba igual y la
+    // funcion moria con "Cannot read properties of null", dejando la pantalla
+    // colgada justo cuando el envio habia salido bien.
+    if (!url) { return Promise.resolve(); }
+    var sUrl = String(url);
     try {
-        var u = new URL(url);
+        var u = new URL(sUrl);
         text  = u.searchParams.get('text')  || '';
         phone = u.searchParams.get('phone') || '';
     } catch (e) {
         // Fallback regex si URL no parsea (ej. URLs con espacios sin codificar)
-        var m = url.match(/[?&]text=([^&]*)/);   if (m) { try { text  = decodeURIComponent(m[1].replace(/\+/g,' ')); } catch(_){ text  = m[1]; } }
-        var p = url.match(/[?&]phone=([^&]*)/);  if (p) { try { phone = decodeURIComponent(p[1]); } catch(_){ phone = p[1]; } }
+        var m = sUrl.match(/[?&]text=([^&]*)/);   if (m) { try { text  = decodeURIComponent(m[1].replace(/\+/g,' ')); } catch(_){ text  = m[1]; } }
+        var p = sUrl.match(/[?&]phone=([^&]*)/);  if (p) { try { phone = decodeURIComponent(p[1]); } catch(_){ phone = p[1]; } }
     }
 
-    Swal.fire({
+    return Swal.fire({
         title: '<i class="bx bxl-whatsapp" style="color:#16a34a;font-size:24px;vertical-align:-4px;"></i> Previsualizar WhatsApp',
         html:
             '<div class="text-start">' +
@@ -320,7 +363,7 @@ function previsualizarYAbrirWhatsapp(url) {
         var ph  = (result.value.phone || '').replace(/[^0-9+]/g, '');
         var finalUrl;
         try {
-            var u2 = new URL(url);
+            var u2 = new URL(sUrl);
             u2.searchParams.set('text', msg);
             if (ph) {
                 u2.searchParams.set('phone', ph);

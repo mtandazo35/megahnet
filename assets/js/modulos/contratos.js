@@ -321,13 +321,14 @@ document.addEventListener('DOMContentLoaded', function () {
                   confirmButtonText: 'ENVIO POR WHATSAPP'
                 }).then((result) => {
                   /* Read more about isConfirmed, isDenied below */
+                  // La recarga va DESPUES del aviso: lanzarla a la vez borraba el
+                  // modal antes de que se viera.
+                  const recargar = () => window.location.reload();
                   if (result.isConfirmed) {
-                    const ruta = base_url + 'ordenventa/reporte/factura/' + res.idVenta;
-                    //  window.open(ruta, '_blank');
-                    const whatsapp = res.whatsapp;
-                    previsualizarYAbrirWhatsapp(whatsapp);
+                    notificarWhatsappFactura(res).then(recargar, recargar);
+                  } else {
+                    recargar();
                   }
-                  window.location.reload()
                 })
               }, 2000)
             } else {
@@ -342,18 +343,13 @@ document.addEventListener('DOMContentLoaded', function () {
                   denyButtonText: `Factura`
                 }).then((result) => {
                   /* Read more about isConfirmed, isDenied below */
-                  if (result.isConfirmed) {
-                    const ruta = base_url + 'ventas/facturaTicked/' + res.ClaveAcceso + '/' + res.idVenta
-                    //  window.open(ruta, '_blank')
-                    const whatsapp = res.whatsapp;
-                    previsualizarYAbrirWhatsapp(whatsapp);
-                  } else if (result.isDenied) {
-                    const ruta = base_url + 'facturaelectronica/public/archivos/ride/' + res.ClaveAcceso + '.pdf'
-                    //  window.open(ruta, '_blank')
-                    const whatsapp = res.whatsapp;
-                    previsualizarYAbrirWhatsapp(whatsapp);
+                  // Igual que arriba: primero el aviso, la recarga al cerrarlo.
+                  const recargar = () => window.location.reload();
+                  if (result.isConfirmed || result.isDenied) {
+                    notificarWhatsappFactura(res).then(recargar, recargar);
+                  } else {
+                    recargar();
                   }
-                  window.location.reload()
                 })
               }, 2000)
             }
