@@ -1077,6 +1077,22 @@ class Automaticas extends Controller
         $idContrato = $datos['idContrato'];
         $totalFacturar = $datos['total'];
         $tipoPago = $datos['tipoPago'];
+        // Numero de comprobante (transferencia, deposito...). Es opcional: solo
+        // se comprueba si viene con algo escrito.
+        $codigoComprobante = trim((string)($datos['codigoComprobante'] ?? ''));
+        if ($codigoComprobante !== '') {
+            $usado = $this->model->getComprobanteUsado($codigoComprobante);
+            if (!empty($usado)) {
+                $res = array(
+                    'msg'  => 'EL COMPROBANTE ' . $codigoComprobante . ' YA SE REGISTRO ANTES EN ' .
+                              $usado['origen'] . ' ' . $usado['referencia'] . ' (' . $usado['fecha'] . ')',
+                    'type' => 'error'
+                );
+                echo json_encode($res);
+                die();
+            }
+        }
+        $codigoComprobante = ($codigoComprobante === '') ? null : $codigoComprobante;
 
 
         //print_r($datos); exit;
@@ -1215,7 +1231,8 @@ class Automaticas extends Controller
                 $estado,
                 $metodo,
                 $this->id_usuario,
-                $idCliente
+                $idCliente,
+                $codigoComprobante
             );
             if ($ventaEncabezado > 0) {
                 // Cobro manual desde "Facturar Contratos": esta factura si debe generar el
@@ -1418,7 +1435,7 @@ class Automaticas extends Controller
             //  print_r($array['productos']); exit;
 
             $datosProductos = json_encode($array['productos'], JSON_UNESCAPED_UNICODE);
-            $ordenVenta = $this->model->registrarOrdenVenta($datosProductos, $total, $fecha, $hora, $metodo, $descuento, $serieOrdenVenta[0], $estado, $idCliente, $this->id_usuario, $tipoPago);
+            $ordenVenta = $this->model->registrarOrdenVenta($datosProductos, $total, $fecha, $hora, $metodo, $descuento, $serieOrdenVenta[0], $estado, $idCliente, $this->id_usuario, $tipoPago, $codigoComprobante);
             if ($ordenVenta > 0) {
                 foreach ($productos as $producto) {
                     $result = $this->model->getProducto($producto['id']);

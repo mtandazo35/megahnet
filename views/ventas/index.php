@@ -337,6 +337,7 @@ $totalDocumento    = $limiteDocumento - $cantidadDocumento;
                                     <th>Clave Accesso</th>
                                     <th>Estado</th>
                                     <th>Total</th>
+                                    <th>Comprobante</th>
                                     <th>Sri</th>
                                     <th>Correo</th>
                                     <th>Duplicada</th>

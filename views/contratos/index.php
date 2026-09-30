@@ -474,6 +474,15 @@
                         </div>
                     </div>
                     <div class="form-group mb-2">
+                        <label for="codigoComprobante">Codigo Comprobante <span class="text-muted small">(opcional)</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-receipt"></i></span>
+                            <input class="form-control" type="text" id="codigoComprobante" maxlength="60"
+                                   placeholder="Codigo Comprobante / Validar" autocomplete="off">
+                        </div>
+                        <span class="text-danger fw-bold small" id="errorComprobante"></span>
+                    </div>
+                    <div class="form-group mb-2">
                         <label for="tipopago">Metodo</label>
                         <select id="tipopago" class="form-control" name="tipopago">
                             <?php foreach ($data['tipoPago'] as $tipoPago) {               ?>

@@ -268,6 +268,10 @@ document.addEventListener('DOMContentLoaded', function () {
     chDiciembre.checked = false;
     valorContrato.value = 0;
     valorFacturar.value = 0;
+    // El comprobante es de un cobro concreto: se limpia al abrir para que no se
+    // arrastre el numero del cliente anterior.
+    const campoComprobante = document.querySelector('#codigoComprobante');
+    if (campoComprobante) campoComprobante.value = '';
     modalFacturarContratos.show();
 
   })
@@ -300,7 +304,9 @@ document.addEventListener('DOMContentLoaded', function () {
         noviembre: chNoviembre.value,
         diciembre: chDiciembre.value,
         total: valorFacturar.value,
-        tipoPago: tipopago.value
+        tipoPago: tipopago.value,
+        // Opcional: si esta vacio el servidor lo guarda como nulo y no valida nada.
+        codigoComprobante: (document.querySelector('#codigoComprobante') || {}).value || ''
 
 
       }));

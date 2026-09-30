@@ -124,11 +124,31 @@ class AutomaticasModel extends Query
         $sql = "SELECT * FROM cajas WHERE estado = 1 AND id_usuario = $id_usuario";
         return $this->select($sql);
     }
-    public function registrarOrdenVenta($productos, $total, $fecha, $hora, $metodo, $descuento, $serie, $estado, $idCliente, $idusuario, $tipoPago)
+    // $codigoPago va al final y con valor por defecto: las llamadas que no lo
+    // pasan (facturacion automatica) siguen funcionando igual.
+    public function registrarOrdenVenta($productos, $total, $fecha, $hora, $metodo, $descuento, $serie, $estado, $idCliente, $idusuario, $tipoPago, $codigoPago = null)
     {
-        $sql = "INSERT INTO orden_venta (productos, total, fecha, hora, metodo,descuento, serie,estado, id_cliente, id_usuario,tipopago) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
-        $array = array($productos, $total, $fecha, $hora, $metodo, $descuento, $serie, $estado, $idCliente, $idusuario, $tipoPago);
+        $sql = "INSERT INTO orden_venta (productos, total, fecha, hora, metodo,descuento, serie,estado, id_cliente, id_usuario,tipopago,codigo_pago) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+        $array = array($productos, $total, $fecha, $hora, $metodo, $descuento, $serie, $estado, $idCliente, $idusuario, $tipoPago, $codigoPago);
         return $this->insertar($sql, $array);
+    }
+
+    /**
+     * Devuelve donde se uso ya un numero de comprobante, o null si esta libre.
+     * Mira los tres sitios donde puede haber quedado registrado un pago:
+     * facturas electronicas, ordenes de venta y abonos de credito.
+     */
+    public function getComprobanteUsado($codigo)
+    {
+        $sql = "SELECT 'FACTURA' AS origen, secuencial AS referencia, fecha
+                FROM datos_cabecera_electronica WHERE codigo_pago = ?
+                UNION ALL
+                SELECT 'ORDEN DE VENTA', serie, fecha FROM orden_venta WHERE codigo_pago = ?
+                UNION ALL
+                SELECT 'ABONO', CONCAT('CREDITO #', id_credito), fecha FROM abonos WHERE codigo_pago = ?
+                LIMIT 1";
+        $data = $this->select($sql, array($codigo, $codigo, $codigo));
+        return empty($data) ? null : $data;
     }
     //registro de facturacion Electronica
 
@@ -156,12 +176,13 @@ class AutomaticasModel extends Query
         $estado,
         $metodo,
         $idusuario,
-        $idCliente
+        $idCliente,
+        $codigoPago = null
 
     ) {
         $sql = "INSERT INTO datos_cabecera_electronica (fecha, orden_no, cliente, direccion,telefono, ruc,tipo_identificacion,
          correo,establecimiento,punto_emi,ruc_empresa,ambiente,razon_social,nombre_comercial,secuencial,
-         direccion_matriz,obligado,totaldescuento,totalfactura,tipopago,estado,metodo,id_usuario,id_cliente) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+         direccion_matriz,obligado,totaldescuento,totalfactura,tipopago,estado,metodo,id_usuario,id_cliente,codigo_pago) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         $array = array(
             $fecha,
             $numSerieElectronica,
@@ -186,7 +207,8 @@ class AutomaticasModel extends Query
             $estado,
             $metodo,
             $idusuario,
-            $idCliente
+            $idCliente,
+            $codigoPago
         );
         return $this->insertar($sql, $array);
     }

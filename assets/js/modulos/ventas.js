@@ -232,6 +232,8 @@ document.addEventListener('DOMContentLoaded', function () {
       { data: 'claveacceso' },
       { data: 'estado' },
       { data: 'totalfactura' },
+      // Codigo de comprobante: puede venir vacio en facturas anteriores al campo.
+      { data: 'codigo_pago', defaultContent: '' },
       { data: 'autorizacion' },
       { data: 'correoBadge', defaultContent: '' },
       { data: 'duplicadaBadge', defaultContent: '' }

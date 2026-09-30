@@ -135,7 +135,7 @@ class VentasModel extends Query
         $params = [];
         $sql = "SELECT dce.fecha, TIME_FORMAT(rs.createdAt, '%H:%i:%s') AS hora,
                        dce.orden_no, dce.cliente, dce.estado, dce.totalfactura, dce.claveacceso,
-                       dce.correo, dce.correo_enviado,
+                       dce.correo, dce.correo_enviado, dce.codigo_pago,
                        cl.id AS id_cliente,
                        COALESCE(rs.estado, 'PENDIENTE') AS autorizacion,
                        (
